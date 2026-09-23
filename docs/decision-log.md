@@ -50,6 +50,42 @@ This log records product and technical decisions as they are made. Proposed deci
 - **Decision:** Treat the Todoist Beginner plan as the baseline for the first release.
 - **Rationale:** The current must-have features are available on the free plan. Paid-only features should not be required for the core experience.
 
+## D-009: Use Tailnet-only access without Keydo login
+
+- **Status:** Accepted
+- **Decision:** Keydo is initially a single-user, Tailscale-gated application reached through the TeamRemco launchpad. It does not require a separate username, password, or bearer token.
+- **Rationale:** The user is the sole Tailnet user and does not want to manage application credentials. Todoist OAuth remains the separate account authorization and must be handled securely.
+
+## D-010: Use an optimistic interaction model
+
+- **Status:** Accepted
+- **Decision:** Apply individual task changes to the local interface immediately, then synchronize them to Todoist in the background.
+- **Rationale:** Perceived speed is more important than waiting for a network round trip. Syncing, saved, and error states must remain visible.
+
+## D-011: Batch or coalesce background mutations
+
+- **Status:** Accepted
+- **Decision:** Use batching underneath the interface for bursts of mutations and multi-select operations, while preserving independent operation results and retries.
+- **Rationale:** The user should receive immediate feedback without sacrificing efficient synchronization or hiding individual failures.
+
+## D-012: Use a list-first task interaction
+
+- **Status:** Accepted
+- **Decision:** Show the task list first, navigate with arrow keys, use `Space` to complete or reopen the selected task, and show its details in a right-hand pane.
+- **Rationale:** This keeps the primary task queue visible while allowing selection and completion without opening a task dialog.
+
+## D-013: Enter detail editing with the right arrow
+
+- **Status:** Accepted
+- **Decision:** The right arrow enters the selected task's detail editor; `Tab` moves between fields and `Escape` returns to the list.
+- **Rationale:** This provides a predictable list-to-details transition while keeping the task list available for navigation.
+
+## D-014: Keep structural moves explicit in project views
+
+- **Status:** Accepted
+- **Decision:** Use `Alt+Arrow` for reordering and indentation/outdentation in explicitly structured project views. Do not make these mutations the default behavior of flattened main or Today views.
+- **Rationale:** Structural changes should be deliberate and should not surprise a user who is merely scanning a list.
+
 ## Open decisions
 
 - Browser-only application versus packaged desktop application

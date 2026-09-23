@@ -27,6 +27,16 @@ The initial interface should contain:
 5. A quick-add path
 6. A visible, keyboard-discoverable action set
 
+The initial task interaction is list-first: the user sees tasks, moves the selection with the arrow keys, presses `Space` to complete or reopen a task, and sees the selected task's details on the right. Pressing the right arrow enters the detail editor, where `Tab` moves between fields.
+
+Changes should be optimistic and appear immediately. Todoist synchronization happens in the background, with visible syncing, saved, and error states. Operations may be batched underneath the interface, but the interface should not make the user wait for a network round trip.
+
+## Access model
+
+Keydo is initially a single-user private application. The user reaches it through the TeamRemco launchpad and a Tailscale MagicDNS link. Tailscale is the access boundary, so Keydo does not require a separate username, password, or bearer token.
+
+Todoist OAuth is the only separate authorization. Its tokens must be stored securely and refreshed automatically. Optional Keydo authentication and multi-user accounts are deferred.
+
 ## High-priority capabilities
 
 ### Task management

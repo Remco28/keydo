@@ -49,7 +49,9 @@ Initial local resource groups:
 - User settings needed for the interface
 - Sync token and synchronization state
 
-Writes should use optimistic updates where safe. A local operation should remain visibly pending until Todoist confirms it or reports a command-level error.
+Writes should use optimistic updates where safe. A local operation should remain visibly pending until Todoist confirms it or reports a command-level error. The UI should expose the state of each pending operation without waiting for the network round trip.
+
+Individual actions should be applied locally immediately. A short-lived queue may batch multiple mutations into one Todoist Sync request, and repeated edits to the same field may be coalesced. Multi-select operations such as completing several tasks should use explicit batch semantics. The application must preserve per-operation results and expose a retry path for failures.
 
 ## Sync strategy
 

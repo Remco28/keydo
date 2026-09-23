@@ -30,13 +30,32 @@ The command palette may be used instead of a large number of global shortcuts. T
 | --- | --- |
 | `j` / `Down` | Select the next task |
 | `k` / `Up` | Select the previous task |
+| `Space` | Complete or reopen the selected task |
+| `Right` | Enter the selected task's detail editor |
+| `Left` | Return from the detail editor to the list |
 | `g` then a view key | Navigate to a view, such as Today or Inbox |
-| `x` | Complete or reopen the selected task |
-| `e` | Edit the selected task |
 | `Enter` | Open or activate the selected task's detail state |
 | `v` | View the selected task's image or larger preview |
 
-The list should retain focus context when tasks are inserted, removed, completed, or reordered.
+The list should retain focus context when tasks are inserted, removed, completed, or reordered. Completion is optimistic: the selected task changes immediately while the Todoist update proceeds in the background.
+
+## Detail editing
+
+When a task is selected, its details are shown in the right-hand pane. Pressing `Right` enters an editing context for that pane. `Tab` and `Shift+Tab` move between editable fields, and `Escape` returns focus to the task list.
+
+The first version should autosave text edits after a short pause and on `Ctrl+Enter`. It should not send a request for every keystroke. The interface should display the synchronization state for the selected task.
+
+## Structural navigation
+
+Plain `Up` and `Down` move selection. In a project or other explicitly structured view:
+
+| Binding | Action |
+| --- | --- |
+| `Alt+Up` / `Alt+Down` | Reorder the task among its siblings |
+| `Alt+Left` | Outdent the task one level |
+| `Alt+Right` | Indent the task under the previous valid sibling |
+
+These structural mutations should be disabled or explicitly invoked in flattened views such as Today or the main list. Moving a task is distinct from changing its order or deleting it.
 
 ## Selected-task actions
 
