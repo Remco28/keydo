@@ -3352,6 +3352,14 @@
         }
         return;
       }
+      if (helpBackdrop.classList.contains("visible")) {
+        if (event.key === "Escape") {
+          event.preventDefault();
+          closeModals();
+          focusSelectedTask(false);
+        }
+        return;
+      }
       if (state.moveFromId && event.key === "Escape") { event.preventDefault(); exitMoveMode(); focusSelectedTask(false); return; }
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") { event.preventDefault(); openCommands(); return; }
       if (event.key === "Escape") {
