@@ -7,7 +7,7 @@ Keydo is a desktop-first, keyboard-first task workspace designed around Todoist.
 Todoist provides a capable task model, but many useful operations require opening views, dialogs, or editors. Keydo is intended to make the common operations available from a selected task or command input:
 
 - Add and move tasks without navigating through task dialogs
-- Change priority and due date with one action
+- Change priority and move tasks to Today or Tomorrow with one action
 - Search and filter the local task set quickly
 - Preview Markdown descriptions beside the task list
 - Create and manage subtasks with direct keyboard commands
@@ -25,7 +25,7 @@ Todoist provides a capable task model, but many useful operations require openin
 
 ## Current status
 
-The runnable web-app shell is now in place. It serves the interactive prototype, exposes health/configuration endpoints, and performs a server-side Todoist Sync when configured. The browser hydrates real Todoist tasks when `TODOIST_ACCESS_TOKEN` is available, refreshes incrementally when the app returns online or becomes visible, and polls every minute while visible. It otherwise remains in demo mode. OAuth and persistent local task storage are the next implementation slices.
+The runnable web-app shell is in place. It serves the interactive prototype, exposes health/configuration endpoints, and performs a server-side Todoist Sync when configured. The browser hydrates real Todoist tasks when `TODOIST_ACCESS_TOKEN` is available, refreshes incrementally when the app returns online or becomes visible, and polls every minute while visible. It otherwise remains in demo mode. In live mode, all synced tasks currently appear in the Personal workspace; Work/Personal classification has no agreed rule yet, so the separate Work workspace is demo-only. Chosen-date entry, OAuth, and persistent local task storage also remain future implementation slices.
 
 ## Development
 
