@@ -30,6 +30,7 @@ export function isCurrentTaskSelection(items: TaskViewTask[], requestedId: strin
 export function isCurrentTaskTarget(items: TaskViewTask[], requestedId: string | null, targetId: string | null): boolean;
 export function removeTaskSelectionIds(selectedIds: Set<string>, removedIds: Set<string>): Set<string>;
 export function retainExistingTaskIds(items: TaskViewTask[], requestedIds: string[]): string[];
+export function selectionIndexAfterMove(items: TaskViewTask[], selectedId: string | null, delta: number): number;
 
 export function isHiddenByCollapse(
   task: TaskViewTask,

@@ -50,6 +50,13 @@ export function retainExistingTaskIds(items, requestedIds) {
   return requestedIds.filter(id => existingIds.has(id));
 }
 
+export function selectionIndexAfterMove(items, selectedId, delta) {
+  if (!items.length) return -1;
+  const selectedIndex = items.findIndex(task => task.id === selectedId);
+  const currentIndex = selectedIndex >= 0 ? selectedIndex : delta < 0 ? items.length : -1;
+  return Math.max(0, Math.min(items.length - 1, currentIndex + delta));
+}
+
 function hasUsableOrderKeys(siblings) {
   if (!siblings.every(task => typeof task.orderKey === "string" && /^[0-9A-Za-z]+$/.test(task.orderKey))
     || new Set(siblings.map(task => task.orderKey)).size !== siblings.length) return false;

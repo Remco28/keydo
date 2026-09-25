@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { canNestTask, isCurrentTaskSelection, isCurrentTaskTarget, isCompleteProjectOrderView, isTaskInProject, isUnfilteredProjectView, filterTasksByWorkspaceAndQuery, retainExistingTaskIds, makeSiblingReorder, orderTaskTree, orderTasksByDayOrder, dueDateKeyForRelativeLabel, todoistDueDateKey, dueStateForDateKey, refreshTaskDueStates, projectVisibleTree, reconcileTaskSelection, removeTaskSelectionIds, sameTaskSiblingGroup, selectedTaskRoots, setTaskAncestorCompletion, setTaskSubtreeCompletion, swapSiblingTaskOrder, taskDeletionClosure, taskRootsForDeletedProjects, taskRootsForDeletedSections, taskParentOverridesForDelta, taskDepth, taskOutdentDestination, taskParentIdsWithChildren, taskRangeIds, taskSubtreeIds, taskSubtreeIdsByRoot, validTaskNestTargets } from "../src/task-view.js";
+import { canNestTask, isCurrentTaskSelection, isCurrentTaskTarget, isCompleteProjectOrderView, isTaskInProject, isUnfilteredProjectView, filterTasksByWorkspaceAndQuery, retainExistingTaskIds, selectionIndexAfterMove, makeSiblingReorder, orderTaskTree, orderTasksByDayOrder, dueDateKeyForRelativeLabel, todoistDueDateKey, dueStateForDateKey, refreshTaskDueStates, projectVisibleTree, reconcileTaskSelection, removeTaskSelectionIds, sameTaskSiblingGroup, selectedTaskRoots, setTaskAncestorCompletion, setTaskSubtreeCompletion, swapSiblingTaskOrder, taskDeletionClosure, taskRootsForDeletedProjects, taskRootsForDeletedSections, taskParentOverridesForDelta, taskDepth, taskOutdentDestination, taskParentIdsWithChildren, taskRangeIds, taskSubtreeIds, taskSubtreeIdsByRoot, validTaskNestTargets } from "../src/task-view.js";
 
 const hierarchy = [
   { id: "parent", parentId: null },
@@ -85,6 +85,15 @@ describe("task view hierarchy", () => {
       selectedIds: new Set(["selected"]),
       selectionChanged: false
     });
+  });
+
+  test("moves into the visible list from the nearest edge when selection is filtered out", () => {
+    const items = [{ id: "first" }, { id: "second" }, { id: "third" }];
+    expect(selectionIndexAfterMove(items, "hidden", 1)).toBe(0);
+    expect(selectionIndexAfterMove(items, "hidden", -1)).toBe(2);
+    expect(selectionIndexAfterMove(items, "second", 1)).toBe(2);
+    expect(selectionIndexAfterMove(items, "second", -1)).toBe(0);
+    expect(selectionIndexAfterMove([], "hidden", 1)).toBe(-1);
   });
 
   test("removes only the captured bulk selection and preserves later selections", () => {

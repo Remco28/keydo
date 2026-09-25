@@ -631,7 +631,7 @@
     {"imports":{"fractional-indexing":"/src/fractional-indexing.js"}}
   </script>
   <script type="module">
-    import { canNestTask, isCurrentTaskSelection, isCurrentTaskTarget, isCompleteProjectOrderView, isTaskInProject, filterTasksByWorkspaceAndQuery, makeSiblingReorder, orderTaskTree, orderTasksByDayOrder, dueDateKeyForRelativeLabel, todoistDueDateKey, dueStateForDateKey, refreshTaskDueStates, projectVisibleTree, reconcileTaskSelection, removeTaskSelectionIds, retainExistingTaskIds, sameTaskSiblingGroup, selectedTaskRoots, setTaskAncestorCompletion, setTaskSubtreeCompletion, swapSiblingTaskOrder, taskDeletionClosure, taskRootsForDeletedProjects, taskRootsForDeletedSections, taskParentOverridesForDelta, taskDepth, taskOutdentDestination, taskParentIdsWithChildren, taskRangeIds, taskSubtreeIds, taskSubtreeIdsByRoot, validTaskNestTargets } from "/src/task-view.js";
+    import { canNestTask, isCurrentTaskSelection, isCurrentTaskTarget, isCompleteProjectOrderView, isTaskInProject, filterTasksByWorkspaceAndQuery, makeSiblingReorder, orderTaskTree, orderTasksByDayOrder, dueDateKeyForRelativeLabel, todoistDueDateKey, dueStateForDateKey, refreshTaskDueStates, projectVisibleTree, reconcileTaskSelection, removeTaskSelectionIds, retainExistingTaskIds, sameTaskSiblingGroup, selectedTaskRoots, selectionIndexAfterMove, setTaskAncestorCompletion, setTaskSubtreeCompletion, swapSiblingTaskOrder, taskDeletionClosure, taskRootsForDeletedProjects, taskRootsForDeletedSections, taskParentOverridesForDelta, taskDepth, taskOutdentDestination, taskParentIdsWithChildren, taskRangeIds, taskSubtreeIds, taskSubtreeIdsByRoot, validTaskNestTargets } from "/src/task-view.js";
     import { createTaskActionGate } from "/src/task-action-gate.js";
     import { OrderLockUnavailableError, withCrossTabOrderLock, withLocalOrderLock } from "/src/cross-tab-lock.js";
     import { createSyncCoordinator } from "/src/sync-coordinator.js";
@@ -1587,8 +1587,9 @@
     function moveSelection(delta, extend = false) {
       const filtered = visibleTasks();
       if (!filtered.length) return;
-      const currentIndex = Math.max(0, filtered.findIndex(task => task.id === state.selectedId));
-      const nextIndex = Math.max(0, Math.min(filtered.length - 1, currentIndex + delta));
+      const visibleCurrentIndex = filtered.findIndex(task => task.id === state.selectedId);
+      const currentIndex = visibleCurrentIndex >= 0 ? visibleCurrentIndex : delta < 0 ? filtered.length - 1 : 0;
+      const nextIndex = selectionIndexAfterMove(filtered, state.selectedId, delta);
       if (extend) {
         if (!state.rangeBaseSelection || !filtered.some(task => task.id === state.selectionAnchorId)) {
           state.selectionAnchorId = filtered[currentIndex].id;
