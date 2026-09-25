@@ -16,6 +16,14 @@ let script = inlineModule[2].replace(/(["'])\/src\/([^"']+)\1/g, (_match, quote,
   return `${quote}${target}${quote}`;
 });
 
+try {
+  new Bun.Transpiler({ loader: "js" }).transformSync(script);
+} catch (error) {
+  console.error("Inline module has invalid JavaScript syntax:");
+  console.error(error);
+  process.exit(1);
+}
+
 const temporaryDirectory = await mkdtemp(join(tmpdir(), "keydo-inline-check-"));
 const sourcePath = join(temporaryDirectory, "inline-module.js");
 try {
