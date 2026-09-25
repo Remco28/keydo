@@ -1228,11 +1228,14 @@
           return false;
         }
         const notesNeedFullSync = applyTodoistSyncPayload(payload, { preserveView: true });
+        if (notesNeedFullSync && !options.full) {
+          // Do not advance past a delta that requires a full rebuild until
+          // that rebuild succeeds; otherwise a failed snapshot would lose the
+          // note or timezone change that made it necessary.
+          return await performRefreshFromSync({ ...options, full: true });
+        }
         if (payload.sync_token) {
           try { sessionStorage.setItem("keydo.syncToken", payload.sync_token); } catch {}
-        }
-        if (notesNeedFullSync && !options.full) {
-          return await performRefreshFromSync({ ...options, full: true });
         }
         if (requiresSyncCatchup(payload)) {
           const catchupCount = options.fullSyncCatchups ?? 0;
