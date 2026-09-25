@@ -43,7 +43,7 @@ The app is available at `http://127.0.0.1:7710` by default. To bind it to this m
 
 For this machine, the current Tailnet URL is `http://frank-hp-elitedesk-800-g5-desktop-mini.taild9032.ts.net:7710`. The `start:tailscale` script discovers the current Tailscale IPv4 address automatically, so it follows the node if its address changes.
 
-For HTTPS through Tailscale Serve, an operator with permission to run `sudo tailscale` can proxy the local server to a tailnet-only HTTPS port. The direct MagicDNS route requires no elevated permission and is reachable only through the Tailnet.
+For HTTPS through Tailscale Serve, keep Keydo bound to loopback, set `KEYDO_ALLOWED_HOSTS` to the node's MagicDNS hostname, set `KEYDO_TRUST_TAILSCALE_SERVE=true`, and run `tailscale serve --bg 7710`. Keydo trusts Tailscale's forwarded host and HTTPS scheme only when the proxy connects from loopback, and refuses to start proxy-trust mode on a non-loopback bind. Direct HTTP access via the node's Tailscale IP uses `bun run start:tailscale` and is reachable only through the Tailnet.
 
 The server accepts requests only for its configured bind hostname, loopback aliases, and any extra names in the comma-separated `KEYDO_ALLOWED_HOSTS` setting. The Tailscale launcher adds the node's Tailscale IPv4 address and MagicDNS name to the server's allowed hosts. If you bind the server to a custom hostname, add that name to `KEYDO_ALLOWED_HOSTS`.
 

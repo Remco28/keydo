@@ -6,6 +6,7 @@ export type KeydoServerOptions = {
   port?: number;
   hostname?: string;
   allowedHosts?: string[];
+  trustTailscaleServe?: boolean;
   todoistToken?: string;
   todoistApiBase?: string;
   fetcher?: Fetcher;
@@ -165,11 +166,16 @@ async function readBoundedBody(response: Response, maxBytes: number): Promise<Ui
   return bytes;
 }
 
-function isSameOrigin(request: Request): boolean {
+type ForwardedOrigin = { present: boolean; origin: string | null; allowed: boolean };
+
+function isSameOrigin(request: Request, forwardedOrigin: ForwardedOrigin): boolean {
   const origin = request.headers.get("origin");
   if (!origin) return false;
   try {
-    return new URL(origin).origin === new URL(request.url).origin;
+    const requestOrigin = forwardedOrigin.present
+      ? forwardedOrigin.origin
+      : new URL(request.url).origin;
+    return requestOrigin !== null && new URL(origin).origin === requestOrigin;
   } catch {
     return false;
   }
@@ -184,7 +190,42 @@ function isWildcardHost(value: string): boolean {
   return host === "0.0.0.0" || host === "::";
 }
 
-function isAllowedHost(request: Request, allowedHosts: Set<string>): boolean {
+function isLoopbackHostname(value: string): boolean {
+  const host = normalizeHostName(value);
+  return host === "localhost" || host === "::1" || host === "127.0.0.1" || host.startsWith("127.");
+}
+
+function isLoopbackAddress(value: string | null): boolean {
+  if (!value) return false;
+  const host = normalizeHostName(value);
+  return host === "localhost" || host === "::1" || host === "127.0.0.1" || host.startsWith("127.") || host.startsWith("::ffff:127.");
+}
+
+function forwardedOriginForRequest(request: Request, clientAddress: string | null, enabled: boolean, allowedHosts: Set<string>): ForwardedOrigin {
+  const forwardedHost = request.headers.get("x-forwarded-host");
+  const forwardedProto = request.headers.get("x-forwarded-proto");
+  const present = enabled && isLoopbackAddress(clientAddress) && (forwardedHost !== null || forwardedProto !== null);
+  if (!present) return { present: false, origin: null, allowed: false };
+  if (!forwardedHost || forwardedHost.includes(",") || forwardedProto !== "https" || forwardedProto.includes(",")) {
+    return { present: true, origin: null, allowed: false };
+  }
+  try {
+    const parsed = new URL(`https://${forwardedHost}`);
+    if (parsed.username || parsed.password || parsed.pathname !== "/" || parsed.search || parsed.hash) {
+      return { present: true, origin: null, allowed: false };
+    }
+    return {
+      present: true,
+      origin: parsed.origin,
+      allowed: allowedHosts.has(normalizeHostName(parsed.hostname))
+    };
+  } catch {
+    return { present: true, origin: null, allowed: false };
+  }
+}
+
+function isAllowedHost(request: Request, allowedHosts: Set<string>, forwardedOrigin: ForwardedOrigin): boolean {
+  if (forwardedOrigin.present) return forwardedOrigin.allowed;
   const hostHeader = request.headers.get("host");
   if (!hostHeader) return false;
   try {
@@ -199,6 +240,10 @@ function isAllowedHost(request: Request, allowedHosts: Set<string>): boolean {
 export function createServer(options: KeydoServerOptions = {}) {
   const port = options.port ?? Number(Bun.env.PORT ?? 7710);
   const hostname = options.hostname ?? Bun.env.HOST ?? "127.0.0.1";
+  const trustTailscaleServe = options.trustTailscaleServe ?? Bun.env.KEYDO_TRUST_TAILSCALE_SERVE === "true";
+  if (trustTailscaleServe && !isLoopbackHostname(hostname)) {
+    throw new Error("Tailscale Serve trust requires Keydo to bind to a loopback hostname");
+  }
   const allowedHosts = new Set([
     hostname,
     ...(options.allowedHosts ?? []),
@@ -213,6 +258,7 @@ export function createServer(options: KeydoServerOptions = {}) {
   const taskOrderLock = createAsyncLock();
   type OrderLockOwner = { token: string; release: () => void; activeRequests: number; cancelled: boolean };
   let orderLockOwner: OrderLockOwner | null = null;
+  let servingServer: ReturnType<typeof Bun.serve>;
 
   function releaseOrderLockOwner(owner: OrderLockOwner) {
     if (orderLockOwner !== owner) return;
@@ -237,17 +283,19 @@ export function createServer(options: KeydoServerOptions = {}) {
     } };
   }
 
-  return Bun.serve({
+  servingServer = Bun.serve({
     hostname,
     port,
     // Leave room for multipart boundaries and fields around the 5 MiB image.
     maxRequestBodySize: 5 * 1024 * 1024 + 64 * 1024,
     async fetch(request) {
       const url = new URL(request.url);
+      const clientAddress = servingServer.requestIP(request)?.address ?? null;
+      const forwardedOrigin = forwardedOriginForRequest(request, clientAddress, trustTailscaleServe, allowedHosts);
 
-      if (!isAllowedHost(request, allowedHosts)) return errorResponse("Unrecognized host", 421);
+      if (!isAllowedHost(request, allowedHosts, forwardedOrigin)) return errorResponse("Unrecognized host", 421);
 
-      if (url.pathname.startsWith("/api/todoist/") && !["GET", "HEAD"].includes(request.method) && !isSameOrigin(request)) {
+      if (url.pathname.startsWith("/api/todoist/") && !["GET", "HEAD"].includes(request.method) && !isSameOrigin(request, forwardedOrigin)) {
         return errorResponse("Cross-origin Todoist requests are not allowed", 403);
       }
 
@@ -704,6 +752,7 @@ export function createServer(options: KeydoServerOptions = {}) {
       return new Response("Not found", { status: 404 });
     }
   });
+  return servingServer;
 }
 
 if (import.meta.main) {

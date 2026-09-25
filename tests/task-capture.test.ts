@@ -83,7 +83,7 @@ describe("quick capture create failure classification", () => {
     expect(shouldRestoreCaptureAfterCreateFailure({ requestAttempted: true })).toBe(false);
   });
 
-  test("treats proxied Todoist 4xx responses as definitive rejections", () => {
+  test("treats definitive proxied Todoist 4xx responses as rejections", () => {
     expect(isDefinitiveCreateRejection(502, { status: 400 })).toBe(true);
     expect(isDefinitiveCreateRejection(502, { status: 403 })).toBe(true);
     expect(isDefinitiveCreateRejection(422, { command_rejected: true })).toBe(true);

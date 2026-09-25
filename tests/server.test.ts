@@ -85,6 +85,58 @@ describe("Keydo server", () => {
     }
   });
 
+  test("uses validated Tailscale Serve forwarding headers only on a loopback backend", async () => {
+    const server = createServer({
+      port: 0,
+      allowedHosts: ["keydo.tailnet.test"],
+      trustTailscaleServe: true,
+      todoistToken: ""
+    });
+    try {
+      const host = `127.0.0.1:${server.port}`;
+      const response = await fetch(new URL("/api/todoist/order-lock", server.url), {
+        method: "POST",
+        headers: {
+          Host: host,
+          Origin: "https://keydo.tailnet.test",
+          "X-Forwarded-Host": "keydo.tailnet.test",
+          "X-Forwarded-Proto": "https"
+        }
+      });
+      expect(response.status).toBe(200);
+      await response.body?.cancel();
+
+      const forgedForwardedHost = await fetch(new URL("/api/todoist/order-lock", server.url), {
+        method: "POST",
+        headers: {
+          Host: host,
+          Origin: "https://attacker.test",
+          "X-Forwarded-Host": "attacker.test",
+          "X-Forwarded-Proto": "https"
+        }
+      });
+      expect(forgedForwardedHost.status).toBe(421);
+
+      const insecureForwardedProto = await fetch(new URL("/api/todoist/order-lock", server.url), {
+        method: "POST",
+        headers: {
+          Host: host,
+          Origin: "https://keydo.tailnet.test",
+          "X-Forwarded-Host": "keydo.tailnet.test",
+          "X-Forwarded-Proto": "http"
+        }
+      });
+      expect(insecureForwardedProto.status).toBe(421);
+    } finally {
+      server.stop(true);
+    }
+  });
+
+  test("refuses Tailscale Serve trust on a non-loopback bind", () => {
+    expect(() => createServer({ hostname: "0.0.0.0", trustTailscaleServe: true }))
+      .toThrow("Tailscale Serve trust requires Keydo to bind to a loopback hostname");
+  });
+
   test("reports connection status without exposing credentials", async () => {
     const server = createServer({ port: 0, todoistToken: "server-only-token" });
     try {
