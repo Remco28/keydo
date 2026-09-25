@@ -1482,6 +1482,9 @@
         state.detailEditing = false;
         resetSelectionRange(state.selectedId);
       }
+      const emptyState = state.liveTodoist && state.workspace !== "Personal"
+        ? `<div class="empty-state"><strong>Work workspace unavailable</strong><span>Live Todoist tasks are not classified by workspace yet. Switch to Personal to view and capture synced tasks.</span></div>`
+        : `<div class="empty-state"><strong>No tasks found</strong><span>Try another view or search term.</span></div>`;
       taskList.innerHTML = filtered.length ? filtered.map((task, index) => {
         const selected = task.id === state.selectedId;
         const bulkSelected = state.selected.has(task.id);
@@ -1491,7 +1494,7 @@
           <button class="complete-button" tabindex="-1" aria-label="${task.completed ? "Reopen" : "Complete"} ${escapeHtml(task.title)}" data-complete="${escapeAttr(task.id)}">✓</button>
           <div class="task-main"><div class="task-title-line"><span class="priority-mark p${task.priority}" title="${priorityLabel(task.priority)}"></span><div class="task-title">${escapeHtml(task.title)}</div></div><div class="task-subtitle"><span>${escapeHtml(task.project)}</span><span class="${task.dueClass}">${escapeHtml(task.due)}</span></div></div>
         </article>`;
-      }).join("") : `<div class="empty-state"><strong>No tasks found</strong><span>Try another view or search term.</span></div>`;
+      }).join("") : emptyState;
 
       document.getElementById("bulk-button").disabled = state.selected.size === 0;
       document.getElementById("bulk-button").textContent = state.selected.size ? `${state.selected.size} selected` : "Select tasks";
