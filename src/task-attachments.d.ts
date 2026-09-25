@@ -18,6 +18,7 @@ export interface TaskImageAttachment {
   postedAt?: string;
 }
 
+export function isSupportedRasterImageType(value: unknown): boolean;
 export function noteAttachmentForItem(notes: TaskImageAttachmentNote[], itemId: string): TaskImageAttachment | null;
 export function noteAttachmentsByItem(notes: TaskImageAttachmentNote[]): Map<string, TaskImageAttachment>;
 export function applyTaskNoteDeltas<T extends { id: string; attachment?: TaskImageAttachment | null }>(

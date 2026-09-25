@@ -1,5 +1,10 @@
 const supportedRasterTypes = new Set(["image/png", "image/jpeg", "image/gif", "image/webp"]);
 
+export function isSupportedRasterImageType(value) {
+  const mediaType = typeof value === "string" ? value.split(";", 1)[0].trim().toLowerCase() : "";
+  return supportedRasterTypes.has(mediaType);
+}
+
 function isImageAttachmentNote(note) {
   const fileType = note?.file_attachment?.file_type;
   const mediaType = typeof fileType === "string" ? fileType.split(";", 1)[0].trim().toLowerCase() : "";

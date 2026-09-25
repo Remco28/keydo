@@ -1,7 +1,14 @@
 import { describe, expect, test } from "bun:test";
-import { applyTaskNoteDeltas, noteAttachmentForItem, noteAttachmentsByItem, taskNoteDeltasNeedFullSync } from "../src/task-attachments.js";
+import { applyTaskNoteDeltas, isSupportedRasterImageType, noteAttachmentForItem, noteAttachmentsByItem, taskNoteDeltasNeedFullSync } from "../src/task-attachments.js";
 
 describe("task image attachments", () => {
+  test("accepts only image formats supported by the upload endpoint", () => {
+    expect(["image/png", "image/jpeg", "image/gif", "image/webp", "IMAGE/PNG; charset=binary"].map(isSupportedRasterImageType))
+      .toEqual([true, true, true, true, true]);
+    expect(["image/svg+xml", "image/avif", "text/plain", ""].map(isSupportedRasterImageType))
+      .toEqual([false, false, false, false]);
+  });
+
   test("keeps the newest valid image note per task", () => {
     const notes = [
       { id: "new", item_id: "task-a", posted_at: "2026-01-03", file_attachment: { file_url: "/new", file_type: "image/jpeg", file_name: "new.jpg" } },

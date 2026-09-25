@@ -635,7 +635,7 @@
     import { createTaskActionGate } from "/src/task-action-gate.js";
     import { OrderLockUnavailableError, withCrossTabOrderLock, withLocalOrderLock } from "/src/cross-tab-lock.js";
     import { createSyncCoordinator } from "/src/sync-coordinator.js";
-    import { applyTaskNoteDeltas, noteAttachmentsByItem, taskNoteDeltasNeedFullSync } from "/src/task-attachments.js";
+    import { applyTaskNoteDeltas, isSupportedRasterImageType, noteAttachmentsByItem, taskNoteDeltasNeedFullSync } from "/src/task-attachments.js";
     import { renderMarkdown } from "/src/markdown.js";
     import { hasSyncToken, isPerformedSyncFailure, readOrderSyncToken, readSyncToken, requiresFullSyncAfterCompletionChange, requiresSyncCatchup } from "/src/sync-token.js";
     import { backgroundSyncAction, createCoalescedSyncRunner } from "/src/sync-runtime.js";
@@ -2323,8 +2323,8 @@
     }
 
     function capturePasteImage(file) {
-      if (!file || !file.type.startsWith("image/")) {
-        showToast("Only images can be attached here");
+      if (!file || !isSupportedRasterImageType(file.type)) {
+        showToast("Use a PNG, JPEG, GIF, or WebP image");
         return;
       }
       if (file.size > 5 * 1024 * 1024) {
@@ -3224,7 +3224,10 @@
     }
 
     function attachImage(file) {
-      if (!file || !file.type.startsWith("image/")) return;
+      if (!file || !isSupportedRasterImageType(file.type)) {
+        showToast("Use a PNG, JPEG, GIF, or WebP image");
+        return;
+      }
       const task = currentTask();
       if (!task) return;
       const taskId = task.id;
