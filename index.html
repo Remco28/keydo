@@ -782,6 +782,7 @@
       captureAttachment: null,
       collapsed: new Set(),
       liveTodoist: false,
+      todoistTimeZone: null,
       todoistConfigured: null,
       runtimeStateLoading: false,
       inboxProjectId: null,
@@ -869,7 +870,22 @@
       return tasks.find(task => task.id === state.selectedId) ?? null;
     }
 
+    function updateTodoistTimeZone(user) {
+      const timeZone = user?.tz_info?.timezone;
+      if (typeof timeZone !== "string" || !timeZone.trim()) return false;
+      try {
+        new Intl.DateTimeFormat(undefined, { timeZone }).format();
+        const changed = state.todoistTimeZone !== timeZone;
+        state.todoistTimeZone = timeZone;
+        return changed;
+      } catch {
+        // Ignore malformed account settings and keep the last valid zone.
+        return false;
+      }
+    }
+
     function mapTodoistTasks(payload) {
+      updateTodoistTimeZone(payload.user);
       const projects = payload.projects ?? [];
       const projectNames = new Map(projects.map(project => [project.id, project.name]));
       const projectsById = new Map(projects.map(project => [project.id, project]));
@@ -880,8 +896,8 @@
         .filter(item => item && !item.is_deleted)
         .map(item => {
           const projectId = item.project_id ?? inboxProject?.id ?? null;
-          const dueDateKey = todoistDueDateKey(item.due);
-          const dueState = dueStateForDateKey(dueDateKey, Boolean(item.due?.is_recurring));
+          const dueDateKey = todoistDueDateKey(item.due, state.todoistTimeZone);
+          const dueState = dueStateForDateKey(dueDateKey, Boolean(item.due?.is_recurring), new Date(), state.todoistTimeZone);
           return {
             id: item.id,
             title: item.content ?? "",
@@ -986,6 +1002,7 @@
     }
 
     function mergeTodoistDelta(payload, opts = {}) {
+      const timeZoneChanged = updateTodoistTimeZone(payload.user);
       const deletedProjectIds = deletedTodoistProjectIds(state.projectsById, payload.projects);
       const deletedSectionIds = (payload.sections ?? [])
         .filter(section => section?.id && section.is_deleted)
@@ -1015,8 +1032,8 @@
         if (!item || !item.id) continue;
         if (item.is_deleted || deletedTaskIds.has(item.id)) continue;
         const projectId = item.project_id ?? inboxProjectId ?? null;
-        const dueDateKey = todoistDueDateKey(item.due);
-        const dueState = dueStateForDateKey(dueDateKey, Boolean(item.due?.is_recurring));
+        const dueDateKey = todoistDueDateKey(item.due, state.todoistTimeZone);
+        const dueState = dueStateForDateKey(dueDateKey, Boolean(item.due?.is_recurring), new Date(), state.todoistTimeZone);
         const mapped = {
           id: item.id,
           title: item.content ?? "",
@@ -1078,7 +1095,7 @@
       }
       render();
       if (discardedDrafts) showToast(`${discardedDrafts} task${discardedDrafts === 1 ? "" : "s"} deleted in Todoist · unsaved edits discarded`);
-      return notesNeedFullSync;
+      return notesNeedFullSync || timeZoneChanged;
     }
 
     function applyTodoistSyncPayload(payload, opts = {}) {
@@ -1158,7 +1175,7 @@
     }
 
     function refreshWhenConnectedAndVisible() {
-      if (refreshTaskDueStates(tasks)) render();
+      if (refreshTaskDueStates(tasks, new Date(), state.todoistTimeZone)) render();
       const action = backgroundSyncAction({
         configured: state.todoistConfigured,
         liveTodoist: state.liveTodoist,
@@ -1195,7 +1212,7 @@
         const response = await todoistFetch("/api/todoist/sync", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ syncToken: options.full ? "*" : storedSyncToken ?? "*", resourceTypes: ["projects", "sections", "items", "labels", "notes"] })
+          body: JSON.stringify({ syncToken: options.full ? "*" : storedSyncToken ?? "*", resourceTypes: ["projects", "sections", "items", "labels", "notes", "user"] })
         }, true);
         if (!response.ok) {
           const failure = await response.json().catch(() => null);
@@ -1391,7 +1408,7 @@
             const syncResponse = await todoistFetch("/api/todoist/sync", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ syncToken: "*", resourceTypes: ["projects", "sections", "items", "labels", "notes"] })
+              body: JSON.stringify({ syncToken: "*", resourceTypes: ["projects", "sections", "items", "labels", "notes", "user"] })
             }, true);
             if (!syncResponse.ok) throw new Error("Sync request failed");
             const payload = await syncResponse.json();
@@ -1445,7 +1462,7 @@
     }
 
     function visibleTasks() {
-      refreshTaskDueStates(tasks);
+      refreshTaskDueStates(tasks, new Date(), state.todoistTimeZone);
       const query = state.query.trim().toLowerCase();
       const workspaceTasks = filterTasksByWorkspaceAndQuery(tasks, state.workspace, query);
       if (query) return workspaceTasks;
@@ -2378,7 +2395,7 @@
       const pendingAttachment = state.captureAttachment;
       state.captureAttachment = null;
       const projectState = state.projectsById.get(project.id ?? state.inboxProjectId);
-      const task = { id: `task-local-${crypto.randomUUID()}`, title: parsed.title, project: project.name, projectId: project.id ?? state.inboxProjectId ?? null, projectOrderKey: projectState?.orderKey ?? null, projectChildOrder: projectState?.childOrder ?? null, projectOrderParentId: projectState?.parentId ?? null, parentId: null, sectionId: null, due: parsed.due, dueDateKey: dueDateKeyForRelativeLabel(parsed.due), dueClass: "", priority: parsed.priority, completed: false, workspace: state.workspace, description: "New task captured in Keydo.", subtasks: [], attachment: null };
+      const task = { id: `task-local-${crypto.randomUUID()}`, title: parsed.title, project: project.name, projectId: project.id ?? state.inboxProjectId ?? null, projectOrderKey: projectState?.orderKey ?? null, projectChildOrder: projectState?.childOrder ?? null, projectOrderParentId: projectState?.parentId ?? null, parentId: null, sectionId: null, due: parsed.due, dueDateKey: dueDateKeyForRelativeLabel(parsed.due, new Date(), state.todoistTimeZone), dueClass: "", priority: parsed.priority, completed: false, workspace: state.workspace, description: "New task captured in Keydo.", subtasks: [], attachment: null };
       tasks.unshift(task);
       state.view = parsed.due === "Today" ? "today" : "upcoming";
       state.selectedId = task.id;
@@ -2686,7 +2703,7 @@
       const previousDueDateKey = task.dueDateKey;
       const previousClass = task.dueClass;
       const previousDayOrder = task.dayOrder;
-      const nextDueDateKey = dueDateKeyForRelativeLabel(label);
+      const nextDueDateKey = dueDateKeyForRelativeLabel(label, new Date(), state.todoistTimeZone);
       applyTaskDueChange(task, label, nextDueDateKey);
       render();
       if (!state.liveTodoist) {
@@ -2810,7 +2827,7 @@
       }
       const optimisticTasksById = new Map(tasks.map(task => [task.id, task]));
       const previous = new Map(tasks.filter(task => affectedIds.has(task.id)).map(task => [task.id, { due: task.due, dueDateKey: task.dueDateKey, dueClass: task.dueClass, dayOrder: task.dayOrder, completed: task.completed }]));
-      if (kind === "today") ids.forEach(id => { const task = optimisticTasksById.get(id); if (task) applyTaskDueChange(task, "Today", dueDateKeyForRelativeLabel("Today")); });
+      if (kind === "today") ids.forEach(id => { const task = optimisticTasksById.get(id); if (task) applyTaskDueChange(task, "Today", dueDateKeyForRelativeLabel("Today", new Date(), state.todoistTimeZone)); });
       if (kind === "clear") ids.forEach(id => { const task = optimisticTasksById.get(id); if (task) applyTaskDueChange(task, "No date", null); });
       if (kind === "complete") {
         for (const id of actionIds) {
@@ -2883,7 +2900,7 @@
         for (const id of savedIds) {
           const currentTask = currentTasksById.get(id);
           if (!currentTask) continue;
-          applyTaskDueChange(currentTask, kind === "today" ? "Today" : "No date", dueDateKeyForRelativeLabel(kind === "today" ? "Today" : "No date"));
+          applyTaskDueChange(currentTask, kind === "today" ? "Today" : "No date", dueDateKeyForRelativeLabel(kind === "today" ? "Today" : "No date", new Date(), state.todoistTimeZone));
         }
       }
       const refreshed = await refreshFromSync({ full: failed > 0 });

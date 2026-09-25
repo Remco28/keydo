@@ -386,14 +386,13 @@ export function orderTasksByDayOrder(items) {
   return ordered;
 }
 
-export function dueDateKeyForRelativeLabel(label, now = new Date()) {
-  const date = new Date(now);
-  if (label === "Tomorrow") date.setDate(date.getDate() + 1);
-  else if (label !== "Today") return null;
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
+export function dueDateKeyForRelativeLabel(label, now = new Date(), timeZone) {
+  if (label !== "Today" && label !== "Tomorrow") return null;
+  const today = localIsoDate(now, timeZone);
+  if (label === "Today") return today;
+  const tomorrow = new Date(`${today}T12:00:00Z`);
+  tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
+  return tomorrow.toISOString().slice(0, 10);
 }
 
 // Todoist represents fixed-timezone due datetimes as UTC timestamps, while
@@ -419,20 +418,29 @@ export function todoistDueDateKey(due, timeZone) {
   return `${fields.year}-${fields.month}-${fields.day}`;
 }
 
-function localIsoDate(date) {
+function localIsoDate(date, timeZone) {
+  if (timeZone) {
+    try {
+      const parts = new Intl.DateTimeFormat("en-CA", {
+        year: "numeric", month: "2-digit", day: "2-digit", timeZone
+      }).formatToParts(date);
+      const fields = Object.fromEntries(parts.map(part => [part.type, part.value]));
+      return `${fields.year}-${fields.month}-${fields.day}`;
+    } catch {
+      // Invalid or unavailable account zone falls back to the device zone.
+    }
+  }
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0");
   const day = String(date.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
 }
 
-export function dueStateForDateKey(dateKey, recurring = false, now = new Date()) {
+export function dueStateForDateKey(dateKey, recurring = false, now = new Date(), timeZone) {
   if (typeof dateKey !== "string" || !dateKey) return { due: "No date", dueClass: "" };
   const date = dateKey.slice(0, 10);
-  const today = localIsoDate(now);
-  const tomorrowDate = new Date(now);
-  tomorrowDate.setDate(now.getDate() + 1);
-  const tomorrow = localIsoDate(tomorrowDate);
+  const today = localIsoDate(now, timeZone);
+  const tomorrow = dueDateKeyForRelativeLabel("Tomorrow", now, timeZone);
   if (date === today) return { due: "Today", dueClass: "" };
   if (date === tomorrow) return { due: "Tomorrow", dueClass: "" };
   if (recurring) return { due: "Recurring", dueClass: "" };
@@ -443,12 +451,10 @@ export function dueStateForDateKey(dateKey, recurring = false, now = new Date())
   };
 }
 
-export function refreshTaskDueStates(items, now = new Date()) {
+export function refreshTaskDueStates(items, now = new Date(), timeZone) {
   let changed = false;
-  const today = localIsoDate(now);
-  const tomorrowDate = new Date(now);
-  tomorrowDate.setDate(now.getDate() + 1);
-  const tomorrow = localIsoDate(tomorrowDate);
+  const today = localIsoDate(now, timeZone);
+  const tomorrow = dueDateKeyForRelativeLabel("Tomorrow", now, timeZone);
   for (const task of items) {
     if (typeof task.dueDateKey !== "string") continue;
     const date = task.dueDateKey.slice(0, 10);
@@ -463,7 +469,7 @@ export function refreshTaskDueStates(items, now = new Date()) {
             ? task.dueClass !== "overdue" || task.due === "Today" || task.due === "Tomorrow" || task.due === "Recurring"
             : task.dueClass === "overdue" || task.due === "Today" || task.due === "Tomorrow" || task.due === "Recurring";
     if (!dateRelativeLabelIsStale) continue;
-    const dueState = dueStateForDateKey(task.dueDateKey, task.recurring === true, now);
+    const dueState = dueStateForDateKey(task.dueDateKey, task.recurring === true, now, timeZone);
     if (task.due !== dueState.due || task.dueClass !== dueState.dueClass) {
       task.due = dueState.due;
       task.dueClass = dueState.dueClass;

@@ -511,6 +511,38 @@ describe("Keydo server", () => {
     }
   });
 
+  test("strips credentials from the Todoist user resource before returning Sync data", async () => {
+    const server = createServer({
+      port: 0,
+      todoistToken: "server-only-token",
+      todoistApiBase: "https://todoist.test",
+      fetcher: async () => Response.json({
+        sync_token: "next-token",
+        items: [],
+        user: {
+          token: "private-user-token",
+          access_token: "private-access-token",
+          refresh_token: "private-refresh-token",
+          tz_info: { timezone: "America/Los_Angeles" }
+        }
+      })
+    });
+    try {
+      const response = await appRequest(server, "/api/todoist/sync", {
+        method: "POST",
+        body: JSON.stringify({ syncToken: "*", resourceTypes: ["items", "user"] })
+      });
+      expect(response.status).toBe(200);
+      const payload = await response.json();
+      expect(payload.user).toEqual({ tz_info: { timezone: "America/Los_Angeles" } });
+      expect(JSON.stringify(payload)).not.toContain("private-user-token");
+      expect(JSON.stringify(payload)).not.toContain("private-access-token");
+      expect(JSON.stringify(payload)).not.toContain("private-refresh-token");
+    } finally {
+      server.stop(true);
+    }
+  });
+
   test("uses TODOIST_API_BASE from the environment when no option overrides it", async () => {
     const previousBase = Bun.env.TODOIST_API_BASE;
     Bun.env.TODOIST_API_BASE = "https://custom-todoist.test";

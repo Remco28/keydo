@@ -475,6 +475,22 @@ describe("task view hierarchy", () => {
     expect(todoistDueDateKey({ date: "2026-09-26" }, "America/New_York")).toBe("2026-09-26");
   });
 
+  test("uses the Todoist account timezone for relative day grouping and capture dates", () => {
+    const now = new Date("2026-09-26T02:30:00Z");
+    const timeZone = "America/Los_Angeles";
+    expect(dueDateKeyForRelativeLabel("Today", now, timeZone)).toBe("2026-09-25");
+    expect(dueDateKeyForRelativeLabel("Tomorrow", now, timeZone)).toBe("2026-09-26");
+    expect(todoistDueDateKey({ date: "2026-09-26T02:00:00Z" }, timeZone)).toBe("2026-09-25");
+    expect(dueStateForDateKey("2026-09-25", false, now, timeZone)).toEqual({ due: "Today", dueClass: "" });
+    expect(dueStateForDateKey("2026-09-26", false, now, timeZone)).toEqual({ due: "Tomorrow", dueClass: "" });
+  });
+
+  test("refreshes task date labels against the configured account timezone", () => {
+    const task = { dueDateKey: "2026-09-25", due: "Sep 25", dueClass: "overdue", recurring: false };
+    expect(refreshTaskDueStates([task], new Date("2026-09-26T02:30:00Z"), "America/Los_Angeles")).toBe(true);
+    expect(task).toMatchObject({ due: "Today", dueClass: "" });
+  });
+
   test("recalculates Today and overdue state across midnight without a Sync delta", () => {
     const tasks = [
       { id: "yesterday", due: "Today", dueDateKey: "2026-09-24", dueClass: "", recurring: false, dayOrder: 9 },

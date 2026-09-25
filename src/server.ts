@@ -1,4 +1,4 @@
-import { createTodoistClient, TodoistApiError, TodoistCommandError, type Fetcher, type TodoistSyncRequest, type TodoistTaskCreate, type TodoistTaskMove, type TodoistTaskUpdate } from "./todoist";
+import { createTodoistClient, TodoistApiError, TodoistCommandError, type Fetcher, type TodoistSyncRequest, type TodoistSyncResponse, type TodoistTaskCreate, type TodoistTaskMove, type TodoistTaskUpdate } from "./todoist";
 import { hasRasterImageSignature, normalizeRasterImageType } from "./image-content";
 import { createAsyncLock } from "./order-lock.js";
 
@@ -31,6 +31,14 @@ function isSyncRequest(value: unknown): value is TodoistSyncRequest {
   return Object.keys(candidate).every(key => key === "syncToken" || key === "resourceTypes")
     && (candidate.syncToken === undefined || typeof candidate.syncToken === "string")
     && (candidate.resourceTypes === undefined || (Array.isArray(candidate.resourceTypes) && candidate.resourceTypes.every(type => typeof type === "string")));
+}
+
+function syncResponseForBrowser(payload: TodoistSyncResponse): TodoistSyncResponse {
+  const user = payload.user;
+  if (!user || typeof user !== "object" || Array.isArray(user)) return payload;
+  const safeUser = { ...(user as Record<string, unknown>) };
+  for (const key of ["token", "access_token", "refresh_token"]) delete safeUser[key];
+  return { ...payload, user: safeUser };
 }
 
 // Keep this REST body aligned with Todoist's Update Task schema. Fractional
@@ -385,7 +393,7 @@ export function createServer(options: KeydoServerOptions = {}) {
         const lockUse = holdOrderLockForRequest(request);
         if (lockUse.response) return lockUse.response;
         try {
-          return Response.json(await todoist.sync(body));
+          return Response.json(syncResponseForBrowser(await todoist.sync(body)));
         } catch (error) {
           if (error instanceof TodoistApiError) {
             return Response.json({ error: "Todoist API request failed", status: error.status, details: error.payload }, { status: 502 });
