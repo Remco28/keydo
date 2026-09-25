@@ -93,6 +93,7 @@ describe("quick capture create failure classification", () => {
     expect(isDefinitiveCreateRejection(502, { status: 429 })).toBe(false);
     expect(isDefinitiveCreateRejection(409, { error: "The shared task-state lock is no longer active" })).toBe(false);
     expect(isDefinitiveCreateRejection(502, { error: "Todoist task creation failed" })).toBe(false);
+    expect(isDefinitiveCreateRejection(422, { command_rejected: true, details: { http_code: 500 } })).toBe(false);
   });
 
   test("identifies proxied and command-level rate limits and exposes retry guidance", () => {
