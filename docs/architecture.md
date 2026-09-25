@@ -107,6 +107,8 @@ Browser → Keydo backend → Todoist
 
 For a local-only application, the backend may run on the user's machine. OAuth tokens and refresh tokens should use the operating system's credential storage when the application is packaged as a desktop application.
 
+The Todoist Sync `user` resource contains credentials and profile data. The server returns only `user.tz_info` to the browser and marks Sync snapshots `no-store`. The authenticated attachment proxy is restricted to same-origin embedding, and the app shell denies framing.
+
 ## Markdown
 
 Task descriptions are stored as Markdown-capable text. Rendering belongs in Keydo. The renderer must sanitize unsafe HTML, links, and embedded content before displaying the preview.
