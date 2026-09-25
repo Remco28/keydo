@@ -19,8 +19,12 @@ else
 fi
 if [[ -z "$tailscale_dns_name" ]]; then
   printf 'Tailscale DNS name unavailable; the server will accept the node IP only.\n' >&2
-  export KEYDO_ALLOWED_HOSTS="$tailscale_ip"
+  tailscale_allowed_hosts="$tailscale_ip"
 else
-  export KEYDO_ALLOWED_HOSTS="$tailscale_ip,$tailscale_dns_name"
+  tailscale_allowed_hosts="$tailscale_ip,$tailscale_dns_name"
 fi
+if [[ -n "${KEYDO_ALLOWED_HOSTS:-}" ]]; then
+  tailscale_allowed_hosts="$tailscale_allowed_hosts,$KEYDO_ALLOWED_HOSTS"
+fi
+export KEYDO_ALLOWED_HOSTS="$tailscale_allowed_hosts"
 exec bun src/server.ts
