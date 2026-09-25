@@ -3339,10 +3339,14 @@
       const matches = commandMatches();
       if (event.key === "ArrowDown") { event.preventDefault(); state.commandIndex = Math.min(state.commandIndex + 1, matches.length - 1); renderCommands(); }
       if (event.key === "ArrowUp") { event.preventDefault(); state.commandIndex = Math.max(state.commandIndex - 1, 0); renderCommands(); }
-      if (event.key === "Enter" && matches[state.commandIndex]) runCommand(matches[state.commandIndex].action);
+      if (event.key === "Enter" && matches[state.commandIndex]) {
+        event.preventDefault();
+        runCommand(matches[state.commandIndex].action);
+      }
     });
 
     document.addEventListener("keydown", event => {
+      if (event.defaultPrevented) return;
       if (state.booting) {
         event.preventDefault();
         return;
