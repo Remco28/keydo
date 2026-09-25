@@ -2613,6 +2613,22 @@
       commandSearch.blur();
     }
 
+    function openTaskInTodoist() {
+      const task = currentTask();
+      if (!task) return;
+      if (!state.liveTodoist) {
+        showToast("Open in Todoist requires a connected account");
+        return;
+      }
+      const opened = window.open("about:blank", "_blank");
+      if (!opened) {
+        showToast("Popup blocked · allow popups to open Todoist");
+        return;
+      }
+      opened.opener = null;
+      opened.location.replace(`https://app.todoist.com/app/task/${encodeURIComponent(task.id)}`);
+    }
+
     function setView(view, project = state.project, projectId = state.projectId) {
       state.view = view;
       state.project = project;
@@ -3114,7 +3130,7 @@
       if (action === "task:complete") { toggleComplete(state.selectedId); return; }
       if (action === "task:delete") { openDeleteConfirmation(); return; }
       if (action === "task:edit") { enterDetail(); return; }
-      if (action === "task:open") { showToast("Open in Todoist is ready for API integration"); return; }
+      if (action === "task:open") { openTaskInTodoist(); return; }
       if (action === "task:attach") { showToast("Copy a screenshot, then press Ctrl+V"); return; }
       if (action === "task:moveto") { openCommands("moveto"); return; }
       if (action === "task:nest") { enterMoveMode(); return; }
