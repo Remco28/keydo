@@ -3352,19 +3352,20 @@
         }
         return;
       }
-      if (helpBackdrop.classList.contains("visible")) {
+      if (state.captureOpen || commandBackdrop.classList.contains("visible") || helpBackdrop.classList.contains("visible")) {
         if (event.key === "Escape") {
           event.preventDefault();
-          closeModals();
-          focusSelectedTask(false);
+          if (state.captureOpen) closeQuickCapture();
+          else {
+            closeModals();
+            focusSelectedTask(false);
+          }
         }
         return;
       }
       if (state.moveFromId && event.key === "Escape") { event.preventDefault(); exitMoveMode(); focusSelectedTask(false); return; }
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") { event.preventDefault(); openCommands(); return; }
       if (event.key === "Escape") {
-        if (state.captureOpen) { event.preventDefault(); closeQuickCapture(); return; }
-        if (commandBackdrop.classList.contains("visible") || helpBackdrop.classList.contains("visible")) { closeModals(); focusSelectedTask(false); return; }
         if (state.detailEditing) { event.preventDefault(); leaveDetail(); return; }
         if (typing) { event.preventDefault(); target.blur(); return; }
         if (state.selected.size) { event.preventDefault(); state.selected.clear(); resetSelectionRange(state.selectedId); render(); return; }
