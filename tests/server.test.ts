@@ -1449,6 +1449,7 @@ describe("Keydo server", () => {
       expect(response.status).toBe(200);
       expect(response.headers.get("content-type")).toBe("image/png");
       expect(response.headers.get("content-security-policy")).toBe("default-src 'none'; sandbox");
+      expect(response.headers.get("cross-origin-resource-policy")).toBe("same-origin");
       expect(requestUrl).toBe(fileUrl);
       expect(authHeader).toBe("Bearer server-only-token");
       expect((await response.arrayBuffer()).byteLength).toBe(8);

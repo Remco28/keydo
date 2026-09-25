@@ -641,7 +641,8 @@ export function createServer(options: KeydoServerOptions = {}) {
               "Content-Type": imageType,
               "Cache-Control": "private, max-age=3600",
               "X-Content-Type-Options": "nosniff",
-              "Content-Security-Policy": "default-src 'none'; sandbox"
+              "Content-Security-Policy": "default-src 'none'; sandbox",
+              "Cross-Origin-Resource-Policy": "same-origin"
             }
           });
         } catch (error) {
