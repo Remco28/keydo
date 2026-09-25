@@ -9,6 +9,10 @@ export function resolveCaptureProject(name, projectsById, fallbackProjectNames =
   return normalizedName === "inbox" ? { name: "Inbox" } : null;
 }
 
+export function canCaptureInWorkspace(workspace, liveTodoist) {
+  return !liveTodoist || workspace === "Personal";
+}
+
 export function parseCapture(value, projectNames = []) {
   const tokens = value.trim().split(/\s+/).filter(Boolean);
   const removed = new Set();

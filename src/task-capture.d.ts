@@ -1,5 +1,7 @@
 export type CaptureProjectResolution = { name: string; id?: string } | null;
 
+export function canCaptureInWorkspace(workspace: string, liveTodoist: boolean): boolean;
+
 export function resolveCaptureProject(name: string, projectsById: Map<string, { id: string; name: string }>, fallbackProjectNames?: string[]): CaptureProjectResolution;
 
 export function parseCapture(value: string, projectNames?: string[]): { title: string; project: string; priority: number; due: string };

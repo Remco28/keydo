@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { appendCreatedTask, isCreateRateLimited, isDefinitiveCreateRejection, isTodoistRateLimited, mergeResolvedCreatedTask, parseCapture, resolveCaptureProject, shouldRestoreCaptureAfterCreateFailure, todoistRetryAfterSeconds } from "../src/task-capture.js";
+import { appendCreatedTask, canCaptureInWorkspace, isCreateRateLimited, isDefinitiveCreateRejection, isTodoistRateLimited, mergeResolvedCreatedTask, parseCapture, resolveCaptureProject, shouldRestoreCaptureAfterCreateFailure, todoistRetryAfterSeconds } from "../src/task-capture.js";
 import { orderTaskTree } from "../src/task-view.js";
 
 describe("quick capture project resolution", () => {
@@ -64,6 +64,14 @@ describe("quick capture project resolution", () => {
 
     expect(result).toEqual([another, { id: "task-1", title: "Call Alex", orderKey: "a0", keydoCreatePromise: createPromise, attachment: { commentId: "note-1" } }]);
     expect(result.filter(task => task.id === "task-1")).toHaveLength(1);
+  });
+});
+
+describe("quick capture workspace support", () => {
+  test("keeps Work capture in demo mode but blocks it with live Todoist data", () => {
+    expect(canCaptureInWorkspace("Personal", true)).toBe(true);
+    expect(canCaptureInWorkspace("Work", false)).toBe(true);
+    expect(canCaptureInWorkspace("Work", true)).toBe(false);
   });
 });
 

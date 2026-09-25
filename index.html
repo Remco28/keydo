@@ -640,7 +640,7 @@
     import { hasSyncToken, isPerformedSyncFailure, readOrderSyncToken, readSyncToken, requiresFullSyncAfterCompletionChange, requiresSyncCatchup } from "/src/sync-token.js";
     import { backgroundSyncAction, createCoalescedSyncRunner } from "/src/sync-runtime.js";
     import { applyProjectTaskMove, applyTaskDueChange, applyTaskHierarchyMove, applyTaskOrderKeys, applyTodoistProjectDelta, applyTodoistSectionDeltas, deletedTodoistProjectIds, discardTaskEdits, isRecurringTaskCompletion, isTaskCompletionStateCurrent, reconcileTodoistProjectSnapshot, restoreMissingTasks, restoreTaskOrderFields, restoreTaskSnapshots, setTaskAttachment, retainOmittedTaskFields, retainPendingCreates, retryablePendingTaskUpdates } from "/src/task-mutations.js";
-    import { appendCreatedTask, isCreateRateLimited, isDefinitiveCreateRejection, isTodoistRateLimited, mergeResolvedCreatedTask, parseCapture, resolveCaptureProject, shouldRestoreCaptureAfterCreateFailure, todoistRetryAfterSeconds } from "/src/task-capture.js";
+    import { appendCreatedTask, canCaptureInWorkspace, isCreateRateLimited, isDefinitiveCreateRejection, isTodoistRateLimited, mergeResolvedCreatedTask, parseCapture, resolveCaptureProject, shouldRestoreCaptureAfterCreateFailure, todoistRetryAfterSeconds } from "/src/task-capture.js";
     const taskMutationQueues = new Map();
     const taskActionGate = createTaskActionGate();
     const syncCoordinator = createSyncCoordinator();
@@ -2357,6 +2357,10 @@
     async function createQuickTask() {
       if (state.orderMutationPending) {
         showToast("Wait for the current order change to finish");
+        return;
+      }
+      if (!canCaptureInWorkspace(state.workspace, state.liveTodoist)) {
+        showToast("Work workspace is demo-only until live task classification is configured");
         return;
       }
       const captureText = captureInput.value;
