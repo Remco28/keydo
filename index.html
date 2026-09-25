@@ -3462,7 +3462,9 @@
       if (!file) return;
       event.preventDefault();
       if (state.captureOpen) capturePasteImage(file);
-      else attachImage(file);
+      else if (!commandBackdrop.classList.contains("visible")
+        && !helpBackdrop.classList.contains("visible")
+        && !deleteBackdrop.classList.contains("visible")) attachImage(file);
     });
 
     loadRuntimeState();
