@@ -648,7 +648,9 @@ export function createServer(options: KeydoServerOptions = {}) {
           headers: {
             "Content-Type": "text/html; charset=utf-8",
             "X-Content-Type-Options": "nosniff",
-            "Referrer-Policy": "no-referrer"
+            "Referrer-Policy": "no-referrer",
+            "X-Frame-Options": "DENY",
+            "Content-Security-Policy": "frame-ancestors 'none'"
           }
         });
       }

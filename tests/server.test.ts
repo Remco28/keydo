@@ -1545,6 +1545,8 @@ describe("Keydo server", () => {
       expect(body).toContain("Keydo");
       expect(body).toContain("task-list");
       expect(body).toContain('"fractional-indexing":"/src/fractional-indexing.js"');
+      expect(response.headers.get("X-Frame-Options")).toBe("DENY");
+      expect(response.headers.get("Content-Security-Policy")).toBe("frame-ancestors 'none'");
     } finally {
       server.stop(true);
     }
