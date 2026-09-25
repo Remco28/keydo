@@ -3375,6 +3375,9 @@
         } else if (event.key === "Tab" && helpBackdrop.classList.contains("visible")) {
           event.preventDefault();
           document.getElementById("help-dialog").focus({ preventScroll: true });
+        } else if (event.key === "Tab" && commandBackdrop.classList.contains("visible")) {
+          event.preventDefault();
+          commandSearch.focus();
         }
         return;
       }
