@@ -61,6 +61,8 @@ In Today and Upcoming, use Todoist `day_order` for tasks with a manual daily pos
 
 Structural nesting targets must belong to the same Todoist project ID as the source task. Project display names are not unique identities and cannot safely authorize cross-project hierarchy changes.
 
+Before release, verify with a controlled Todoist account whether moving a parent task through the [Move Task API](https://developer.todoist.com/api/v1/) also moves its descendants across projects or sections. The API describes moving the addressed task but does not specify descendant behavior. Keydo optimistically moves the whole local subtree and then reconciles from Sync; do not treat subtree moves as integration-verified until that behavior is checked.
+
 Project state and project views are keyed by Todoist project ID. Display names are labels only; same-name projects remain distinct in navigation and ordering, and a quick-capture project name that matches more than one project is rejected rather than routed arbitrarily.
 
 Sync command writes that use the saved cursor are serialized through one mutation queue, including task creation and ordering. Each multi-request order normalization also chains the cursor returned by each command batch. This avoids overlapping cursor-consuming writes and prevents a later batch from starting from an older cursor.
