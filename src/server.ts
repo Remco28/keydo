@@ -36,8 +36,10 @@ function isSyncRequest(value: unknown): value is TodoistSyncRequest {
 function syncResponseForBrowser(payload: TodoistSyncResponse): TodoistSyncResponse {
   const user = payload.user;
   if (!user || typeof user !== "object" || Array.isArray(user)) return payload;
-  const safeUser = { ...(user as Record<string, unknown>) };
-  for (const key of ["token", "access_token", "refresh_token"]) delete safeUser[key];
+  // The browser needs only the account timezone. The Todoist user resource
+  // also contains credentials and profile data that should stay server-side.
+  const source = user as Record<string, unknown>;
+  const safeUser = Object.hasOwn(source, "tz_info") ? { tz_info: source.tz_info } : {};
   return { ...payload, user: safeUser };
 }
 

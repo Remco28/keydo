@@ -520,6 +520,7 @@ describe("Keydo server", () => {
         sync_token: "next-token",
         items: [],
         user: {
+          email: "private@example.test",
           token: "private-user-token",
           access_token: "private-access-token",
           refresh_token: "private-refresh-token",
@@ -538,6 +539,7 @@ describe("Keydo server", () => {
       expect(JSON.stringify(payload)).not.toContain("private-user-token");
       expect(JSON.stringify(payload)).not.toContain("private-access-token");
       expect(JSON.stringify(payload)).not.toContain("private-refresh-token");
+      expect(JSON.stringify(payload)).not.toContain("private@example.test");
     } finally {
       server.stop(true);
     }
