@@ -66,7 +66,10 @@ export function mergeResolvedCreatedTask(tasks, pendingTask, syncedTask) {
 
 export function isDefinitiveCreateRejection(responseStatus, payload) {
   const status = createFailureStatus(responseStatus, payload);
-  return status >= 400 && status < 500 && status !== 409 && status !== 429;
+  // A timeout can be generated after the command reached Todoist or an
+  // intermediary, so it is not safe to tell the user the task was rejected
+  // or let a retry create a new command UUID.
+  return status >= 400 && status < 500 && status !== 408 && status !== 409 && status !== 429;
 }
 
 function createFailureStatus(responseStatus, payload) {

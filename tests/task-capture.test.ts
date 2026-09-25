@@ -87,6 +87,7 @@ describe("quick capture create failure classification", () => {
     expect(isDefinitiveCreateRejection(502, { status: 400 })).toBe(true);
     expect(isDefinitiveCreateRejection(502, { status: 403 })).toBe(true);
     expect(isDefinitiveCreateRejection(422, { command_rejected: true })).toBe(true);
+    expect(isDefinitiveCreateRejection(502, { status: 408 })).toBe(false);
   });
 
   test("keeps rate limits, conflicts, and server failures retryable or uncertain", () => {
