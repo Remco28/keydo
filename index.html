@@ -1047,7 +1047,6 @@
         if (previous) {
           const localUpdates = { ...(previous.keydoSendingUpdates || {}), ...(previous.keydoPendingUpdates || {}) };
           Object.assign(previous, retainOmittedTaskFields(mapped, previous, item), {
-            workspace: previous.workspace,
             attachment: previous.attachment,
             subtasks: previous.subtasks ?? []
           });
