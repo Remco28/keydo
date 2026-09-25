@@ -16,6 +16,12 @@ export function isDefinitiveCreateRejection(responseStatus: number, payload: unk
 
 export function isCreateRateLimited(responseStatus: number, payload: unknown): boolean;
 
+export function shouldRestoreCaptureAfterCreateFailure(result: {
+  requestAttempted: boolean;
+  definitelyRejected?: boolean;
+  rateLimited?: boolean;
+}): boolean;
+
 export function isTodoistRateLimited(responseStatus: number, payload: unknown): boolean;
 
 export function todoistRetryAfterSeconds(payload: unknown): number | null;

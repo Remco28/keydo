@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { appendCreatedTask, isCreateRateLimited, isDefinitiveCreateRejection, isTodoistRateLimited, mergeResolvedCreatedTask, parseCapture, resolveCaptureProject, todoistRetryAfterSeconds } from "../src/task-capture.js";
+import { appendCreatedTask, isCreateRateLimited, isDefinitiveCreateRejection, isTodoistRateLimited, mergeResolvedCreatedTask, parseCapture, resolveCaptureProject, shouldRestoreCaptureAfterCreateFailure, todoistRetryAfterSeconds } from "../src/task-capture.js";
 import { orderTaskTree } from "../src/task-view.js";
 
 describe("quick capture project resolution", () => {
@@ -68,6 +68,13 @@ describe("quick capture project resolution", () => {
 });
 
 describe("quick capture create failure classification", () => {
+  test("restores capture drafts only when retrying cannot duplicate an uncertain create", () => {
+    expect(shouldRestoreCaptureAfterCreateFailure({ requestAttempted: false })).toBe(true);
+    expect(shouldRestoreCaptureAfterCreateFailure({ requestAttempted: true, definitelyRejected: true })).toBe(true);
+    expect(shouldRestoreCaptureAfterCreateFailure({ requestAttempted: true, rateLimited: true })).toBe(true);
+    expect(shouldRestoreCaptureAfterCreateFailure({ requestAttempted: true })).toBe(false);
+  });
+
   test("treats proxied Todoist 4xx responses as definitive rejections", () => {
     expect(isDefinitiveCreateRejection(502, { status: 400 })).toBe(true);
     expect(isDefinitiveCreateRejection(502, { status: 403 })).toBe(true);

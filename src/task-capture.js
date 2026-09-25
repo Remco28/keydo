@@ -75,6 +75,10 @@ export function isCreateRateLimited(responseStatus, payload) {
   return isTodoistRateLimited(responseStatus, payload);
 }
 
+export function shouldRestoreCaptureAfterCreateFailure({ requestAttempted, definitelyRejected, rateLimited }) {
+  return !requestAttempted || Boolean(definitelyRejected || rateLimited);
+}
+
 export function isTodoistRateLimited(responseStatus, payload) {
   if (createFailureStatus(responseStatus, payload) === 429) return true;
   if (!payload?.command_rejected) return false;

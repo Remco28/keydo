@@ -640,7 +640,7 @@
     import { hasSyncToken, isPerformedSyncFailure, readOrderSyncToken, readSyncToken, requiresFullSyncAfterCompletionChange, requiresSyncCatchup } from "/src/sync-token.js";
     import { backgroundSyncAction, createCoalescedSyncRunner } from "/src/sync-runtime.js";
     import { applyProjectTaskMove, applyTaskDueChange, applyTaskHierarchyMove, applyTaskOrderKeys, applyTodoistProjectDelta, applyTodoistSectionDeltas, deletedTodoistProjectIds, discardTaskEdits, isRecurringTaskCompletion, isTaskCompletionStateCurrent, reconcileTodoistProjectSnapshot, restoreMissingTasks, restoreTaskOrderFields, restoreTaskSnapshots, setTaskAttachment, retainOmittedTaskFields, retainPendingCreates, retryablePendingTaskUpdates } from "/src/task-mutations.js";
-    import { appendCreatedTask, isCreateRateLimited, isDefinitiveCreateRejection, isTodoistRateLimited, mergeResolvedCreatedTask, parseCapture, resolveCaptureProject, todoistRetryAfterSeconds } from "/src/task-capture.js";
+    import { appendCreatedTask, isCreateRateLimited, isDefinitiveCreateRejection, isTodoistRateLimited, mergeResolvedCreatedTask, parseCapture, resolveCaptureProject, shouldRestoreCaptureAfterCreateFailure, todoistRetryAfterSeconds } from "/src/task-capture.js";
     const taskMutationQueues = new Map();
     const taskActionGate = createTaskActionGate();
     const syncCoordinator = createSyncCoordinator();
@@ -2525,7 +2525,11 @@
         tasks = tasks.filter(item => item !== task);
         if (state.selectedId === task.id) state.selectedId = previousSelectedId;
         render();
-        if (error?.rateLimited) {
+        if (shouldRestoreCaptureAfterCreateFailure({
+          requestAttempted: createRequestAttempted,
+          definitelyRejected: error?.definitelyRejected,
+          rateLimited: error?.rateLimited
+        })) {
           captureInput.value = captureText;
           state.captureAttachment = pendingAttachment;
           state.captureOpen = true;
