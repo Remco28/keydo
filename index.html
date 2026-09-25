@@ -2651,6 +2651,16 @@
       render();
     }
 
+    function switchWorkspace(workspace) {
+      state.workspace = workspace;
+      setView("today");
+      if (state.liveTodoist && workspace !== "Personal") {
+        showToast("Work workspace is demo-only until live task classification is configured");
+      } else {
+        showToast(`Switched to ${state.workspace} workspace`);
+      }
+    }
+
     async function setTaskDue(label, dueString) {
       const taskId = currentTask()?.id;
       if (!taskId) return;
@@ -3129,7 +3139,7 @@
         else setView("project", projectId, null);
         return;
       }
-      if (action.startsWith("workspace:")) { state.workspace = action.slice(10); setView("today"); showToast(`Switched to ${state.workspace} workspace`); return; }
+      if (action.startsWith("workspace:")) { switchWorkspace(action.slice(10)); return; }
       if (action === "task:today") { setTaskDue("Today", "today"); return; }
       if (action === "task:tomorrow") { setTaskDue("Tomorrow", "tomorrow"); return; }
       if (action === "task:clear") { setTaskDue("No date", "no date"); return; }
@@ -3319,9 +3329,7 @@
 
     document.querySelectorAll("[data-view]").forEach(button => button.addEventListener("click", () => {
       if (button.dataset.view === "workspace") {
-        state.workspace = button.dataset.workspace;
-        setView("today");
-        showToast(`Switched to ${state.workspace} workspace`);
+        switchWorkspace(button.dataset.workspace);
         return;
       }
       setView(button.dataset.view, button.dataset.project || state.project);
