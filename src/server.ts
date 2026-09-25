@@ -395,7 +395,9 @@ export function createServer(options: KeydoServerOptions = {}) {
         const lockUse = holdOrderLockForRequest(request);
         if (lockUse.response) return lockUse.response;
         try {
-          return Response.json(syncResponseForBrowser(await todoist.sync(body)));
+          return Response.json(syncResponseForBrowser(await todoist.sync(body)), {
+            headers: { "Cache-Control": "no-store" }
+          });
         } catch (error) {
           if (error instanceof TodoistApiError) {
             return Response.json({ error: "Todoist API request failed", status: error.status, details: error.payload }, { status: 502 });

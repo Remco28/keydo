@@ -505,6 +505,7 @@ describe("Keydo server", () => {
     try {
       const response = await appRequest(server, "/api/todoist/sync", { method: "POST", body: JSON.stringify({ syncToken: "*", resourceTypes: ["items"] }) });
       expect(response.status).toBe(200);
+      expect(response.headers.get("cache-control")).toBe("no-store");
       expect(await response.json()).toEqual({ sync_token: "next-token", full_sync: true, items: [] });
     } finally {
       server.stop(true);
