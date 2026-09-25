@@ -34,9 +34,9 @@ This log records product and technical decisions as they are made. Proposed deci
 
 ## D-006: Display pasted images in the task detail pane
 
-- **Status:** Proposed
-- **Decision:** Show uploaded task images inline in the selected-task detail area, with an on-demand larger viewer.
-- **Rationale:** A file that requires a separate manual open action does not provide enough value. Inline visibility makes visual context immediately useful.
+- **Status:** Accepted
+- **Decision:** Show uploaded task images inline in the task detail view at the largest practical size, before the description, with an on-demand larger viewer.
+- **Rationale:** A visual should be immediately scannable. A thumbnail or attachment name that requires a separate manual open action does not provide enough value for visual context.
 
 ## D-007: Use commands as the primary extension model
 
@@ -76,15 +76,22 @@ This log records product and technical decisions as they are made. Proposed deci
 
 ## D-013: Enter detail editing with the right arrow
 
-- **Status:** Accepted
+- **Status:** Superseded by D-015
 - **Decision:** The right arrow enters the selected task's detail editor; `Tab` moves between fields and `Escape` returns to the list.
 - **Rationale:** This provides a predictable list-to-details transition while keeping the task list available for navigation.
+- **Superseded:** Detail is now opened with `Enter`, Tab is not a navigation key, and each detail section has a direct key (`T`/`N`/`S`/`C`).
 
 ## D-014: Keep structural moves explicit in project views
 
 - **Status:** Accepted
 - **Decision:** Use `Alt+Arrow` for reordering and indentation/outdentation in explicitly structured project views. Do not make these mutations the default behavior of flattened main or Today views.
 - **Rationale:** Structural changes should be deliberate and should not surprise a user who is merely scanning a list.
+
+## D-015: Tab-free, context-sensitive keyboard interface
+
+- **Status:** Accepted
+- **Decision:** Tab is not a navigation key in Keydo — it belongs to the browser. Every section (list, detail room, move mode, capture composer) gets direct keys instead: `T`itle, `N`otes, `S`ubtasks, `C`omplete in detail; arrows walk the subtask list. Action buttons stay clickable but untabbable; the delete dialog keeps its tab trap as the exception. Keys may change meaning per context (`T` is Today in the list, Title in detail); hint lines and the palette teach the active map.
+- **Rationale:** Reaching rename via five shift-tabs proved the layout served the mouse first. Direct keys keep hands on home row and eyes on the task.
 
 ## Open decisions
 

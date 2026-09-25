@@ -1,0 +1,3455 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f6f5f1">
+  <title>Keydo — keyboard-first Todoist</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f6f5f1;
+      --panel: #fffefa;
+      --panel-soft: #f1f0eb;
+      --panel-strong: #e8e7e0;
+      --ink: #23241f;
+      --muted: #85867e;
+      --muted-strong: #64665e;
+      --line: #deded5;
+      --line-strong: #cbc9bd;
+      --accent: #d96b4b;
+      --accent-soft: #f8e2d9;
+      --green: #64886d;
+      --green-soft: #e4eee5;
+      --yellow: #b69243;
+      --blue: #6687a8;
+      --shadow: 0 12px 32px rgba(49, 48, 41, 0.08);
+      --radius: 12px;
+      --mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+      --sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    [hidden] { display: none !important; }
+
+    html, body { min-height: 100%; }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: var(--sans);
+      font-size: 14px;
+      line-height: 1.45;
+    }
+
+    button, input, textarea { font: inherit; }
+
+    button { cursor: pointer; }
+
+    button:focus-visible, input:focus-visible, textarea:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+
+    .app {
+      display: block;
+      min-height: 100vh;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 52px;
+      padding: 0 24px;
+      border-bottom: 1px solid var(--line);
+      background: rgba(255, 254, 250, 0.86);
+      backdrop-filter: blur(12px);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--ink);
+      font-size: 17px;
+      font-weight: 750;
+      letter-spacing: -0.03em;
+    }
+
+    .brand-mark {
+      display: grid;
+      width: 25px;
+      height: 25px;
+      place-items: center;
+      border-radius: 7px;
+      background: var(--ink);
+      color: var(--panel);
+      font-family: var(--mono);
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .topbar-actions, .brand-meta, .sync-state, .shortcut-hint, .user-chip, .button-row, .detail-actions, .tag-row, .task-meta, .selection-summary, .command-hints, .view-switcher {
+      display: flex;
+      align-items: center;
+    }
+
+    .topbar-actions { gap: 16px; }
+
+    .brand-meta { gap: 8px; }
+
+    .sync-state { gap: 7px; color: var(--green); font-size: 12px; }
+
+    .sync-state.demo { color: var(--yellow); }
+    .sync-state.error { color: var(--accent); }
+    .sync-state.demo .sync-dot { background: var(--yellow); box-shadow: 0 0 0 3px #f0ead7; }
+    .sync-state.error .sync-dot { background: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+    .sync-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 999px;
+      background: var(--green);
+      box-shadow: 0 0 0 3px var(--green-soft);
+    }
+
+    .shortcut-hint {
+      gap: 6px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    kbd {
+      min-width: 20px;
+      padding: 2px 5px;
+      border: 1px solid var(--line-strong);
+      border-bottom-width: 2px;
+      border-radius: 5px;
+      background: var(--panel-soft);
+      color: var(--muted-strong);
+      font-family: var(--mono);
+      font-size: 11px;
+      text-align: center;
+    }
+
+    .user-chip {
+      gap: 8px;
+      padding-left: 14px;
+      border-left: 1px solid var(--line);
+      color: var(--muted-strong);
+      font-size: 12px;
+    }
+
+    .avatar {
+      display: grid;
+      width: 26px;
+      height: 26px;
+      place-items: center;
+      border-radius: 999px;
+      background: #ded8ca;
+      color: #655b4b;
+      font-size: 11px;
+      font-weight: 800;
+    }
+
+    .primary-button, .quiet-button, .icon-button, .bulk-button {
+      border: 1px solid var(--line-strong);
+      border-radius: 8px;
+      background: var(--panel);
+      color: var(--ink);
+      transition: 120ms ease;
+    }
+
+    .primary-button:hover, .quiet-button:hover, .icon-button:hover, .bulk-button:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .content {
+      min-width: 0;
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 22px 24px 64px;
+      overflow: visible;
+    }
+
+    .view-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      margin-bottom: 14px;
+    }
+
+    .eyebrow { margin-bottom: 4px; color: var(--muted); font-size: 11px; font-weight: 700; letter-spacing: 0.04em; }
+    h1, h2, h3, p { margin: 0; }
+    h1 { font-size: 26px; letter-spacing: -0.04em; line-height: 1.1; }
+    .header-date { margin-top: 5px; color: var(--muted); font-size: 12px; }
+    .view-switcher { gap: 3px; padding: 3px; border: 1px solid var(--line); border-radius: 9px; background: var(--panel-soft); }
+    .view-switcher button { padding: 6px 10px; border: 0; border-radius: 6px; background: transparent; color: var(--muted); font-size: 12px; }
+    .view-switcher button.active { background: var(--panel); color: var(--ink); box-shadow: 0 1px 2px rgba(45, 44, 37, 0.08); }
+
+    .workspace-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      min-height: 480px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--panel);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .workspace-grid.detail-open { grid-template-columns: minmax(0, 1fr); }
+    .workspace-grid.detail-open .task-pane { display: none; }
+    .workspace-grid.detail-open .detail-pane { display: flex; }
+    .task-pane, .detail-pane { min-width: 0; }
+    .task-pane { border-right: 0; }
+    .detail-pane { display: none; }
+
+    .pane-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .search-wrap {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+      flex: 1;
+      padding: 8px 10px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel-soft);
+      color: var(--muted);
+    }
+
+    .search-wrap:focus-within { border-color: var(--accent); background: var(--panel); }
+    .search-icon { color: var(--muted); font-family: var(--mono); font-size: 13px; }
+    .search-input { width: 100%; min-width: 0; border: 0; outline: 0; background: transparent; color: var(--ink); font-size: 12px; }
+    .search-input::placeholder { color: var(--muted); }
+
+    .bulk-button { padding: 7px 9px; color: var(--muted-strong); font-size: 11px; white-space: nowrap; }
+    .bulk-button:disabled { cursor: default; opacity: .5; }
+    .bulk-button:not(:disabled) { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); }
+
+    .selection-summary { gap: 7px; color: var(--accent); font-size: 11px; font-weight: 700; }
+
+    .list-meta {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 13px 17px 8px;
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    .list-meta strong { color: var(--muted-strong); font-weight: 700; }
+
+    .task-list { padding: 0 8px 12px; }
+
+    .task-row {
+      display: grid;
+      grid-template-columns: 18px 22px 22px minmax(0, 1fr);
+      align-items: center;
+      gap: 7px;
+      min-height: 44px;
+      padding: 5px 10px;
+      border: 1px solid transparent;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 100ms ease, border-color 100ms ease;
+    }
+
+    .task-row:hover { background: var(--panel-soft); }
+    .task-row.selected { border-color: var(--line-strong); background: #f8f7f2; box-shadow: 0 1px 2px rgba(45, 44, 37, 0.04); }
+    .task-row.selected .task-title { color: var(--ink); }
+    .task-row.completed .task-title { color: var(--muted); text-decoration: line-through; }
+    .task-row.selected.completed { background: #f5f5f0; }
+
+    .tree-toggle { color: var(--muted); font-size: 12px; line-height: 1; text-align: center; }
+    .task-row.collapsed .tree-toggle { color: var(--accent); }
+
+    .select-box {
+      display: grid;
+      width: 16px;
+      height: 16px;
+      place-items: center;
+      border: 1px solid var(--line-strong);
+      border-radius: 4px;
+      color: transparent;
+      font-size: 11px;
+      line-height: 1;
+    }
+
+    .task-row.selected .select-box { border-color: var(--accent); background: var(--accent); color: white; }
+    .task-row.bulk-selected { background: var(--accent-soft); }
+    .task-row.move-target { border-color: var(--accent); background: var(--accent-soft); box-shadow: 0 0 0 1px var(--accent); }
+    .task-row.move-source { opacity: .55; }
+    .task-row.bulk-selected .select-box { border-color: var(--accent); color: var(--accent); }
+
+    .complete-button {
+      display: grid;
+      width: 20px;
+      height: 20px;
+      place-items: center;
+      border: 1.5px solid var(--line-strong);
+      border-radius: 999px;
+      background: transparent;
+      color: transparent;
+      font-size: 12px;
+    }
+
+    .task-row.completed .complete-button { border-color: var(--green); background: var(--green); color: white; }
+
+    .task-main { min-width: 0; }
+    .task-row.depth-1 .task-main { margin-left: 18px; }
+    .task-row.depth-2 .task-main { margin-left: 36px; }
+    .task-row.depth-3 .task-main { margin-left: 54px; }
+    .task-title-line { display: flex; align-items: center; gap: 7px; min-width: 0; }
+    .task-title { overflow: hidden; color: var(--ink); font-size: 13px; font-weight: 620; text-overflow: ellipsis; white-space: nowrap; }
+    .task-subtitle { display: flex; gap: 7px; margin-top: 4px; color: var(--muted); font-size: 11px; }
+    .task-subtitle .overdue { color: var(--accent); }
+    .priority-mark { width: 4px; height: 15px; flex: none; border-radius: 4px; background: var(--line-strong); }
+    .priority-mark.p4 { background: var(--accent); }
+    .priority-mark.p3 { background: var(--yellow); }
+    .priority-mark.p2 { background: #7b9aaf; }
+
+    .empty-state { padding: 38px 20px; color: var(--muted); text-align: center; }
+    .empty-state strong { display: block; margin-bottom: 5px; color: var(--ink); }
+
+    .pane-footer { display: flex; align-items: center; justify-content: space-between; margin: 0 17px; padding: 13px 0 16px; border-top: 1px solid var(--line); color: var(--muted); font-size: 11px; }
+    .pane-footer .sync-note { display: flex; align-items: center; gap: 6px; }
+    .pane-footer .sync-note::before { content: ""; width: 5px; height: 5px; border-radius: 999px; background: var(--green); }
+
+    .detail-pane { display: none; flex-direction: column; background: #fbfaf6; }
+    .detail-head { padding: 19px 22px 15px; border-bottom: 1px solid var(--line); }
+    .detail-head-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+    .detail-label { color: var(--muted); font-size: 11px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+    .detail-title { max-width: 480px; margin-top: 7px; font-size: 22px; font-weight: 700; letter-spacing: -.035em; line-height: 1.15; }
+    .detail-title-input { display: none; width: 100%; padding: 0; border: 0; border-bottom: 1px solid var(--accent); outline: 0; background: transparent; color: var(--ink); font-size: 22px; font-weight: 700; letter-spacing: -.035em; }
+    .detail-pane.editing .detail-title { display: none; }
+    .detail-pane.editing .detail-title-input { display: block; }
+    .icon-button { width: 30px; height: 30px; padding: 0; color: var(--muted); }
+    .icon-button:hover { background: var(--panel-soft); }
+
+    .detail-meta { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 14px; }
+    .tag { display: inline-flex; align-items: center; gap: 5px; padding: 4px 7px; border-radius: 5px; background: var(--panel-soft); color: var(--muted-strong); font-size: 11px; }
+    .tag.project { background: #edf0e7; color: #5d745d; }
+    .tag.due { background: var(--accent-soft); color: #a65c42; }
+    .tag.priority { background: #f0ead7; color: #92732f; }
+
+    .detail-actions { gap: 7px; margin-top: 16px; }
+    .detail-link-row { display: flex; align-items: center; gap: 11px; margin-top: 10px; }
+    .detail-link-hint { color: var(--muted); font-size: 11px; }
+    .quiet-button, .primary-button { padding: 7px 10px; font-size: 11px; font-weight: 650; }
+    .primary-button { border-color: var(--ink); background: var(--ink); color: white; }
+    .primary-button:hover { border-color: var(--accent); background: var(--accent); color: white; }
+
+    .detail-body { flex: 1; padding: 22px; overflow: auto; }
+    .detail-columns { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 24px; }
+    .detail-column { min-width: 0; }
+    .preview-column { padding-left: 24px; border-left: 1px solid var(--line); }
+    .preview-heading { display: flex; align-items: center; justify-content: space-between; margin-bottom: 11px; color: var(--muted-strong); font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+    .preview-heading span:last-child { color: var(--muted); font-size: 10px; font-weight: 500; letter-spacing: 0; text-transform: none; }
+    .preview-media { display: grid; gap: 10px; margin-bottom: 17px; }
+    .preview-media:empty { display: none; }
+    .detail-section { padding-bottom: 22px; margin-bottom: 20px; border-bottom: 1px solid var(--line); }
+    .detail-section:last-child { border-bottom: 0; }
+    .section-heading { display: flex; align-items: center; justify-content: space-between; margin-bottom: 11px; color: var(--muted-strong); font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+    .section-heading button { border: 0; background: transparent; color: var(--muted); font-size: 11px; }
+    .description { color: #4c4d45; font-size: 13px; line-height: 1.65; }
+    .description p { margin: 0 0 10px; }
+    .description p:last-child { margin-bottom: 0; }
+    .description h1, .description h2, .description h3, .description h4, .description h5, .description h6 { margin: 16px 0 7px; color: var(--ink); line-height: 1.25; }
+    .description h1 { font-size: 1.35rem; }
+    .description h2 { font-size: 1.2rem; }
+    .description h3, .description h4, .description h5, .description h6 { font-size: 1.05rem; }
+    .description hr { border: 0; border-top: 1px solid var(--line-strong); margin: 16px 0; }
+    .description strong { color: var(--ink); }
+    .description a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+    .description ul { padding-left: 18px; margin: 5px 0 10px; }
+    .description code { padding: 2px 4px; border-radius: 4px; background: var(--panel-soft); font-family: var(--mono); font-size: 11px; }
+    .description-editor { display: block; width: 100%; min-height: 260px; resize: vertical; padding: 11px; border: 1px solid var(--line); border-radius: 8px; outline: 0; background: var(--panel); color: var(--ink); font-size: 12px; line-height: 1.6; }
+    .description-editor:focus { border-color: var(--accent); }
+    .edit-hint { margin-top: 7px; color: var(--muted); font-size: 11px; }
+
+    .attachment-card { display: flex; align-items: center; gap: 12px; padding: 10px; border: 1px solid var(--line); border-radius: 9px; background: var(--panel); }
+    .attachment-thumb { display: grid; width: 52px; height: 42px; place-items: center; overflow: hidden; border-radius: 5px; background: var(--panel-soft); color: var(--muted); font-size: 11px; }
+    .attachment-thumb img { width: 100%; height: 100%; object-fit: cover; }
+    .attachment-copy { min-width: 0; flex: 1; }
+    .attachment-name { overflow: hidden; color: var(--ink); font-size: 11px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
+    .attachment-meta { margin-top: 3px; color: var(--muted); font-size: 11px; }
+    .preview-media .attachment-card { display: block; padding: 0; overflow: hidden; }
+    .preview-media .attachment-thumb { width: 100%; height: auto; min-height: 0; aspect-ratio: auto; border-radius: 0; }
+    .preview-media .attachment-thumb img { display: block; width: 100%; height: auto; max-height: 70vh; object-fit: contain; }
+    .preview-media .attachment-copy { padding: 10px 11px 0; }
+    .preview-media .attachment-view { margin: 8px 11px 10px; padding: 0 3px 0 0; }
+    .preview-media .attachment-view + .attachment-view { margin-left: 8px; }
+    .attachment-view { border: 0; background: transparent; color: var(--accent); font-size: 11px; font-weight: 700; }
+
+    .subtask-list { display: grid; gap: 7px; }
+    .subtask { display: flex; align-items: center; gap: 8px; color: var(--muted-strong); font-size: 12px; }
+    button.subtask { width: 100%; padding: 2px 0; border: 0; background: transparent; text-align: left; font: inherit; }
+    button.subtask:hover { color: var(--accent); }
+    .subtask::before { content: ""; width: 6px; height: 6px; flex: none; border: 1px solid var(--line-strong); border-radius: 999px; }
+    .subtask.done { color: var(--muted); text-decoration: line-through; }
+    .subtask.done::before { border-color: var(--green); background: var(--green); }
+
+    .detail-empty { display: grid; height: 100%; min-height: 500px; place-items: center; color: var(--muted); text-align: center; }
+    .detail-empty-inner { max-width: 220px; }
+    .detail-empty-mark { display: grid; width: 40px; height: 40px; place-items: center; margin: 0 auto 12px; border: 1px solid var(--line); border-radius: 11px; color: var(--accent); font-family: var(--mono); }
+
+    .bulk-bar { position: fixed; right: 28px; bottom: 52px; z-index: 5; display: none; align-items: center; gap: 12px; padding: 10px 12px; border: 1px solid var(--line-strong); border-radius: 10px; background: var(--panel); box-shadow: var(--shadow); }
+    .bulk-bar.visible { display: flex; }
+    .bulk-bar strong { color: var(--ink); font-size: 12px; }
+    .bulk-bar span { color: var(--muted); font-size: 11px; }
+
+    .quick-capture { padding: 13px 16px 14px; border-bottom: 1px solid var(--line); background: #fcfaf3; }
+    .quick-capture[hidden] { display: none; }
+    .quick-capture-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; color: var(--muted-strong); font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+    .quick-capture-hint { color: var(--muted); font-size: 11px; font-weight: 500; letter-spacing: 0; text-transform: none; }
+    .quick-capture-input { width: 100%; padding: 11px 12px; border: 1px solid var(--line-strong); border-radius: 8px; outline: 0; background: var(--panel); color: var(--ink); font-size: 13px; }
+    .quick-capture-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+    .quick-capture-attachment { display: flex; align-items: center; gap: 10px; margin-top: 8px; padding: 7px 9px; border: 1px dashed var(--line-strong); border-radius: 8px; background: var(--panel); }
+    .quick-capture-attachment[hidden] { display: none; }
+    .capture-thumb { width: 44px; height: 34px; border-radius: 5px; object-fit: cover; background: var(--panel-soft); }
+    .capture-file-name { min-width: 0; flex: 1; overflow: hidden; color: var(--muted-strong); font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+    .quick-capture-bottom { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 8px; }
+    .quick-capture-preview { min-width: 0; color: var(--muted); font-size: 11px; }
+    .quick-capture-preview strong { color: var(--muted-strong); }
+    .quick-capture-actions { display: flex; gap: 6px; }
+    .quick-capture-actions .quiet-button, .quick-capture-actions .primary-button { padding: 6px 9px; }
+    .text-action { padding: 0; border: 0; background: transparent; color: var(--accent); font-size: 11px; font-weight: 700; }
+    .text-action:hover { color: var(--ink); text-decoration: underline; }
+    .detail-actions .action-hint { margin-left: auto; color: var(--muted); font-size: 11px; }
+    .toast { position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; padding: 8px 20px; border-top: 1px solid var(--line-strong); background: var(--ink); color: white; box-shadow: 0 -8px 24px rgba(49, 48, 41, 0.12); font-size: 12px; opacity: 0; transform: translateY(8px); pointer-events: none; transition: 160ms ease; }
+    .toast.visible { opacity: 1; transform: translateY(0); }
+
+    .boot-overlay { position: fixed; inset: 0; z-index: 90; display: grid; place-items: center; padding: 24px; background: rgba(245, 243, 237, .9); color: var(--muted-strong); font-size: 13px; font-weight: 700; backdrop-filter: blur(4px); }
+    .boot-overlay[hidden] { display: none; }
+
+    .modal-backdrop { position: fixed; inset: 0; z-index: 100; display: none; place-items: start center; padding-top: 105px; background: rgba(35, 36, 31, .16); backdrop-filter: blur(3px); }
+    .modal-backdrop.visible { display: grid; pointer-events: auto; }
+    .command-modal { width: min(560px, calc(100vw - 32px)); overflow: hidden; border: 1px solid var(--line-strong); border-radius: 12px; background: var(--panel); box-shadow: 0 24px 60px rgba(35, 36, 31, .18); }
+    .command-search { width: 100%; padding: 16px 18px; border: 0; border-bottom: 1px solid var(--line); outline: 0; background: transparent; color: var(--ink); font-size: 16px; }
+    .command-list { max-height: 360px; padding: 7px; overflow: auto; }
+    .command-item { display: flex; align-items: center; justify-content: space-between; padding: 11px 12px; border-radius: 7px; color: var(--muted-strong); }
+    .command-item.active { background: var(--panel-soft); color: var(--ink); }
+    .command-item-title { font-size: 12px; font-weight: 700; }
+    .command-item-description { margin-top: 2px; color: var(--muted); font-size: 11px; }
+    .command-hints { gap: 6px; }
+
+    .delete-modal { position: relative; z-index: 1; width: min(440px, calc(100vw - 32px)); padding: 21px; border-radius: 12px; background: var(--panel); box-shadow: 0 24px 60px rgba(35, 36, 31, .18); }
+    .delete-modal h2 { font-size: 18px; letter-spacing: -.03em; }
+    .delete-modal p { margin-top: 7px; color: var(--muted-strong); font-size: 12px; }
+    .delete-modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; }
+    .delete-modal-actions .quiet-button, .delete-modal-actions .primary-button { min-height: 34px; }
+    .delete-modal-actions .primary-button { background: var(--accent); border-color: var(--accent); color: white; }
+    .delete-modal-actions .primary-button:hover { background: #bd5a3d; border-color: #bd5a3d; color: white; }
+
+    .help-modal h2 { font-size: 18px; letter-spacing: -.03em; }
+    .help-modal p { margin-top: 5px; color: var(--muted); font-size: 12px; }
+    .help-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 22px; margin-top: 20px; }
+    .help-row { display: flex; align-items: center; justify-content: space-between; gap: 15px; padding: 7px 0; border-bottom: 1px solid var(--line); color: var(--muted-strong); font-size: 11px; }
+
+    .mobile-warning { display: none; }
+
+    @media (max-width: 980px) {
+      .content { padding: 20px 18px 64px; }
+      .task-pane { border-right: 0; border-bottom: 1px solid var(--line); }
+      .detail-pane { min-height: 520px; }
+    }
+
+    @media (max-width: 680px) {
+      .topbar { padding: 0 16px; }
+      .brand-meta, .shortcut-hint, .user-chip span { display: none; }
+      .content { padding: 16px 12px 64px; }
+      .view-header { display: block; }
+      .view-switcher { width: max-content; margin-top: 16px; }
+      .workspace-grid { border-radius: 9px; }
+      .help-grid { grid-template-columns: 1fr; }
+      .mobile-warning { display: block; padding: 9px 14px; border-bottom: 1px solid var(--line); background: var(--accent-soft); color: #9c573f; font-size: 11px; text-align: center; }
+    }
+  </style>
+</head>
+<body>
+  <div class="boot-overlay" id="boot-overlay" role="status" aria-live="polite">Loading Keydo…</div>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand"><span class="brand-mark">K</span><span>Keydo</span></div>
+      <div class="topbar-actions">
+        <div class="sync-state" id="sync-state"><span class="sync-dot"></span><span>Synced</span></div>
+        <div class="shortcut-hint"><kbd>?</kbd> Shortcuts <kbd>Ctrl</kbd><kbd>K</kbd> Commands</div>
+        <div class="user-chip"><span class="avatar">R</span><span>Remco</span></div>
+      </div>
+    </header>
+
+    <main class="content">
+      <div class="mobile-warning">Keydo is designed for desktop. Resize the window for the full experience.</div>
+      <div class="view-header">
+        <div>
+          <div class="eyebrow" id="view-eyebrow">Personal workspace · Task browser</div>
+          <h1 id="view-title">Today</h1>
+          <div class="header-date" id="view-subtitle">4 tasks · 1 high priority · 1 overdue</div>
+        </div>
+        <div class="view-switcher">
+          <button tabindex="-1" class="active" data-view="today">Today</button>
+          <button tabindex="-1" data-view="upcoming">Upcoming</button>
+          <button tabindex="-1" data-view="priority">Priority</button>
+        </div>
+      </div>
+
+      <div class="workspace-grid" id="workspace-grid">
+        <section class="task-pane" aria-label="Task list">
+          <div class="quick-capture" id="quick-capture" hidden>
+            <div class="quick-capture-top"><span>Quick capture</span><span class="quick-capture-hint">Natural language · paste a screenshot</span></div>
+            <input class="quick-capture-input" id="capture-input" placeholder="Try: Call Alex tomorrow #Launch plan p1" autocomplete="off">
+            <div class="quick-capture-attachment" id="capture-attachment" hidden>
+              <img class="capture-thumb" id="capture-thumb" alt="Screenshot attached to the new task">
+              <span class="capture-file-name" id="capture-file-name"></span>
+              <button class="text-action" id="capture-remove-image" tabindex="-1">Remove</button>
+            </div>
+            <div class="quick-capture-bottom"><div class="quick-capture-preview" id="capture-preview">Type a task, date, project, or priority.</div><div class="quick-capture-actions"><button class="quiet-button" id="capture-cancel" tabindex="-1">Esc</button><button class="primary-button" id="capture-save" tabindex="-1">Create task ↵</button></div></div>
+          </div>
+          <div class="pane-toolbar">
+            <label class="search-wrap"><span class="search-icon">⌕</span><input class="search-input" id="search-input" placeholder="Search tasks…" autocomplete="off"><kbd>/</kbd></label>
+            <button class="bulk-button" id="capture-button" tabindex="-1">+ Capture <kbd>N</kbd></button>
+            <button class="bulk-button" id="bulk-button" tabindex="-1" disabled>Select tasks</button>
+          </div>
+          <div class="list-meta"><strong id="list-label">Today</strong><span id="selection-summary"></span></div>
+          <div class="task-list" id="task-list" tabindex="-1"></div>
+          <div class="pane-footer"><span class="sync-note">Todoist sync active</span><span>Space complete · Delete remove · PageUp/PageDown jump · +/- priority · Alt+Arrow tree in project views</span></div>
+        </section>
+
+        <section class="detail-pane" id="detail-pane" aria-label="Task details" tabindex="-1">
+          <div class="detail-empty" id="detail-empty"><div class="detail-empty-inner"><div class="detail-empty-mark">K</div><strong>Select a task</strong><span>Choose a task with the keyboard, then press Enter to open its details.</span></div></div>
+          <div id="detail-content" hidden>
+            <div class="detail-head">
+              <div class="detail-head-top">
+                <div>
+                  <div class="detail-label" id="detail-label">TASK · PERSONAL</div>
+                  <div class="detail-title" id="detail-title"></div>
+                  <input class="detail-title-input" id="detail-title-input" aria-label="Task title">
+                </div>
+                <button class="icon-button" id="close-detail" tabindex="-1" title="Return to list">Esc</button>
+              </div>
+              <div class="detail-meta" id="detail-meta"></div>
+              <div class="detail-actions">
+                <button class="primary-button" id="complete-detail" tabindex="-1">Complete task</button>
+                <button class="quiet-button" id="detail-actions" tabindex="-1">Actions <kbd>Ctrl K</kbd></button>
+                <span class="action-hint">T title · N notes · S subtasks · C complete · Alt+key works while editing · Ctrl+Enter save</span>
+              </div>
+              <div class="detail-link-row"><button class="text-action" id="open-todoist" tabindex="-1">Open in Todoist ↗</button><span class="detail-link-hint">Paste a screenshot with Ctrl+V to attach it</span></div>
+            </div>
+            <div class="detail-body">
+              <div class="detail-columns">
+                <section class="detail-section detail-column editor-column">
+                  <div class="section-heading"><span>Notes</span><span class="preview-heading-note">Editable</span></div>
+                  <textarea class="description-editor" id="description-editor" aria-label="Task notes"></textarea>
+                  <div class="edit-hint">Changes preview live · Ctrl+Enter saves · Esc returns to list</div>
+                </section>
+                <section class="detail-section detail-column preview-column">
+                  <div class="preview-heading"><span>Preview</span><span id="preview-mode">Rendered live</span></div>
+                  <div class="preview-media" id="preview-media"></div>
+                  <div class="description" id="description-preview"></div>
+                </section>
+              </div>
+              <section class="detail-section" id="subtask-section">
+                <div class="section-heading"><span>Subtasks</span><span id="subtask-count">0 items</span></div>
+                <div class="subtask-list" id="subtask-list"></div>
+              </section>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <div class="bulk-bar" id="bulk-bar"><strong id="bulk-count">0 selected</strong><span>Press ↵ for actions</span><button class="bulk-button" id="bulk-complete" tabindex="-1">Complete</button><button class="bulk-button" id="bulk-today" tabindex="-1">Move to Today</button><button class="bulk-button" id="bulk-clear-dates" tabindex="-1">Clear dates</button><button class="bulk-button" id="bulk-clear" tabindex="-1">Clear selection</button></div>
+    </main>
+  </div>
+
+  <div class="toast" id="toast" role="status"></div>
+
+  <div class="modal-backdrop" id="command-backdrop">
+    <div class="command-modal" role="dialog" aria-modal="true" aria-label="Command palette">
+      <input class="command-search" id="command-search" placeholder="Type a command…" autocomplete="off">
+      <div class="command-list" id="command-list"></div>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="help-backdrop">
+    <div class="help-modal" role="dialog" aria-modal="true" aria-label="Keyboard shortcuts">
+      <h2>Keydo shortcuts</h2>
+      <p>Keyboard-first, with every action available through a command.</p>
+      <div class="help-grid">
+        <div class="help-row"><span>Move selection</span><span><kbd>↑</kbd> <kbd>↓</kbd></span></div>
+        <div class="help-row"><span>Move by page</span><span><kbd>PageUp</kbd> <kbd>PageDown</kbd></span></div>
+        <div class="help-row"><span>Complete task</span><kbd>Space</kbd></div>
+        <div class="help-row"><span>Delete task</span><kbd>Delete</kbd></div>
+        <div class="help-row"><span>Open details</span><kbd>↵</kbd></div>
+        <div class="help-row"><span>Browse subtasks (details)</span><span><kbd>S</kbd> <kbd>↑↓</kbd> <kbd>↵</kbd></span></div>
+        <div class="help-row"><span>Return to list</span><kbd>Esc</kbd></div>
+        <div class="help-row"><span>Move to Today (list)</span><kbd>T</kbd></div>
+        <div class="help-row"><span>Edit title (details)</span><kbd>T</kbd></div>
+        <div class="help-row"><span>Edit notes (details)</span><kbd>N</kbd></div>
+        <div class="help-row"><span>First subtask (details)</span><kbd>S</kbd></div>
+        <div class="help-row"><span>Complete task (details)</span><kbd>C</kbd></div>
+        <div class="help-row"><span>Detail keys while editing</span><span><kbd>Alt</kbd> <kbd>T N S C</kbd></span></div>
+        <div class="help-row"><span>Move to Tomorrow</span><span><kbd>Shift</kbd> <kbd>T</kbd></span></div>
+        <div class="help-row"><span>Increase / decrease priority</span><span><kbd>+</kbd> <kbd>−</kbd></span></div>
+        <div class="help-row"><span>Nest / outdent task (project view)</span><span><kbd>Alt</kbd> <kbd>→←</kbd></span></div>
+        <div class="help-row"><span>Reorder task (project view)</span><span><kbd>Alt</kbd> <kbd>↑↓</kbd></span></div>
+        <div class="help-row"><span>Clear due date</span><kbd>C</kbd></div>
+        <div class="help-row"><span>Go to view/project/workspace</span><kbd>G</kbd></div>
+        <div class="help-row"><span>Select range</span><span><kbd>Shift</kbd> <kbd>↑↓</kbd></span></div>
+        <div class="help-row"><span>Toggle selection</span><span><kbd>Shift</kbd> <kbd>Space</kbd></span></div>
+        <div class="help-row"><span>Search</span><kbd>/</kbd></div>
+        <div class="help-row"><span>New task</span><kbd>N</kbd></div>
+        <div class="help-row"><span>Commands</span><span><kbd>Ctrl</kbd> <kbd>K</kbd></span></div>
+        <div class="help-row"><span>Move to project</span><kbd>M</kbd></div>
+        <div class="help-row"><span>Move under another task</span><span><kbd>Shift</kbd> <kbd>M</kbd></span></div>
+        <div class="help-row"><span>Attach screenshot</span><kbd>Ctrl</kbd><kbd>V</kbd></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="delete-backdrop">
+    <div class="delete-modal" role="dialog" aria-modal="true" aria-labelledby="delete-title">
+      <h2 id="delete-title">Delete this task?</h2>
+      <p id="delete-copy">This removes the task from Keydo and Todoist.</p>
+      <div class="delete-modal-actions"><button class="quiet-button" id="delete-cancel">Cancel <kbd>Esc</kbd></button><button class="primary-button" id="delete-confirm">Delete task <kbd>↵</kbd></button></div>
+    </div>
+  </div>
+
+  <script type="importmap">
+    {"imports":{"fractional-indexing":"/src/fractional-indexing.js"}}
+  </script>
+  <script type="module">
+    import { canNestTask, isCurrentTaskSelection, isCurrentTaskTarget, isCompleteProjectOrderView, isTaskInProject, filterTasksByWorkspaceAndQuery, makeSiblingReorder, orderTaskTree, orderTasksByDayOrder, dueDateKeyForRelativeLabel, dueStateForDateKey, refreshTaskDueStates, projectVisibleTree, reconcileTaskSelection, removeTaskSelectionIds, retainExistingTaskIds, sameTaskSiblingGroup, selectedTaskRoots, setTaskAncestorCompletion, setTaskSubtreeCompletion, swapSiblingTaskOrder, taskDeletionClosure, taskRootsForDeletedProjects, taskRootsForDeletedSections, taskParentOverridesForDelta, taskDepth, taskOutdentDestination, taskParentIdsWithChildren, taskRangeIds, taskSubtreeIds, taskSubtreeIdsByRoot, validTaskNestTargets } from "/src/task-view.js";
+    import { createTaskActionGate } from "/src/task-action-gate.js";
+    import { OrderLockUnavailableError, withCrossTabOrderLock, withLocalOrderLock } from "/src/cross-tab-lock.js";
+    import { createSyncCoordinator } from "/src/sync-coordinator.js";
+    import { applyTaskNoteDeltas, noteAttachmentsByItem, taskNoteDeltasNeedFullSync } from "/src/task-attachments.js";
+    import { renderMarkdown } from "/src/markdown.js";
+    import { hasSyncToken, isPerformedSyncFailure, readOrderSyncToken, readSyncToken, requiresFullSyncAfterCompletionChange, requiresSyncCatchup } from "/src/sync-token.js";
+    import { backgroundSyncAction, createCoalescedSyncRunner } from "/src/sync-runtime.js";
+    import { applyProjectTaskMove, applyTaskDueChange, applyTaskHierarchyMove, applyTaskOrderKeys, applyTodoistProjectDelta, applyTodoistSectionDeltas, deletedTodoistProjectIds, discardTaskEdits, isRecurringTaskCompletion, isTaskCompletionStateCurrent, reconcileTodoistProjectSnapshot, restoreMissingTasks, restoreTaskOrderFields, restoreTaskSnapshots, setTaskAttachment, retainOmittedTaskFields, retainPendingCreates, retryablePendingTaskUpdates } from "/src/task-mutations.js";
+    import { appendCreatedTask, isCreateRateLimited, isDefinitiveCreateRejection, isTodoistRateLimited, mergeResolvedCreatedTask, parseCapture, resolveCaptureProject, todoistRetryAfterSeconds } from "/src/task-capture.js";
+    const taskMutationQueues = new Map();
+    const taskActionGate = createTaskActionGate();
+    const syncCoordinator = createSyncCoordinator();
+    const runBackgroundRefresh = createCoalescedSyncRunner(async () => {
+      const refreshed = await refreshFromSync({ background: true });
+      if (refreshed) {
+        for (const task of retryablePendingTaskUpdates(tasks)) {
+          window.clearTimeout(task.keydoSaveTimer);
+          task.keydoSaveTimer = null;
+          void flushTaskUpdates(task, true);
+        }
+      }
+      return refreshed;
+    });
+    let backgroundSyncTimer = null;
+    let tasks = [
+      {
+        id: "task-1",
+        title: "Review the launch plan",
+        project: "Launch plan",
+        due: "Today",
+        dueClass: "overdue",
+        priority: 4,
+        completed: false,
+        description: "**Context**\n\nThe launch plan needs a final pass before the team review. Check the dependencies, trim the long tail, and make the next three actions obvious.\n\n- Confirm the rollback path\n- Share the final timeline\n- Ask for explicit owners",
+        subtasks: [
+          { title: "Confirm rollback path", completed: true },
+          { title: "Share final timeline", completed: false },
+          { title: "Ask for explicit owners", completed: false }
+        ],
+        attachment: null
+      },
+      {
+        id: "task-2",
+        title: "Write the project update",
+        project: "Launch plan",
+        parentId: "task-1",
+        due: "Today",
+        dueClass: "",
+        priority: 3,
+        completed: false,
+        description: "Draft the short update for the team.\n\nKeep it to **three decisions** and one clear ask.",
+        subtasks: [],
+        attachment: null
+      },
+      {
+        id: "task-3",
+        title: "Reply to the design review",
+        project: "Inbox",
+        due: "Today",
+        dueClass: "",
+        priority: 2,
+        completed: false,
+        description: "Respond to the comments from design and capture the follow-up tasks.",
+        subtasks: [{ title: "Capture follow-up tasks", completed: false }],
+        attachment: null
+      },
+      {
+        id: "task-4",
+        title: "Pick up prescription",
+        project: "Personal",
+        due: "Today",
+        dueClass: "",
+        priority: 1,
+        completed: false,
+        description: "Pharmacy closes at 6:30.",
+        subtasks: [],
+        attachment: null
+      },
+      {
+        id: "task-5",
+        title: "Schedule research interviews",
+        project: "Launch plan",
+        due: "Tomorrow",
+        dueClass: "",
+        priority: 3,
+        completed: false,
+        description: "Find three people and send a short invitation.",
+        subtasks: [],
+        attachment: null
+      },
+      {
+        id: "task-6",
+        title: "Renew domain registration",
+        project: "Personal",
+        due: "Sep 28",
+        dueClass: "",
+        priority: 4,
+        completed: false,
+        description: "Auto-renew is enabled, but verify the payment method first.",
+        subtasks: [],
+        attachment: null
+      },
+      {
+        id: "task-7",
+        title: "Read Designing Data-Intensive Applications",
+        project: "Reading",
+        due: "Sep 30",
+        dueClass: "",
+        priority: 1,
+        completed: false,
+        description: "Read the replication chapter and capture questions for the next study session.",
+        subtasks: [],
+        attachment: null
+      },
+      {
+        id: "task-8",
+        title: "Clean the desk",
+        project: "Home",
+        due: "Oct 01",
+        dueClass: "",
+        priority: 1,
+        completed: true,
+        description: "Reset before the next work session.",
+        subtasks: [],
+        attachment: null
+      }
+    ];
+
+    tasks.forEach(task => { task.workspace = "Personal"; });
+    tasks[5].workspace = "Work";
+
+    const state = {
+      view: "today",
+      workspace: "Personal",
+      project: "Launch plan",
+      projectId: null,
+      projectsById: new Map(),
+      sectionOrders: new Map(),
+      sectionOrderKeys: new Map(),
+      selectedId: "task-1",
+      selected: new Set(),
+      selectionAnchorId: null,
+      rangeBaseSelection: null,
+      rangeSelectedIds: new Set(),
+      detailEditing: false,
+      booting: true,
+      captureOpen: false,
+      captureAttachment: null,
+      collapsed: new Set(),
+      liveTodoist: false,
+      todoistConfigured: null,
+      runtimeStateLoading: false,
+      inboxProjectId: null,
+      moveFromId: null,
+      moveTargetId: null,
+      orderMutationPending: false,
+      orderSyncUncertain: false,
+      orderLockToken: null,
+      orderLockReadOnly: false,
+      deleteTargetId: null,
+      query: "",
+      commandMode: "all",
+      commandIndex: 0,
+      commands: [
+        { title: "Go to Today", description: "Open the Today view", action: "view:today" },
+        { title: "Go to Inbox", description: "Open the Inbox view", action: "view:inbox" },
+        { title: "Go to Upcoming", description: "Open the Upcoming view", action: "view:upcoming" },
+        { title: "Go to Priority", description: "Open high-priority tasks", action: "view:priority" },
+        { title: "Go to project: Launch plan", description: "Browse the Launch plan project", action: "project:Launch plan" },
+        { title: "Go to project: Personal", description: "Browse the Personal project", action: "project:Personal" },
+        { title: "Go to project: Home", description: "Browse the Home project", action: "project:Home" },
+        { title: "Go to project: Reading", description: "Browse the Reading project", action: "project:Reading" },
+        { title: "Go to workspace: Personal", description: "Switch to the Personal workspace", action: "workspace:Personal" },
+        { title: "Go to workspace: Work", description: "Switch to the Work workspace", action: "workspace:Work" },
+        { title: "Move selected task to Today", description: "Set the selected task's due date to today", action: "task:today" },
+        { title: "Move selected task to Tomorrow", description: "Set the selected task's due date to tomorrow", action: "task:tomorrow" },
+        { title: "Increase priority", description: "Make the selected task more important", action: "task:priority-up" },
+        { title: "Decrease priority", description: "Make the selected task less important", action: "task:priority-down" },
+        { title: "Clear selected task date", description: "Remove the selected task's due date", action: "task:clear" },
+        { title: "Complete selected task", description: "Toggle completion for the selected task", action: "task:complete" },
+        { title: "Delete selected task", description: "Remove the selected task from Keydo and Todoist", action: "task:delete" },
+        { title: "Move selected tasks to Today", description: "Set the selected tasks' due dates to today", action: "bulk:today" },
+        { title: "Clear selected task dates", description: "Remove due dates from selected tasks", action: "bulk:clear" },
+        { title: "Complete selected tasks", description: "Complete every selected task", action: "bulk:complete" },
+        { title: "Edit selected task", description: "Enter the detail editor", action: "task:edit" },
+        { title: "Open in Todoist", description: "Leave Keydo and open the original task", action: "task:open" },
+        { title: "Attach screenshot", description: "Paste an image from the system clipboard", action: "task:attach" },
+        { title: "Move selected task to a project", description: "Pick a project for the selected task", action: "task:moveto" },
+        { title: "Move selected task under another task", description: "Pick a parent with the arrow keys, Enter drops", action: "task:nest" },
+        { title: "Show keyboard help", description: "Review all available shortcuts", action: "help" }
+      ]
+    };
+
+    const taskList = document.getElementById("task-list");
+    const detailPane = document.getElementById("detail-pane");
+    const detailEmpty = document.getElementById("detail-empty");
+    const detailContent = document.getElementById("detail-content");
+    const workspaceGrid = document.getElementById("workspace-grid");
+    const searchInput = document.getElementById("search-input");
+    const toast = document.getElementById("toast");
+    const bulkBar = document.getElementById("bulk-bar");
+    const commandBackdrop = document.getElementById("command-backdrop");
+    const commandSearch = document.getElementById("command-search");
+    const commandList = document.getElementById("command-list");
+    const helpBackdrop = document.getElementById("help-backdrop");
+    const deleteBackdrop = document.getElementById("delete-backdrop");
+    const deleteCopy = document.getElementById("delete-copy");
+    const deleteCancel = document.getElementById("delete-cancel");
+    const deleteConfirm = document.getElementById("delete-confirm");
+    const quickCapture = document.getElementById("quick-capture");
+    const captureInput = document.getElementById("capture-input");
+    const capturePreview = document.getElementById("capture-preview");
+    const bootOverlay = document.getElementById("boot-overlay");
+
+    function escapeHtml(value) {
+      return String(value ?? "").replace(/[&<>'"]/g, character => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#039;", '"': "&quot;" }[character]));
+    }
+
+    function escapeAttr(value) {
+      return escapeHtml(value).replace(/`/g, "&#096;");
+    }
+
+    function queryTaskRow(taskId) {
+      if (taskId == null) return null;
+      try {
+        const escaped = typeof CSS !== "undefined" && CSS.escape ? CSS.escape(String(taskId)) : String(taskId).replace(/"/g, "");
+        return document.querySelector(`[data-task-id="${escaped}"]`);
+      } catch {
+        return null;
+      }
+    }
+
+    function currentTask() {
+      if (state.selectedId == null) return null;
+      return tasks.find(task => task.id === state.selectedId) ?? null;
+    }
+
+    function mapTodoistTasks(payload) {
+      const projects = payload.projects ?? [];
+      const projectNames = new Map(projects.map(project => [project.id, project.name]));
+      const projectsById = new Map(projects.map(project => [project.id, project]));
+      const inboxProject = projects.find(project => project.name?.toLowerCase() === "inbox");
+      const notes = payload.notes ?? [];
+      const attachmentsByItem = noteAttachmentsByItem(notes);
+      const mapped = (payload.items ?? [])
+        .filter(item => item && !item.is_deleted)
+        .map(item => {
+          const projectId = item.project_id ?? inboxProject?.id ?? null;
+          const dueDateKey = typeof item.due?.date === "string" ? item.due.date.slice(0, 10) : null;
+          const dueState = dueStateForDateKey(dueDateKey, Boolean(item.due?.is_recurring));
+          return {
+            id: item.id,
+            title: item.content ?? "",
+            projectId,
+            projectOrderKey: typeof projectsById.get(projectId)?.order_key === "string" ? projectsById.get(projectId).order_key : null,
+            projectChildOrder: typeof projectsById.get(projectId)?.child_order === "number" ? projectsById.get(projectId).child_order : null,
+            projectOrderParentId: projectsById.get(projectId)?.parent_id ?? null,
+            sectionId: item.section_id ?? null,
+            sectionOrder: state.sectionOrders.get(item.section_id) ?? null,
+            sectionOrderKey: state.sectionOrderKeys.get(item.section_id) ?? null,
+            orderKey: typeof item.order_key === "string" ? item.order_key : null,
+            project: projectNames.get(projectId) ?? "Inbox",
+            parentId: item.parent_id ?? null,
+            due: dueState.due,
+            dueDateKey,
+            dueClass: dueState.dueClass,
+            recurring: Boolean(item.due?.is_recurring),
+            dayOrder: typeof item.day_order === "number" ? item.day_order : null,
+            priority: item.priority ?? 1,
+            completed: Boolean(item.checked),
+            workspace: "Personal",
+            description: item.description ?? "",
+            childOrder: typeof item.child_order === "number" ? item.child_order : null,
+            subtasks: [],
+            attachment: attachmentsByItem.get(item.id) ?? null
+          };
+        });
+      return orderTaskTree(mapped);
+    }
+
+    function reconcileFullTodoistTasks(payload) {
+      const previousById = new Map(tasks.map(task => [task.id, task]));
+      const sourceItems = new Map((payload.items ?? []).filter(item => item?.id).map(item => [item.id, item]));
+      const mappedTasks = retainPendingCreates(mapTodoistTasks(payload), tasks);
+      const retainedIds = new Set(mappedTasks.map(task => task.id));
+      let discardedDrafts = 0;
+      for (const previous of tasks) {
+        if (!retainedIds.has(previous.id) && !previous.keydoCreatePromise && discardTaskEdits(previous)) discardedDrafts += 1;
+      }
+      if (discardedDrafts) showToast(`${discardedDrafts} task${discardedDrafts === 1 ? "" : "s"} deleted in Todoist · unsaved edits discarded`);
+      const reconciled = mappedTasks.map(mapped => {
+        const previous = previousById.get(mapped.id);
+        if (!previous) return mapped;
+        const localAttachment = previous.attachment?.data && !previous.attachment.commentId ? previous.attachment : null;
+        const localUpdates = { ...(previous.keydoSendingUpdates || {}), ...(previous.keydoPendingUpdates || {}) };
+        Object.assign(previous, retainOmittedTaskFields(mapped, previous, sourceItems.get(mapped.id) ?? {}), {
+          attachment: mapped.attachment ?? localAttachment,
+        });
+        if (Object.hasOwn(localUpdates, "content")) previous.title = localUpdates.content;
+        if (Object.hasOwn(localUpdates, "description")) previous.description = localUpdates.description;
+        return previous;
+      });
+      // Retaining omitted ordering fields can change the correct order after
+      // mapTodoistTasks sorted by the fields present in this snapshot.
+      return orderTaskTree(reconciled);
+    }
+
+    function applyTodoistProjects(projects) {
+      for (const project of projects ?? []) {
+        if (!project || !project.id) continue;
+        state.projectId = applyTodoistProjectDelta(state.projectsById, [], state.projectId, project);
+        if (project.is_deleted) {
+          if (state.inboxProjectId === project.id) state.inboxProjectId = null;
+          continue;
+        }
+        if (project.name && project.name.toLowerCase() === "inbox" && state.inboxProjectId !== project.id) {
+          state.inboxProjectId = project.id;
+        }
+      }
+      const projectNames = new Map([...state.projectsById].map(([id, project]) => [id, project.name]));
+      for (const task of tasks) {
+        const name = projectNames.get(task.projectId);
+        const project = state.projectsById.get(task.projectId);
+        if (name) task.project = name;
+        task.projectOrderKey = project?.orderKey ?? null;
+        task.projectChildOrder = project?.childOrder ?? null;
+        task.projectOrderParentId = project?.parentId ?? null;
+      }
+      if (state.view === "project") {
+        state.projectId ??= state.inboxProjectId;
+        state.project = state.projectsById.get(state.projectId)?.name ?? "Inbox";
+      }
+    }
+
+    function replaceTodoistSections(sections) {
+      state.sectionOrders = new Map();
+      state.sectionOrderKeys = new Map();
+      applyTodoistSectionDeltas(state.sectionOrders, state.sectionOrderKeys, sections);
+      refreshTaskSectionOrders();
+    }
+
+    function refreshTaskSectionOrders() {
+      for (const task of tasks) {
+        task.sectionOrder = state.sectionOrders.get(task.sectionId) ?? null;
+        task.sectionOrderKey = state.sectionOrderKeys.get(task.sectionId) ?? null;
+      }
+    }
+
+    function applyTodoistSections(sections) {
+      applyTodoistSectionDeltas(state.sectionOrders, state.sectionOrderKeys, sections);
+      refreshTaskSectionOrders();
+    }
+
+    function mergeTodoistDelta(payload, opts = {}) {
+      const deletedProjectIds = deletedTodoistProjectIds(state.projectsById, payload.projects);
+      const deletedSectionIds = (payload.sections ?? [])
+        .filter(section => section?.id && section.is_deleted)
+        .map(section => section.id);
+      const projectDeltas = payload.projects ?? [];
+      const projectDeltaIds = new Set(projectDeltas.map(project => project?.id).filter(Boolean));
+      applyTodoistProjects([
+        ...projectDeltas,
+        ...[...deletedProjectIds]
+          .filter(projectId => !projectDeltaIds.has(projectId))
+          .map(id => ({ id, is_deleted: true }))
+      ]);
+      applyTodoistSections(payload.sections);
+      const projectNames = new Map([...state.projectsById].map(([id, project]) => [id, project.name]));
+      const inboxProjectId = state.inboxProjectId;
+      let discardedDrafts = 0;
+      const itemDeltas = payload.items ?? [];
+      const deletedRoots = [
+        ...itemDeltas.filter(item => item?.id && item.is_deleted).map(item => item.id),
+        ...taskRootsForDeletedProjects(tasks, deletedProjectIds, itemDeltas),
+        ...taskRootsForDeletedSections(tasks, deletedSectionIds, itemDeltas, deletedProjectIds)
+      ];
+      const parentOverrides = taskParentOverridesForDelta(tasks, itemDeltas, inboxProjectId);
+      const deletedTaskIds = taskDeletionClosure(tasks, deletedRoots, parentOverrides);
+      const taskById = new Map(tasks.map(task => [task.id, task]));
+      for (const item of itemDeltas) {
+        if (!item || !item.id) continue;
+        if (item.is_deleted || deletedTaskIds.has(item.id)) continue;
+        const projectId = item.project_id ?? inboxProjectId ?? null;
+        const dueDateKey = typeof item.due?.date === "string" ? item.due.date.slice(0, 10) : null;
+        const dueState = dueStateForDateKey(dueDateKey, Boolean(item.due?.is_recurring));
+        const mapped = {
+          id: item.id,
+          title: item.content ?? "",
+          projectId,
+          projectOrderKey: state.projectsById.get(projectId)?.orderKey ?? null,
+          projectChildOrder: state.projectsById.get(projectId)?.childOrder ?? null,
+          projectOrderParentId: state.projectsById.get(projectId)?.parentId ?? null,
+          sectionId: item.section_id ?? null,
+          sectionOrder: state.sectionOrders.get(item.section_id) ?? null,
+          sectionOrderKey: state.sectionOrderKeys.get(item.section_id) ?? null,
+          orderKey: typeof item.order_key === "string" ? item.order_key : null,
+          project: projectNames.get(projectId) ?? "Inbox",
+          parentId: item.parent_id ?? null,
+          due: dueState.due,
+          dueDateKey,
+          dueClass: dueState.dueClass,
+          recurring: Boolean(item.due?.is_recurring),
+          dayOrder: typeof item.day_order === "number" ? item.day_order : null,
+          priority: item.priority ?? 1,
+          completed: Boolean(item.checked),
+          workspace: "Personal",
+          description: item.description ?? "",
+          childOrder: typeof item.child_order === "number" ? item.child_order : null,
+          subtasks: [],
+          attachment: null
+        };
+        const previous = taskById.get(item.id);
+        if (previous) {
+          const localUpdates = { ...(previous.keydoSendingUpdates || {}), ...(previous.keydoPendingUpdates || {}) };
+          Object.assign(previous, retainOmittedTaskFields(mapped, previous, item), {
+            workspace: previous.workspace,
+            attachment: previous.attachment,
+            subtasks: previous.subtasks ?? []
+          });
+          if (Object.hasOwn(localUpdates, "content")) previous.title = localUpdates.content;
+          if (Object.hasOwn(localUpdates, "description")) previous.description = localUpdates.description;
+        } else {
+          tasks.push(mapped);
+          taskById.set(mapped.id, mapped);
+        }
+      }
+      if (deletedTaskIds.size) {
+        for (const id of deletedTaskIds) {
+          const deletedTask = taskById.get(id);
+          if (deletedTask && discardTaskEdits(deletedTask)) discardedDrafts += 1;
+          taskById.delete(id);
+          state.selected.delete(id);
+        }
+        tasks = tasks.filter(task => !deletedTaskIds.has(task.id));
+      }
+      const noteDeltas = payload.notes ?? [];
+      const notesNeedFullSync = taskNoteDeltasNeedFullSync(tasks, noteDeltas);
+      applyTaskNoteDeltas(tasks, noteDeltas);
+      tasks = orderTaskTree(tasks);
+      reconcileSyncedTaskInteractions();
+      if (!opts.preserveView) {
+        state.selected.clear();
+        resetSelectionRange(state.selectedId);
+        state.detailEditing = false;
+      }
+      render();
+      if (discardedDrafts) showToast(`${discardedDrafts} task${discardedDrafts === 1 ? "" : "s"} deleted in Todoist · unsaved edits discarded`);
+      return notesNeedFullSync;
+    }
+
+    function applyTodoistSyncPayload(payload, opts = {}) {
+      if (payload.full_sync || !state.liveTodoist) {
+        const projectSnapshot = reconcileTodoistProjectSnapshot(state.projectsById, state.projectId, payload.projects ?? []);
+        state.projectsById = projectSnapshot.projectsById;
+        state.projectId = projectSnapshot.selectedProjectId;
+        state.project = projectSnapshot.selectedProject;
+        replaceTodoistSections(payload.sections);
+        state.inboxProjectId = (payload.projects ?? []).find(project => project.name?.toLowerCase() === "inbox")?.id ?? null;
+        tasks = reconcileFullTodoistTasks(payload);
+        state.liveTodoist = true;
+        reconcileSyncedTaskInteractions();
+        render();
+        return false;
+      } else {
+        state.liveTodoist = true;
+        return mergeTodoistDelta(payload, { preserveView: opts.preserveView });
+      }
+    }
+
+    function reconcileSyncedTaskInteractions() {
+      const selection = reconcileTaskSelection(tasks, state.selectedId, state.selected);
+      const selectionPruned = selection.selectedIds.size !== state.selected.size;
+      state.selectedId = selection.selectedId;
+      state.selected = selection.selectedIds;
+      if (selection.selectionChanged) state.detailEditing = false;
+      if (selection.selectionChanged || selectionPruned) resetSelectionRange(selection.selectedId);
+      const taskIds = new Set(tasks.map(task => task.id));
+      if (state.moveFromId && (!taskIds.has(state.moveFromId) || (state.moveTargetId && !taskIds.has(state.moveTargetId)))) {
+        const sourceId = state.moveFromId;
+        const sourceStillExists = taskIds.has(sourceId);
+        state.moveFromId = null;
+        state.moveTargetId = null;
+        state.detailEditing = false;
+        if (sourceStillExists) state.selectedId = sourceId;
+        resetSelectionRange(state.selectedId);
+        showToast("Move cancelled · task changed in Todoist");
+      }
+      if (state.deleteTargetId && !taskIds.has(state.deleteTargetId)) {
+        state.deleteTargetId = null;
+        deleteBackdrop.classList.remove("visible");
+        showToast("Delete cancelled · task was removed in Todoist");
+      }
+    }
+
+    async function refreshFromSync(options = {}) {
+      const runSync = () => syncCoordinator.withSync(async () => {
+        const releaseActions = options.background ? taskActionGate.pauseIfIdle() : taskActionGate.pause();
+        if (!releaseActions) return { performed: false, success: false };
+        try {
+          return { performed: true, success: await performRefreshFromSync(options) };
+        } finally {
+          releaseActions();
+        }
+      }, { skipIfBusy: options.background === true });
+      const result = state.orderLockToken && !state.orderLockReadOnly
+        ? await runSync()
+        : await withTaskOrderLock(runSync, { silent: options.background === true, readOnly: true });
+      if (!result || result.skipped || !result.value.performed) return false;
+      if (isPerformedSyncFailure(result)) state.orderSyncUncertain = true;
+      return result.value.success;
+    }
+
+    function todoistFetch(input, init = {}, requiresOrderLock = false) {
+      const headers = new Headers(init.headers);
+      if (requiresOrderLock && state.orderLockToken) headers.set("X-Keydo-Order-Lock", state.orderLockToken);
+      return fetch(input, { ...init, headers });
+    }
+
+    async function withLockedTodoistWrite(operation, { silent = false } = {}) {
+      // A snapshot owns a read-only lock. Writes must wait for their own lease
+      // instead of reusing a token that can expire while they wait on Sync.
+      if (state.orderLockToken && !state.orderLockReadOnly) return await operation();
+      const result = await withTaskOrderLock(operation, { silent });
+      if (result === null) throw new OrderLockUnavailableError();
+      return result;
+    }
+
+    function refreshWhenConnectedAndVisible() {
+      if (refreshTaskDueStates(tasks)) render();
+      const action = backgroundSyncAction({
+        configured: state.todoistConfigured,
+        liveTodoist: state.liveTodoist,
+        online: navigator.onLine,
+        visible: document.visibilityState === "visible"
+      });
+      if (action === "initialize") void loadRuntimeState();
+      else if (action === "refresh") void runBackgroundRefresh();
+    }
+
+    function startBackgroundSync() {
+      if (backgroundSyncTimer !== null) return;
+      backgroundSyncTimer = window.setInterval(refreshWhenConnectedAndVisible, 60_000);
+      window.addEventListener("online", refreshWhenConnectedAndVisible);
+      document.addEventListener("visibilitychange", refreshWhenConnectedAndVisible);
+    }
+
+    function stopBackgroundSync() {
+      if (backgroundSyncTimer === null) return;
+      window.clearInterval(backgroundSyncTimer);
+      backgroundSyncTimer = null;
+      window.removeEventListener("online", refreshWhenConnectedAndVisible);
+      document.removeEventListener("visibilitychange", refreshWhenConnectedAndVisible);
+    }
+
+    async function performRefreshFromSync(options = {}) {
+      // Reconcile with Todoist after local writes: hydrates server-assigned
+      // fields (child_order, ids) and converges any outside changes. Never
+      // throws; optimistic state stands when the refresh fails.
+      if (!state.liveTodoist) return false;
+      try {
+        let storedSyncToken = null;
+        try { storedSyncToken = sessionStorage.getItem("keydo.syncToken"); } catch {}
+        const response = await todoistFetch("/api/todoist/sync", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ syncToken: options.full ? "*" : storedSyncToken ?? "*", resourceTypes: ["projects", "sections", "items", "labels", "notes"] })
+        }, true);
+        if (!response.ok) {
+          const failure = await response.json().catch(() => null);
+          if (!options.full && response.status === 502 && failure?.status === 400) {
+            return await performRefreshFromSync({ ...options, full: true });
+          }
+          setConnectionStatus("Sync unavailable", "error");
+          return false;
+        }
+        const payload = await response.json();
+        if (!Array.isArray(payload.items) || !hasSyncToken(payload)) {
+          setConnectionStatus("Sync unavailable", "error");
+          return false;
+        }
+        const notesNeedFullSync = applyTodoistSyncPayload(payload, { preserveView: true });
+        if (payload.sync_token) {
+          try { sessionStorage.setItem("keydo.syncToken", payload.sync_token); } catch {}
+        }
+        if (notesNeedFullSync && !options.full) {
+          return await performRefreshFromSync({ ...options, full: true });
+        }
+        if (requiresSyncCatchup(payload)) {
+          const catchupCount = options.fullSyncCatchups ?? 0;
+          if (catchupCount >= 2) return false;
+          const caughtUp = await performRefreshFromSync({ ...options, full: false, fullSyncCatchups: catchupCount + 1 });
+          if (!caughtUp) return false;
+        }
+        // A successful incremental read from the last stored cursor also
+        // reconciles any writes whose earlier post-mutation refresh failed.
+        // Full snapshots reach here only after their incremental catch-up.
+        state.orderSyncUncertain = false;
+        setConnectionStatus("Synced · Todoist");
+        return true;
+      } catch {
+        setConnectionStatus("Sync unavailable", "error");
+        return false;
+      }
+    }
+
+    async function ensureTaskOrderKnown(action = "the next move") {
+      if (!state.liveTodoist) return true;
+      showToast(`Refreshing Todoist order before ${action}…`);
+      if (await refreshFromSync({ full: state.orderSyncUncertain })) return true;
+      showToast(`Task order is uncertain · sync before ${action}`);
+      return false;
+    }
+
+    async function persistTaskMutation(task, action, payload = {}) {
+      if (!state.liveTodoist) return;
+      if (task.keydoCreatePromise) await task.keydoCreatePromise;
+      const taskId = task.id;
+      const previous = taskMutationQueues.get(taskId) ?? Promise.resolve();
+      const runMutation = async () => {
+        if (task.keydoDeleted) throw new Error("Todoist task was deleted");
+        const syncToken = readOrderSyncToken(action, () => sessionStorage.getItem("keydo.syncToken"));
+        const response = await todoistFetch(`/api/todoist/tasks/${encodeURIComponent(taskId)}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action, ...(action === "update" ? { updates: payload } : {}), ...(action === "move" ? payload : {}), ...(action === "reorder" ? { ...payload, sync_token: syncToken } : {}) })
+        }, true);
+        if (!response.ok) {
+          const error = new Error("Todoist task mutation failed");
+          if (action === "reorder") {
+            const payload = await response.clone().json().catch(() => null);
+            error.rateLimited = isTodoistRateLimited(response.status, payload);
+            error.retryAfterSeconds = todoistRetryAfterSeconds(payload);
+          }
+          throw error;
+        }
+        let mutationResult;
+        if (action === "reorder") {
+          mutationResult = await response.json();
+          // Sync command responses document command status, but do not promise
+          // resource arrays. Keep the read cursor unchanged so the subsequent
+          // read sync includes the order write and any concurrent changes.
+        }
+        return mutationResult;
+      };
+      const request = previous.catch(() => {}).then(() => withLockedTodoistWrite(() =>
+        action === "reorder"
+          ? syncCoordinator.withSerializedMutation(runMutation)
+          : syncCoordinator.withMutation(runMutation)
+      ));
+      taskMutationQueues.set(taskId, request);
+      try {
+        return await request;
+      } finally {
+        if (taskMutationQueues.get(taskId) === request) taskMutationQueues.delete(taskId);
+      }
+    }
+
+    async function persistTaskOrderKeys(updates) {
+      if (!state.liveTodoist) return;
+      return syncCoordinator.withSerializedMutation(async () => {
+        const syncToken = readOrderSyncToken("reorder", () => sessionStorage.getItem("keydo.syncToken"));
+        const response = await todoistFetch("/api/todoist/task-order", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ updates: updates.map(({ id, orderKey }) => ({ id, order_key: orderKey })), sync_token: syncToken })
+        }, true);
+        if (!response.ok) {
+          const payload = await response.clone().json().catch(() => null);
+          const error = new Error("Todoist task ordering failed");
+          error.rateLimited = isTodoistRateLimited(response.status, payload);
+          error.retryAfterSeconds = todoistRetryAfterSeconds(payload);
+          throw error;
+        }
+        return response.json();
+      });
+    }
+
+    async function flushTaskUpdates(task, automaticRetry = false) {
+      if (!state.liveTodoist) return true;
+      if (task.keydoSavePromise) return task.keydoSavePromise;
+      let failedBatch = null;
+      const savePromise = (async () => {
+        try {
+          while (Object.keys(task.keydoPendingUpdates || {}).length) {
+            if (task.keydoDeleted) return true;
+            const pending = task.keydoPendingUpdates;
+            task.keydoPendingUpdates = {};
+            failedBatch = pending;
+            task.keydoSendingUpdates = pending;
+            await persistTaskMutation(task, "update", pending);
+            if (task.keydoDeleted) return true;
+            task.keydoSendingUpdates = null;
+            failedBatch = null;
+            task.keydoUpdateAutoRetryCount = 0;
+            setConnectionStatus("Synced · Todoist");
+          }
+          return true;
+        } catch {
+          if (task.keydoDeleted) return true;
+          task.keydoSendingUpdates = null;
+          task.keydoPendingUpdates = { ...(failedBatch || {}), ...(task.keydoPendingUpdates || {}) };
+          if (automaticRetry) task.keydoUpdateAutoRetryCount = (task.keydoUpdateAutoRetryCount ?? 0) + 1;
+          setConnectionStatus("Sync error", "error");
+          return false;
+        }
+      })();
+      task.keydoSavePromise = savePromise;
+      const saved = await savePromise;
+      task.keydoSavePromise = null;
+      if (saved && Object.keys(task.keydoPendingUpdates || {}).length) {
+        task.keydoSaveTimer = window.setTimeout(() => flushTaskUpdates(task), 0);
+      }
+      return saved;
+    }
+
+    function queueTaskUpdate(task, updates) {
+      if (!state.liveTodoist) return;
+      task.keydoPendingUpdates = { ...(task.keydoPendingUpdates || {}), ...updates };
+      task.keydoUpdateAutoRetryCount = 0;
+      window.clearTimeout(task.keydoSaveTimer);
+      task.keydoSaveTimer = window.setTimeout(() => flushTaskUpdates(task), 500);
+    }
+
+    function setConnectionStatus(label, status = "") {
+      const element = document.getElementById("sync-state");
+      element.lastElementChild.textContent = label;
+      element.classList.toggle("demo", status === "demo");
+      element.classList.toggle("error", status === "error");
+    }
+
+    async function loadRuntimeState() {
+      if (state.runtimeStateLoading) return;
+      state.runtimeStateLoading = true;
+      try {
+        const configResponse = await fetch("/api/config");
+        if (!configResponse.ok) throw new Error("Configuration request failed");
+        const config = await configResponse.json();
+        state.todoistConfigured = Boolean(config.todoist?.configured);
+        if (!config.todoist?.configured) {
+          stopBackgroundSync();
+          setConnectionStatus("Demo data", "demo");
+          return;
+        }
+
+        // Start retry triggers before initial synchronization so a transient
+        // boot failure can recover on an interval, reconnect, or return.
+        startBackgroundSync();
+        setConnectionStatus("Syncing…");
+        // Boot with a full sync: an incremental delta cannot rebuild the
+        // in-memory list from the demo placeholders, and replacing the list
+        // with a delta wipes every task (incremental items is [] when nothing
+        // changed). The fresh token is stored for later incremental use.
+        const payload = await withCrossTabOrderLock(async token => {
+          const previousToken = state.orderLockToken;
+          const previousReadOnly = state.orderLockReadOnly;
+          state.orderLockToken = token;
+          state.orderLockReadOnly = true;
+          try {
+            const syncResponse = await todoistFetch("/api/todoist/sync", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ syncToken: "*", resourceTypes: ["projects", "sections", "items", "labels", "notes"] })
+            }, true);
+            if (!syncResponse.ok) throw new Error("Sync request failed");
+            const payload = await syncResponse.json();
+            if (!Array.isArray(payload.items) || !hasSyncToken(payload)) throw new Error("Sync response is missing its items resource or sync token");
+            if (payload.full_sync || !state.liveTodoist) {
+              const projectSnapshot = reconcileTodoistProjectSnapshot(state.projectsById, state.projectId, payload.projects ?? []);
+              state.projectsById = projectSnapshot.projectsById;
+              state.projectId = projectSnapshot.selectedProjectId;
+              state.project = projectSnapshot.selectedProject;
+              replaceTodoistSections(payload.sections);
+              state.inboxProjectId = (payload.projects ?? []).find(project => project.name?.toLowerCase() === "inbox")?.id ?? null;
+              tasks = mapTodoistTasks(payload);
+              state.liveTodoist = true;
+              state.selectedId = tasks[0]?.id ?? null;
+              state.selected.clear();
+              resetSelectionRange(state.selectedId);
+              state.detailEditing = false;
+              render();
+            } else {
+              state.liveTodoist = true;
+              mergeTodoistDelta(payload);
+            }
+            if (payload.sync_token) {
+              try { sessionStorage.setItem("keydo.syncToken", payload.sync_token); } catch {}
+            }
+            return payload;
+          } finally {
+            state.orderLockToken = previousToken;
+            state.orderLockReadOnly = previousReadOnly;
+          }
+        });
+        if (requiresSyncCatchup(payload) && !await refreshFromSync()) {
+          state.orderSyncUncertain = true;
+          throw new Error("Initial Todoist sync could not catch up from its full snapshot");
+        }
+        setConnectionStatus("Synced · Todoist");
+      } catch {
+        setConnectionStatus("Sync unavailable", "error");
+        // If config lookup itself failed, retry that lookup on the next
+        // trigger. A confirmed unconfigured state disables the scheduler.
+        if (state.todoistConfigured !== false) startBackgroundSync();
+      } finally {
+        state.runtimeStateLoading = false;
+        state.booting = false;
+        bootOverlay.hidden = true;
+      }
+    }
+
+    function hasChildren(taskId) {
+      return tasks.some(task => task.parentId === taskId);
+    }
+
+    function visibleTasks() {
+      refreshTaskDueStates(tasks);
+      const query = state.query.trim().toLowerCase();
+      const workspaceTasks = filterTasksByWorkspaceAndQuery(tasks, state.workspace, query);
+      if (query) return workspaceTasks;
+      const matching = workspaceTasks.filter(task => {
+        const viewMatch = state.view === "today" ? (task.due === "Today" || task.dueClass === "overdue") && !task.completed : state.view === "inbox" ? isTaskInProject(task, state.inboxProjectId, "Inbox") : state.view === "upcoming" ? task.due !== "Today" && task.due !== "No date" && task.dueClass !== "overdue" && !task.completed : state.view === "priority" ? task.priority >= 3 && !task.completed : state.view === "completed" ? task.completed : state.view === "project" ? isTaskInProject(task, state.projectId, state.project) : true;
+        return viewMatch;
+      });
+      let filtered = projectVisibleTree(matching, state.collapsed, tasks);
+      if (state.view === "today" || state.view === "upcoming") {
+        filtered = orderTasksByDayOrder(filtered);
+      }
+      return filtered;
+    }
+
+    function priorityLabel(priority) {
+      return priority === 4 ? "P1 · Urgent" : priority === 3 ? "P2 · High" : priority === 2 ? "P3 · Medium" : "P4 · Low";
+    }
+
+    function showToast(message) {
+      toast.textContent = message;
+      toast.classList.add("visible");
+      window.clearTimeout(showToast.timer);
+      showToast.timer = window.setTimeout(() => toast.classList.remove("visible"), 2200);
+    }
+
+    function renderTaskList() {
+      const filtered = visibleTasks();
+      const visibleIds = new Set(filtered.map(task => task.id));
+      const parentById = new Map(tasks.map(task => [task.id, task]));
+      const parentIdsWithChildren = taskParentIdsWithChildren(tasks);
+      if (!filtered.some(task => task.id === state.selectedId)) {
+        state.selectedId = filtered[0]?.id ?? null;
+        state.detailEditing = false;
+        resetSelectionRange(state.selectedId);
+      }
+      taskList.innerHTML = filtered.length ? filtered.map((task, index) => {
+        const selected = task.id === state.selectedId;
+        const bulkSelected = state.selected.has(task.id);
+        return `<article class="task-row depth-${taskDepth(task, parentById, visibleIds)} ${selected ? "selected" : ""} ${state.collapsed.has(task.id) ? "collapsed" : ""} ${task.completed ? "completed" : ""} ${bulkSelected ? "bulk-selected" : ""} ${task.id === state.moveTargetId ? "move-target" : ""} ${task.id === state.moveFromId ? "move-source" : ""}" data-task-id="${escapeAttr(task.id)}" data-index="${index}" tabindex="${selected ? 0 : -1}">
+          <span class="tree-toggle" aria-hidden="true">${parentIdsWithChildren.has(task.id) ? (state.collapsed.has(task.id) ? "+" : "−") : ""}</span>
+          <button class="select-box" tabindex="-1" aria-label="Select ${escapeHtml(task.title)}" data-select="${escapeAttr(task.id)}">${bulkSelected ? "✓" : ""}</button>
+          <button class="complete-button" tabindex="-1" aria-label="${task.completed ? "Reopen" : "Complete"} ${escapeHtml(task.title)}" data-complete="${escapeAttr(task.id)}">✓</button>
+          <div class="task-main"><div class="task-title-line"><span class="priority-mark p${task.priority}" title="${priorityLabel(task.priority)}"></span><div class="task-title">${escapeHtml(task.title)}</div></div><div class="task-subtitle"><span>${escapeHtml(task.project)}</span><span class="${task.dueClass}">${escapeHtml(task.due)}</span></div></div>
+        </article>`;
+      }).join("") : `<div class="empty-state"><strong>No tasks found</strong><span>Try another view or search term.</span></div>`;
+
+      document.getElementById("bulk-button").disabled = state.selected.size === 0;
+      document.getElementById("bulk-button").textContent = state.selected.size ? `${state.selected.size} selected` : "Select tasks";
+      document.getElementById("selection-summary").textContent = state.selected.size ? `${state.selected.size} selected for bulk actions` : `${filtered.length} visible`;
+      document.getElementById("bulk-count").textContent = `${state.selected.size} selected`;
+      bulkBar.classList.toggle("visible", state.selected.size > 0);
+      const selectedProject = state.projectsById.get(state.projectId);
+      const duplicateProjectName = selectedProject && [...state.projectsById.values()].some(project => project.id !== selectedProject.id && project.name === selectedProject.name);
+      const viewTitle = state.view === "project"
+        ? duplicateProjectName ? `${selectedProject.name} · ${selectedProject.id}` : state.project
+        : state.view.charAt(0).toUpperCase() + state.view.slice(1);
+      document.getElementById("view-title").textContent = viewTitle;
+      const todayLabel = new Date().toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric", year: "numeric" });
+      document.getElementById("view-eyebrow").textContent = `${state.workspace} workspace · ${state.view === "today" ? todayLabel : "Task browser"}`;
+      document.getElementById("view-subtitle").textContent = state.view === "today" ? `${filtered.length} tasks · ${filtered.filter(task => task.priority === 4 && !task.completed).length} high priority · ${filtered.filter(task => task.dueClass === "overdue" && !task.completed).length} overdue` : `${filtered.length} tasks in this view`;
+      document.getElementById("list-label").textContent = state.query.trim() ? `Search · ${filtered.length}` : viewTitle;
+      document.querySelectorAll(".nav-item, .view-switcher button").forEach(button => {
+        const isProjectButton = Boolean(button.dataset.project);
+        const isWorkspaceButton = Boolean(button.dataset.workspace);
+        const viewActive = button.dataset.view === state.view && !isProjectButton && !isWorkspaceButton;
+        const projectActive = button.dataset.projectId ? button.dataset.projectId === state.projectId && state.view === "project" : button.dataset.project === state.project && state.view === "project";
+        const workspaceActive = button.dataset.workspace === state.workspace;
+        button.classList.toggle("active", viewActive || projectActive || workspaceActive);
+      });
+    }
+
+    function renderDetail() {
+      const task = currentTask();
+      workspaceGrid.classList.toggle("detail-open", Boolean(task && state.detailEditing));
+      if (!task) {
+        state.detailEditing = false;
+        detailPane.classList.remove("editing");
+        detailEmpty.hidden = false;
+        detailContent.hidden = true;
+        return;
+      }
+      detailEmpty.hidden = true;
+      detailContent.hidden = false;
+      detailPane.classList.toggle("editing", state.detailEditing);
+      document.getElementById("detail-label").textContent = `TASK · ${task.project.toUpperCase()}`;
+      document.getElementById("detail-title").textContent = task.title;
+      document.getElementById("detail-title-input").value = task.title;
+      document.getElementById("description-preview").innerHTML = renderMarkdown(task.description);
+      document.getElementById("description-editor").value = task.description;
+      document.getElementById("detail-meta").innerHTML = `<span class="tag due">${escapeHtml(task.due)}</span><span class="tag project">${escapeHtml(task.project)}</span><span class="tag priority">${priorityLabel(task.priority)}</span>`;
+      document.getElementById("complete-detail").textContent = task.completed ? "Reopen task" : "Complete task";
+      const previewMedia = document.getElementById("preview-media");
+      const attachmentSrc = attachmentSrcFor(task);
+      previewMedia.innerHTML = task.attachment ? `<div class="attachment-card"><div class="attachment-thumb">${attachmentSrc ? `<img src="${escapeAttr(attachmentSrc)}" alt="Pasted screenshot">` : "IMG"}</div><div class="attachment-copy"><div class="attachment-name">${escapeHtml(task.attachment.name)}</div><div class="attachment-meta">${escapeHtml(task.attachment.type)} · ${task.attachment.commentId ? "synced to Todoist" : "stored locally"}</div></div><button class="attachment-view" tabindex="-1" data-view-attachment>View larger</button><button class="attachment-view" tabindex="-1" data-remove-attachment>Remove</button></div>` : "";
+      const richDescription = /(\*\*|__|`|^[-*] |^#+ |^(?:---+|___+)$|(?:^|[^!])\[[^\]]+\]\()/m.test(task.description);
+      document.getElementById("preview-mode").textContent = task.attachment || richDescription ? "Rendered live" : "Plain text";
+      const childTasks = tasks.filter(item => item.parentId === task.id);
+      const subtasks = childTasks.length ? childTasks : task.subtasks || [];
+      document.getElementById("subtask-count").textContent = `${subtasks.length} item${subtasks.length === 1 ? "" : "s"}`;
+      document.getElementById("subtask-list").innerHTML = subtasks.length ? subtasks.map(item => item.id ? `<button class="subtask ${item.completed ? "done" : ""}" data-subtask="${escapeAttr(item.id)}" tabindex="-1">${escapeHtml(item.title)}</button>` : `<div class="subtask ${item.completed ? "done" : ""}">${escapeHtml(item.title)}</div>`).join("") : `<span class="detail-empty" style="display:block;min-height:0;padding:0;text-align:left"><span>No subtasks yet. Use <kbd>Alt</kbd><kbd>→</kbd> to nest this task.</span></span>`;
+    }
+
+    function render() {
+      renderTaskList();
+      renderDetail();
+    }
+
+    function focusSelectedTask(scroll = true) {
+      const row = queryTaskRow(state.selectedId);
+      if (row) {
+        row.focus({ preventScroll: true });
+        if (scroll) row.scrollIntoView({ block: "nearest", inline: "nearest" });
+      } else {
+        taskList.focus({ preventScroll: true });
+      }
+    }
+
+    function resetSelectionRange(anchorId = state.selectedId) {
+      state.selectionAnchorId = anchorId;
+      state.rangeBaseSelection = null;
+      state.rangeSelectedIds = new Set();
+    }
+
+    function moveSelectionByPage(direction) {
+      const pageSize = Math.max(1, Math.floor(window.innerHeight / 70) - 1);
+      moveSelection(direction * pageSize);
+    }
+
+    function selectTask(taskId) {
+      state.selectedId = taskId;
+      resetSelectionRange(taskId);
+      state.detailEditing = false;
+      render();
+      focusSelectedTask();
+    }
+
+    function moveSelection(delta, extend = false) {
+      const filtered = visibleTasks();
+      if (!filtered.length) return;
+      const currentIndex = Math.max(0, filtered.findIndex(task => task.id === state.selectedId));
+      const nextIndex = Math.max(0, Math.min(filtered.length - 1, currentIndex + delta));
+      if (extend) {
+        if (!state.rangeBaseSelection || !filtered.some(task => task.id === state.selectionAnchorId)) {
+          state.selectionAnchorId = filtered[currentIndex].id;
+          state.rangeBaseSelection = new Set(state.selected);
+        }
+        state.selected = new Set(state.rangeBaseSelection);
+        state.rangeSelectedIds = new Set(taskRangeIds(filtered, state.selectionAnchorId, filtered[nextIndex].id));
+        for (const id of state.rangeSelectedIds) state.selected.add(id);
+        state.selectedId = filtered[nextIndex].id;
+      } else {
+        state.selectedId = filtered[nextIndex].id;
+        resetSelectionRange(state.selectedId);
+      }
+      state.detailEditing = false;
+      render();
+      focusSelectedTask();
+    }
+
+    function canEditTaskOrder() {
+      return isCompleteProjectOrderView(tasks, state.view, state.query, state.projectId ?? state.project, state.workspace);
+    }
+
+    async function withTaskOrderLock(operation, { silent = false, readOnly = false } = {}) {
+      try {
+        if (!state.liveTodoist) return await withLocalOrderLock(operation);
+        return await withCrossTabOrderLock(async token => {
+          const previousToken = state.orderLockToken;
+          const previousReadOnly = state.orderLockReadOnly;
+          state.orderLockToken = token;
+          state.orderLockReadOnly = readOnly;
+          try {
+            return await operation();
+          } finally {
+            state.orderLockToken = previousToken;
+            state.orderLockReadOnly = previousReadOnly;
+          }
+        });
+      } catch (error) {
+        if (!(error instanceof OrderLockUnavailableError)) throw error;
+        if (!silent) showToast("Shared task sync is unavailable · try again");
+        return null;
+      }
+    }
+
+    function toggleCollapse(direction) {
+      const task = currentTask();
+      if (!task || !hasChildren(task.id)) {
+        showToast("No subtasks to open or close");
+        return;
+      }
+      if (direction === "right") state.collapsed.delete(task.id);
+      else state.collapsed.add(task.id);
+      render();
+      focusSelectedTask();
+    }
+
+    async function toggleComplete(taskId) {
+      const task = tasks.find(item => item.id === taskId);
+      if (!task) return;
+      const observedCompleted = task.completed;
+      return withTaskOrderLock(() => toggleCompleteWithOrderLock(taskId, observedCompleted));
+    }
+
+    async function toggleCompleteWithOrderLock(taskId, observedCompleted) {
+      if (state.orderMutationPending) {
+        showToast("Wait for the current order change to finish");
+        return;
+      }
+      if (state.liveTodoist && !await ensureTaskOrderKnown()) return;
+      const task = tasks.find(item => item.id === taskId);
+      if (!task) return;
+      if (!isTaskCompletionStateCurrent(task, observedCompleted)) {
+        showToast("Completion changed in Todoist · action cancelled");
+        return;
+      }
+      if (task.keydoCreatePromise) {
+        showToast("Wait for task creation before changing completion");
+        return;
+      }
+      const previous = task.completed;
+      const subtreeIds = taskSubtreeIds(tasks, taskId);
+      const releaseAction = state.liveTodoist ? taskActionGate.acquire(subtreeIds) : () => {};
+      if (!releaseAction) {
+        showToast("Wait for the current task change to finish");
+        return;
+      }
+      if (state.liveTodoist) {
+        const pendingTasks = tasks.filter(item => previous ? item.id === taskId : subtreeIds.has(item.id));
+        const saved = await Promise.all(pendingTasks.map(async item => {
+          window.clearTimeout(item.keydoSaveTimer);
+          return flushTaskUpdates(item);
+        }));
+        if (saved.some(result => !result)) {
+          releaseAction();
+          showToast("Save your edits before completing this task");
+          return;
+        }
+      }
+      const previousCompletion = new Map(tasks.filter(item => subtreeIds.has(item.id)).map(item => [item.id, item.completed]));
+      const completed = !previous;
+      task.completed = completed;
+      if (completed) setTaskSubtreeCompletion(tasks, taskId, true, Boolean(task.recurring));
+      render();
+      if (!state.liveTodoist) {
+        showToast(task.completed ? "Task completed · demo mode" : "Task reopened · demo mode");
+        releaseAction();
+        return;
+      }
+      showToast(task.completed ? "Task completed · syncing to Todoist" : "Task reopened · syncing to Todoist");
+      try {
+        await persistTaskMutation(task, completed ? "complete" : "reopen");
+        if (completed && task.recurring) {
+          // Todoist advances a recurring task while retaining subtask state by
+          // default. Restore the pre-action state before applying that Sync delta.
+          restoreTaskSnapshots(tasks, [...previousCompletion].map(([id, completed]) => ({ id, completed })));
+        } else if (completed) setTaskSubtreeCompletion(tasks, taskId, true);
+        else {
+          const currentTask = tasks.find(item => item.id === taskId);
+          if (currentTask) currentTask.completed = false;
+          setTaskAncestorCompletion(tasks, taskId, false);
+        }
+        render();
+        const refreshed = await refreshFromSync({ full: requiresFullSyncAfterCompletionChange(completed) });
+        if (!refreshed) state.orderSyncUncertain = true;
+        if (isRecurringTaskCompletion(task, completed)) {
+          // Closing a recurring task schedules its next occurrence instead of
+          // leaving it completed. If refresh failed, undo the optimistic mark
+          // so the UI does not claim the next occurrence is already done.
+          if (!refreshed) {
+            restoreTaskSnapshots(tasks, [...previousCompletion].map(([id, completed]) => ({ id, completed })));
+            render();
+          }
+          showToast(refreshed ? "Recurring task refreshed from Todoist" : "Saved · recurring task refresh unavailable");
+          releaseAction();
+          return;
+        }
+        showToast(refreshed ? "Saved to Todoist" : "Saved · Todoist order refresh unavailable");
+      } catch {
+        // A failed response can be ambiguous: Todoist may have applied the
+        // completion/reopen before the connection failed, including changing
+        // the task's position in its parent list.
+        restoreTaskSnapshots(tasks, [...previousCompletion].map(([id, completed]) => ({ id, completed })));
+        render();
+        const refreshed = await refreshFromSync({ full: true });
+        if (!refreshed) {
+          state.orderSyncUncertain = true;
+          for (const item of tasks) {
+            if (previousCompletion.has(item.id)) item.completed = previousCompletion.get(item.id);
+          }
+          render();
+        }
+        showToast(refreshed ? "Update result uncertain · list reloaded from Todoist" : "Todoist update failed · change reverted; order is uncertain");
+      }
+      releaseAction();
+    }
+
+    function toggleSelection(taskId) {
+      resetSelectionRange(taskId);
+      if (state.selected.has(taskId)) state.selected.delete(taskId);
+      else state.selected.add(taskId);
+      render();
+    }
+
+    function openDeleteConfirmation() {
+      const task = currentTask();
+      if (!task) return;
+      state.deleteTargetId = task.id;
+      deleteCopy.textContent = `“${task.title}” will be removed from Keydo and Todoist.`;
+      deleteBackdrop.classList.add("visible");
+      deleteConfirm.focus();
+    }
+
+    function closeDeleteConfirmation() {
+      state.deleteTargetId = null;
+      deleteBackdrop.classList.remove("visible");
+      focusSelectedTask(false);
+    }
+
+    async function deleteSelectedTask() {
+      let requestedTaskId = state.deleteTargetId;
+      const selectedTask = tasks.find(item => item.id === requestedTaskId);
+      if (selectedTask?.keydoCreatePromise) {
+        const creationPromise = selectedTask.keydoCreatePromise;
+        showToast("Waiting for task creation before deleting…");
+        try {
+          await creationPromise;
+        } catch {
+          state.deleteTargetId = null;
+          deleteBackdrop.classList.remove("visible");
+          showToast("Task creation failed · nothing to delete");
+          return;
+        }
+        if (selectedTask.keydoCreatePromise === creationPromise) selectedTask.keydoCreatePromise = null;
+        if (!isCurrentTaskSelection(tasks, selectedTask.id, state.deleteTargetId)) {
+          showToast("Delete cancelled · target changed while task creation finished");
+          return;
+        }
+        requestedTaskId = selectedTask.id;
+      }
+      return withTaskOrderLock(() => deleteSelectedTaskWithLock(requestedTaskId));
+    }
+
+    async function deleteSelectedTaskWithLock(requestedTaskId) {
+      if (!isCurrentTaskTarget(tasks, requestedTaskId, state.deleteTargetId)) {
+        showToast("Delete cancelled · target changed while waiting");
+        return;
+      }
+      if (state.orderMutationPending) {
+        showToast("Wait for the current order change to finish");
+        return;
+      }
+      const taskId = requestedTaskId;
+      if (state.liveTodoist && !await ensureTaskOrderKnown()) return;
+      if (!isCurrentTaskTarget(tasks, taskId, state.deleteTargetId)) {
+        showToast("Delete cancelled · target changed while syncing");
+        return;
+      }
+      if (state.orderMutationPending) {
+        showToast("Wait for the current order change to finish");
+        return;
+      }
+      let task = tasks.find(item => item.id === taskId);
+      if (!task) return closeDeleteConfirmation();
+      if (task.keydoCreatePromise) {
+        showToast("Task creation is still finishing · try deleting again");
+        return;
+      }
+      const subtreeIds = taskSubtreeIds(tasks, taskId);
+      const releaseAction = state.liveTodoist ? taskActionGate.acquire(subtreeIds) : () => {};
+      if (!releaseAction) {
+        showToast("Wait for the current task change to finish");
+        return;
+      }
+      if (state.liveTodoist) {
+        const pendingTasks = tasks.filter(item => subtreeIds.has(item.id));
+        const saved = await Promise.all(pendingTasks.map(async item => {
+          window.clearTimeout(item.keydoSaveTimer);
+          return flushTaskUpdates(item);
+        }));
+        if (saved.some(result => !result)) {
+          releaseAction();
+          showToast("Save subtask edits before deleting this task");
+          return;
+        }
+      }
+      const previousIndex = tasks.indexOf(task);
+      const previousSelectedId = state.selectedId;
+      const removedTasks = tasks.map((item, index) => ({ item, index })).filter(entry => subtreeIds.has(entry.item.id));
+      const removedSelection = new Set([...state.selected].filter(id => subtreeIds.has(id)));
+      state.deleteTargetId = null;
+      deleteBackdrop.classList.remove("visible");
+      tasks = tasks.filter(item => !subtreeIds.has(item.id));
+      state.selectedId = tasks[Math.min(previousIndex, tasks.length - 1)]?.id ?? null;
+      for (const id of subtreeIds) state.selected.delete(id);
+      render();
+      focusSelectedTask();
+      if (!state.liveTodoist) {
+        showToast("Task deleted in demo mode");
+        releaseAction();
+        return;
+      }
+      try {
+        await persistTaskMutation(task, "delete");
+        // A queued snapshot may have changed the subtree while DELETE waited
+        // behind another mutation. Recompute from the current list, then read
+        // Todoist so descendants added or moved outside this tab also settle.
+        const confirmedDeletionIds = taskDeletionClosure(tasks, [taskId]);
+        tasks = tasks.filter(item => !confirmedDeletionIds.has(item.id));
+        state.selectedId = tasks[Math.min(previousIndex, tasks.length - 1)]?.id ?? null;
+        for (const id of confirmedDeletionIds) state.selected.delete(id);
+        render();
+        focusSelectedTask();
+        const refreshed = await refreshFromSync();
+        if (!refreshed) state.orderSyncUncertain = true;
+        showToast(refreshed
+          ? "Task deleted · saved to Todoist"
+          : "Task deleted · sync refresh unavailable; order is uncertain");
+      } catch {
+        tasks = orderTaskTree(restoreMissingTasks(tasks, removedTasks));
+        const refreshed = await refreshFromSync({ full: true });
+        if (!refreshed) state.orderSyncUncertain = true;
+        if (refreshed) {
+          const taskIds = new Set(tasks.map(item => item.id));
+          for (const id of removedSelection) {
+            if (taskIds.has(id)) state.selected.add(id);
+          }
+          if (taskIds.has(previousSelectedId)) state.selectedId = previousSelectedId;
+          render();
+          focusSelectedTask();
+        } else {
+          // A snapshot may already have restored some or all of these tasks.
+          // Merge by ID so rollback cannot create duplicate tasks.
+          tasks = orderTaskTree(restoreMissingTasks(tasks, removedTasks));
+          for (const id of removedSelection) state.selected.add(id);
+          state.selectedId = previousSelectedId;
+          render();
+          focusSelectedTask();
+        }
+        showToast(refreshed ? "Delete failed · list reloaded from Todoist" : "Todoist delete failed · task restored");
+      }
+      releaseAction();
+    }
+
+    async function moveHierarchy(direction, retried = false, requestedTaskId = state.selectedId) {
+      return withTaskOrderLock(() => moveHierarchyWithLock(direction, retried, requestedTaskId));
+    }
+
+    function taskPlacementSnapshots(taskIds) {
+      const taskById = new Map(tasks.map(task => [task.id, task]));
+      const taskIndexById = new Map(tasks.map((task, index) => [task.id, index]));
+      return [...taskIds].flatMap(id => {
+        const task = taskById.get(id);
+        return task ? [{
+          id: task.id,
+          index: taskIndexById.get(task.id),
+          project: task.project,
+          projectId: task.projectId ?? null,
+          projectOrderKey: task.projectOrderKey ?? null,
+          projectChildOrder: task.projectChildOrder ?? null,
+          projectOrderParentId: task.projectOrderParentId ?? null,
+          parentId: task.parentId ?? null,
+          sectionId: task.sectionId ?? null,
+          sectionOrder: task.sectionOrder ?? null,
+          sectionOrderKey: task.sectionOrderKey ?? null,
+          orderKey: task.orderKey ?? null,
+          childOrder: task.childOrder ?? null
+        }] : [];
+      });
+    }
+
+    async function moveHierarchyWithLock(direction, retried = false, requestedTaskId = state.selectedId) {
+      if (!canEditTaskOrder()) {
+        showToast("Reorder needs the complete project list · clear search and workspace filters");
+        return;
+      }
+      if (state.orderMutationPending && !retried) {
+        showToast("Wait for the current order change to finish");
+        return;
+      }
+      if (!await ensureTaskOrderKnown()) return;
+      if (state.orderMutationPending && !retried) {
+        showToast("Wait for the current order change to finish");
+        return;
+      }
+      if (!canEditTaskOrder()) {
+        showToast("Reorder needs the complete project list · clear search and workspace filters");
+        return;
+      }
+      if (!isCurrentTaskSelection(tasks, requestedTaskId, state.selectedId)) {
+        showToast("Move cancelled · selected task changed during sync");
+        return;
+      }
+      const task = tasks.find(item => item.id === requestedTaskId);
+      if (!task) {
+        showToast("No task selected");
+        return;
+      }
+      const filtered = visibleTasks();
+      const index = filtered.findIndex(item => item.id === task.id);
+      if (index < 0) {
+        showToast("Task is hidden by the current view or search");
+        return;
+      }
+      if (direction === "right") {
+        const previous = filtered[index - 1];
+        if (!previous || !canNestTask(tasks, task.id, previous.id)) {
+          showToast("There is no valid task above this one to nest under");
+          return;
+        }
+        if (task.keydoCreatePromise || previous.keydoCreatePromise) {
+          showToast("Wait for task creation before changing the hierarchy");
+          return;
+        }
+        const releaseAction = state.liveTodoist ? taskActionGate.acquire([...taskSubtreeIds(tasks, task.id), previous.id]) : () => {};
+        if (!releaseAction) {
+          showToast("Wait for the current task change to finish");
+          return;
+        }
+        const previousSubtree = taskPlacementSnapshots(taskSubtreeIds(tasks, task.id));
+        if (state.liveTodoist) state.orderMutationPending = true;
+        tasks = orderTaskTree(applyTaskHierarchyMove(tasks, task.id, previous.id));
+        render();
+        focusSelectedTask();
+        if (!state.liveTodoist) {
+          showToast(`Nested under “${previous.title}” · demo mode`);
+          releaseAction();
+          return;
+        }
+        showToast(`Nested under “${previous.title}” · syncing to Todoist`);
+        try {
+          await persistTaskMutation(task, "move", { destination: { parent_id: previous.id } });
+          tasks = orderTaskTree(applyTaskHierarchyMove(tasks, task.id, previous.id));
+          render();
+          focusSelectedTask();
+          const refreshed = await refreshFromSync();
+          if (!refreshed) state.orderSyncUncertain = true;
+          showToast(refreshed ? "Saved to Todoist" : "Saved · Todoist order refresh unavailable");
+        } catch {
+          restoreTaskSnapshots(tasks, previousSubtree);
+          tasks = orderTaskTree(tasks);
+          render();
+          const refreshed = await refreshFromSync({ full: true });
+          if (!refreshed) state.orderSyncUncertain = true;
+          if (!refreshed) {
+            restoreTaskSnapshots(tasks, previousSubtree);
+            tasks = orderTaskTree(tasks);
+            render();
+            focusSelectedTask();
+          }
+          showToast(refreshed ? "Move reloaded from Todoist after the save failed" : "Todoist move failed · local change reverted");
+        } finally {
+          state.orderMutationPending = false;
+          releaseAction();
+        }
+        return;
+      }
+      if (direction === "left") {
+        if (!task.parentId) {
+          showToast("Task is already at the top level");
+          return;
+        }
+        if (task.keydoCreatePromise) {
+          showToast("Wait for task creation before changing the hierarchy");
+          return;
+        }
+        const releaseAction = state.liveTodoist ? taskActionGate.acquire(taskSubtreeIds(tasks, task.id)) : () => {};
+        if (!releaseAction) {
+          showToast("Wait for the current task change to finish");
+          return;
+        }
+        const previousParentId = task.parentId;
+        const previousSubtree = taskPlacementSnapshots(taskSubtreeIds(tasks, task.id));
+        // One level up the ancestor chain. Todoist's move endpoint treats a
+        // null parent_id as "no destination" (400), so fully un-nesting goes
+        // through the current project instead.
+        const grandparentId = tasks.find(item => item.id === previousParentId)?.parentId ?? null;
+        if (state.liveTodoist) state.orderMutationPending = true;
+        tasks = orderTaskTree(applyTaskHierarchyMove(tasks, task.id, grandparentId));
+        render();
+        focusSelectedTask();
+        if (!state.liveTodoist) {
+          showToast("Moved out one level · demo mode");
+          releaseAction();
+          return;
+        }
+        const destination = taskOutdentDestination(task, grandparentId);
+        if (!destination) {
+          restoreTaskSnapshots(tasks, previousSubtree);
+          tasks = orderTaskTree(tasks);
+          state.orderMutationPending = false;
+          releaseAction();
+          render();
+          focusSelectedTask();
+          showToast("Todoist project is unavailable · move cancelled");
+          return;
+        }
+        showToast("Moved out one level · syncing to Todoist");
+        try {
+          await persistTaskMutation(task, "move", { destination });
+          tasks = orderTaskTree(applyTaskHierarchyMove(tasks, task.id, grandparentId));
+          render();
+          focusSelectedTask();
+          const refreshed = await refreshFromSync();
+          if (!refreshed) state.orderSyncUncertain = true;
+          showToast(refreshed ? "Saved to Todoist" : "Saved · Todoist order refresh unavailable");
+        } catch {
+          restoreTaskSnapshots(tasks, previousSubtree);
+          tasks = orderTaskTree(tasks);
+          render();
+          const refreshed = await refreshFromSync({ full: true });
+          if (!refreshed) state.orderSyncUncertain = true;
+          if (!refreshed) {
+            restoreTaskSnapshots(tasks, previousSubtree);
+            tasks = orderTaskTree(tasks);
+            render();
+            focusSelectedTask();
+          }
+          showToast(refreshed ? "Move reloaded from Todoist after the save failed" : "Todoist move failed · local change reverted");
+        } finally {
+          state.orderMutationPending = false;
+          releaseAction();
+        }
+        return;
+      }
+      if (direction === "up" || direction === "down") {
+        const siblings = tasks.filter(item => sameTaskSiblingGroup(item, task));
+        if (siblings.some(item => item.keydoCreatePromise)) {
+          showToast("Wait for task creation before changing sibling order");
+          return;
+        }
+        const siblingIndex = siblings.findIndex(item => item.id === task.id);
+        const target = siblings[siblingIndex + (direction === "up" ? -1 : 1)];
+        if (!target) {
+          showToast(direction === "up" ? "Already first among its siblings" : "Already last among its siblings");
+          return;
+        }
+        if (!state.liveTodoist) {
+          const taskIndex = tasks.indexOf(task);
+          const targetIndex = tasks.indexOf(target);
+          [tasks[taskIndex], tasks[targetIndex]] = [tasks[targetIndex], tasks[taskIndex]];
+          tasks = orderTaskTree(tasks);
+          render();
+          focusSelectedTask();
+          showToast("Reordered among siblings · demo mode");
+          return;
+        }
+        const fractionalMove = makeSiblingReorder(siblings, task.id, direction);
+        if (fractionalMove) {
+          const affectedIds = fractionalMove.updates.length > 1
+            ? [...taskSubtreeIdsByRoot(tasks, fractionalMove.ordered.map(item => item.id)).values()].flatMap(ids => [...ids])
+            : [...taskSubtreeIds(tasks, task.id), ...taskSubtreeIds(tasks, target.id)];
+          const releaseAction = taskActionGate.acquire(affectedIds);
+          if (!releaseAction) {
+            showToast("Wait for the current task change to finish");
+            return;
+          }
+          const tasksById = new Map(tasks.map(item => [item.id, item]));
+          const previousOrder = fractionalMove.updates.map(update => {
+            const item = tasksById.get(update.id);
+            return { id: update.id, orderKey: item?.orderKey ?? null, childOrder: item?.childOrder ?? null };
+          });
+          state.orderMutationPending = true;
+          for (const update of fractionalMove.updates) {
+            const item = tasksById.get(update.id);
+            if (item) item.orderKey = update.orderKey;
+          }
+          tasks = orderTaskTree(tasks);
+          render();
+          focusSelectedTask();
+          showToast("Reordered among siblings · syncing to Todoist");
+          try {
+            if (fractionalMove.updates.length > 1) await persistTaskOrderKeys(fractionalMove.updates);
+            else await persistTaskMutation(task, "reorder", { order_key: fractionalMove.orderKey });
+            // A sync queued ahead of this write may have replaced task objects
+            // and discarded the optimistic keys. Reapply the accepted write
+            // to the current array before a possibly failing post-write read.
+            applyTaskOrderKeys(tasks, fractionalMove.updates);
+            tasks = orderTaskTree(tasks);
+            render();
+            focusSelectedTask();
+            const refreshed = await refreshFromSync();
+            if (!refreshed) state.orderSyncUncertain = true;
+            showToast(refreshed ? "Saved to Todoist" : "Saved · Todoist order refresh unavailable");
+          } catch (error) {
+            restoreTaskOrderFields(tasks, previousOrder);
+            tasks = orderTaskTree(tasks);
+            render();
+            const refreshed = await refreshFromSync({ full: true });
+            if (!refreshed) state.orderSyncUncertain = true;
+            if (!refreshed) {
+              restoreTaskOrderFields(tasks, previousOrder);
+              tasks = orderTaskTree(tasks);
+              render();
+              focusSelectedTask();
+            }
+            const retryMessage = error?.rateLimited
+              ? error.retryAfterSeconds ? `Rate limited · retry in ${error.retryAfterSeconds}s` : "Rate limited · try again shortly"
+              : "Order reloaded from Todoist after the save failed";
+            showToast(refreshed ? retryMessage : error?.rateLimited ? `${retryMessage} · local order reverted` : "Todoist reorder failed · local change reverted");
+          } finally {
+            state.orderMutationPending = false;
+            releaseAction();
+          }
+          return;
+        }
+        showToast("Todoist did not provide a usable sibling order · change not saved");
+        return;
+      }
+    }
+
+    async function changePriority(delta) {
+      const task = currentTask();
+      if (!task) return;
+      if (task.keydoCreatePromise) {
+        showToast("Wait for task creation before changing priority");
+        return;
+      }
+      const next = Math.max(1, Math.min(4, task.priority + delta));
+      if (next === task.priority) {
+        showToast(delta > 0 ? "Already at highest priority" : "Already at lowest priority");
+        return;
+      }
+      const releaseAction = state.liveTodoist ? taskActionGate.acquire([task.id]) : () => {};
+      if (!releaseAction) {
+        showToast("Wait for the current task change to finish");
+        return;
+      }
+      const previous = task.priority;
+      const taskId = task.id;
+      task.priority = next;
+      render();
+      if (!state.liveTodoist) {
+        showToast(`Priority ${priorityLabel(next)} · demo mode`);
+        releaseAction();
+        return;
+      }
+      showToast(`Priority ${priorityLabel(next)} · syncing to Todoist`);
+      try {
+        await persistTaskMutation(task, "update", { priority: next });
+        // A queued full snapshot can apply while this write waits behind the
+        // sync fence. The confirmed write should remain visible afterward.
+        const currentTask = tasks.find(item => item.id === taskId);
+        if (currentTask) currentTask.priority = next;
+        render();
+        showToast("Saved to Todoist");
+      } catch {
+        // A dropped response can arrive after Todoist accepted the update.
+        // Reconcile before deciding whether to keep or revert the optimistic
+        // value, just as for other writes with ambiguous outcomes.
+        const optimisticTask = tasks.find(item => item.id === taskId);
+        if (optimisticTask) optimisticTask.priority = previous;
+        render();
+        const refreshed = await refreshFromSync({ full: true });
+        const currentTask = tasks.find(item => item.id === taskId);
+        if (!refreshed && currentTask) currentTask.priority = previous;
+        render();
+        showToast(refreshed
+          ? currentTask?.priority === next ? "Saved to Todoist" : currentTask ? "Todoist update failed · list reloaded" : "Task removed in Todoist"
+          : "Priority update uncertain · sync unavailable");
+      } finally {
+        releaseAction();
+      }
+    }
+
+    function enterDetail() {
+      state.detailEditing = true;
+      render();
+      // Focus the pane, not the editor: single-letter detail keys must stay
+      // live on entry, and Alt+T/N/S/C reach every section while editing.
+      document.getElementById("detail-pane").focus({ preventScroll: true });
+    }
+
+    function leaveDetail() {
+      state.detailEditing = false;
+      render();
+      focusSelectedTask();
+    }
+
+    function focusDetailTitle() {
+      const input = document.getElementById("detail-title-input");
+      input.focus();
+      input.setSelectionRange(0, input.value.length);
+    }
+
+    function focusDetailNotes() {
+      const editor = document.getElementById("description-editor");
+      editor.focus();
+      editor.setSelectionRange(editor.value.length, editor.value.length);
+    }
+
+    function focusFirstSubtask() {
+      const first = document.querySelector("#subtask-list [data-subtask]");
+      if (first) {
+        first.focus();
+        return;
+      }
+      showToast("No subtasks yet · Alt+→ nests the selected task");
+    }
+
+    function openSubtask(taskId) {
+      if (!tasks.some(task => task.id === taskId)) return;
+      state.selectedId = taskId;
+      state.detailEditing = true;
+      render();
+      document.getElementById("detail-pane").focus({ preventScroll: true });
+    }
+
+    async function saveDescription() {
+      const task = currentTask();
+      if (!task) return;
+      task.description = document.getElementById("description-editor").value;
+      task.title = document.getElementById("detail-title-input").value.trim() || task.title;
+      state.detailEditing = false;
+      render();
+      if (!state.liveTodoist) {
+        showToast("Notes saved locally · demo mode");
+        return;
+      }
+      task.keydoPendingUpdates = { ...(task.keydoPendingUpdates || {}), content: task.title, description: task.description };
+      window.clearTimeout(task.keydoSaveTimer);
+      showToast("Notes saved · syncing to Todoist");
+      const saved = await flushTaskUpdates(task);
+      showToast(saved ? "Saved to Todoist" : "Todoist save failed · edits kept locally");
+    }
+
+    function captureProjectNames() {
+      const names = state.liveTodoist
+        ? [...state.projectsById.values()].map(project => project.name)
+        : tasks.map(task => task.project);
+      return [...new Set(names.filter(name => typeof name === "string" && name.length > 0))];
+    }
+
+    function updateCapturePreview() {
+      const parsed = parseCapture(captureInput.value, captureProjectNames());
+      if (!parsed.title) {
+        capturePreview.textContent = "Type a task, date, project, or priority.";
+        return;
+      }
+      capturePreview.innerHTML = `<strong>${escapeHtml(parsed.title)}</strong> · ${escapeHtml(parsed.due)} · ${escapeHtml(parsed.project)} · ${priorityLabel(parsed.priority)}`;
+    }
+
+    function openQuickCapture() {
+      state.captureOpen = true;
+      state.captureAttachment = null;
+      quickCapture.hidden = false;
+      captureInput.value = "";
+      updateCapturePreview();
+      renderCaptureAttachment();
+      captureInput.focus();
+    }
+
+    function closeQuickCapture() {
+      state.captureOpen = false;
+      state.captureAttachment = null;
+      quickCapture.hidden = true;
+      renderCaptureAttachment();
+      const row = queryTaskRow(state.selectedId);
+      if (row) row.focus({ preventScroll: true });
+    }
+
+    function renderCaptureAttachment() {
+      const pending = state.captureAttachment;
+      document.getElementById("capture-attachment").hidden = !pending;
+      if (pending) {
+        document.getElementById("capture-thumb").src = pending.dataUrl;
+        document.getElementById("capture-file-name").textContent = pending.name;
+      }
+    }
+
+    function capturePasteImage(file) {
+      if (!file || !file.type.startsWith("image/")) {
+        showToast("Only images can be attached here");
+        return;
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        showToast("Screenshot too large · 5 MB limit");
+        return;
+      }
+      const reader = new FileReader();
+      reader.addEventListener("load", () => {
+        state.captureAttachment = { file, name: file.name || "pasted-screenshot.png", type: file.type, dataUrl: reader.result };
+        renderCaptureAttachment();
+        captureInput.focus();
+      });
+      reader.readAsDataURL(file);
+    }
+
+    async function uploadCaptureAttachment(task, pending) {
+      const taskId = task.id;
+      const compressed = await compressImageForUpload(pending.file);
+      const form = new FormData();
+      form.set("file", compressed.blob, compressed.name);
+      const response = await withLockedTodoistWrite(() => syncCoordinator.withMutation(() => todoistFetch(`/api/todoist/tasks/${encodeURIComponent(task.id)}/attachments`, { method: "POST", body: form }, true)));
+      if (!response.ok) {
+        if (response.status === 413) throw new Error("Image exceeds the 5 MB limit");
+        throw new Error("Attachment upload failed");
+      }
+      const result = await response.json();
+      setTaskAttachment(tasks, taskId, { name: result.attachment.name, type: result.attachment.type, url: result.attachment.url, commentId: result.attachment.commentId, postedAt: result.comment?.posted_at });
+    }
+
+    async function createQuickTask() {
+      if (state.orderMutationPending) {
+        showToast("Wait for the current order change to finish");
+        return;
+      }
+      const captureText = captureInput.value;
+      const parsed = parseCapture(captureText, captureProjectNames());
+      if (!parsed.title) return;
+      if (state.liveTodoist && state.orderSyncUncertain && !await ensureTaskOrderKnown("creating a task")) return;
+      const project = resolveCaptureProject(parsed.project, state.projectsById, state.liveTodoist ? [] : captureProjectNames());
+      if (!project) {
+        showToast(`Project “${parsed.project}” is unknown or ambiguous`);
+        return;
+      }
+      const previousSelectedId = state.selectedId;
+      const pendingAttachment = state.captureAttachment;
+      state.captureAttachment = null;
+      const projectState = state.projectsById.get(project.id ?? state.inboxProjectId);
+      const task = { id: `task-local-${crypto.randomUUID()}`, title: parsed.title, project: project.name, projectId: project.id ?? state.inboxProjectId ?? null, projectOrderKey: projectState?.orderKey ?? null, projectChildOrder: projectState?.childOrder ?? null, projectOrderParentId: projectState?.parentId ?? null, parentId: null, sectionId: null, due: parsed.due, dueDateKey: dueDateKeyForRelativeLabel(parsed.due), dueClass: "", priority: parsed.priority, completed: false, workspace: state.workspace, description: "New task captured in Keydo.", subtasks: [], attachment: null };
+      tasks.unshift(task);
+      state.view = parsed.due === "Today" ? "today" : "upcoming";
+      state.selectedId = task.id;
+      state.selected.clear();
+      resetSelectionRange(task.id);
+      closeQuickCapture();
+      render();
+      if (!state.liveTodoist) {
+        if (pendingAttachment) {
+          task.attachment = { name: pendingAttachment.name, type: pendingAttachment.type, data: pendingAttachment.dataUrl };
+          render();
+          showToast("Task captured with screenshot · demo mode");
+        } else {
+          showToast("Task captured in demo mode");
+        }
+        return;
+      }
+      const localTaskId = task.id;
+      const creationCommandUuid = crypto.randomUUID();
+      const creationTempId = crypto.randomUUID();
+      let createRequestAttempted = false;
+      const creationPromise = (async () => {
+        const createOnce = () => withTaskOrderLock(async () => {
+          // Keep the sync fence through response parsing and optimistic-ID
+          // reconciliation. A waiting snapshot can otherwise add the real task
+          // while this optimistic task still has its temporary ID.
+          const result = await syncCoordinator.withSerializedMutation(() => syncCoordinator.withMutation(async () => {
+            const body = JSON.stringify({
+              content: parsed.title,
+              description: task.description,
+              priority: parsed.priority,
+              due_string: parsed.due.toLowerCase(),
+              ...(project.id ? { project_id: project.id } : {}),
+              command_uuid: creationCommandUuid,
+              temp_id: creationTempId,
+              sync_token: readSyncToken(() => sessionStorage.getItem("keydo.syncToken"))
+            });
+            let result;
+            for (let attempt = 0; attempt < 2; attempt += 1) {
+              let response;
+              try {
+                createRequestAttempted = true;
+                response = await todoistFetch("/api/todoist/tasks", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body
+                }, true);
+              } catch (error) {
+                if (attempt === 1) throw error;
+                continue;
+              }
+              if (!response.ok) {
+                let payload = null;
+                try { payload = await response.clone().json(); } catch {}
+                if (isCreateRateLimited(response.status, payload)) {
+                  const error = new Error("Todoist rate limit reached");
+                  error.definitelyRejected = true;
+                  error.rateLimited = true;
+                  error.retryAfterSeconds = todoistRetryAfterSeconds(payload);
+                  throw error;
+                }
+                if (isDefinitiveCreateRejection(response.status, payload)) {
+                  const error = new Error("Todoist rejected task creation");
+                  error.definitelyRejected = true;
+                  throw error;
+                }
+                if (response.status >= 500 && attempt === 0) continue;
+                throw new Error("Todoist task creation failed");
+              }
+              try {
+                result = await response.json();
+              } catch (error) {
+                if (attempt === 1) throw error;
+                continue;
+              }
+              if (result?.id) break;
+              if (attempt === 1) throw new Error("Todoist task creation response is missing its task ID");
+            }
+            if (result.id) {
+              const duplicateSyncedTask = tasks.find(item => item !== task && item.id === result.id);
+              if (duplicateSyncedTask) {
+                tasks = mergeResolvedCreatedTask(tasks, task, duplicateSyncedTask);
+              }
+              task.id = result.id;
+              if (state.selectedId === localTaskId) state.selectedId = task.id;
+              if (state.selectionAnchorId === localTaskId) state.selectionAnchorId = task.id;
+              if (state.deleteTargetId === localTaskId) state.deleteTargetId = task.id;
+              if (state.selected.delete(localTaskId)) state.selected.add(task.id);
+              if (state.rangeSelectedIds.delete(localTaskId)) state.rangeSelectedIds.add(task.id);
+              if (state.rangeBaseSelection?.delete(localTaskId)) state.rangeBaseSelection.add(task.id);
+              // item_add without explicit ordering creates at the end of its
+              // sibling list. Preserve that placement if the response omits
+              // order fields and the follow-up sync cannot hydrate them.
+              tasks = appendCreatedTask(tasks, task);
+            }
+            if (typeof result.child_order === "number") task.childOrder = result.child_order;
+            if (typeof result.order_key === "string") task.orderKey = result.order_key;
+            if (typeof result.day_order === "number") task.dayOrder = result.day_order;
+            if (typeof result.section_id === "string") task.sectionId = result.section_id;
+            if (typeof result.project_id === "string") task.projectId = result.project_id;
+            tasks = orderTaskTree(tasks);
+            return result;
+          }));
+          // item_add returns a temp-ID mapping but not the task's final ordering
+          // fields. Read while still holding the shared order lock so capture
+          // placement matches Todoist before another structural action starts.
+          if (!await refreshFromSync()) state.orderSyncUncertain = true;
+          return result;
+        });
+        let created;
+        try {
+          created = await createOnce();
+        } catch (error) {
+          if (error instanceof OrderLockUnavailableError) throw error;
+          if (error?.definitelyRejected) throw error;
+          // The request may have created the task even if its response was
+          // lost. Replay the same Sync command under a fresh lock so Todoist's
+          // stable command UUID/temp ID can return the original task mapping.
+          created = await createOnce();
+        }
+        if (!created) throw new OrderLockUnavailableError();
+        if (pendingAttachment) {
+          task.attachment = { name: pendingAttachment.name, type: pendingAttachment.type, data: pendingAttachment.dataUrl };
+          render();
+          showToast("Task captured · uploading screenshot…");
+          try {
+            await uploadCaptureAttachment(task, pendingAttachment);
+            render();
+            showToast("Task captured with screenshot · saved to Todoist");
+          } catch {
+            if (!await refreshFromSync({ full: true })) state.orderSyncUncertain = true;
+            render();
+            showToast(task.attachment?.commentId
+              ? "Task captured with screenshot · saved to Todoist"
+              : "Task saved · screenshot kept locally");
+          }
+        }
+        return created;
+      })();
+      task.keydoCreatePromise = creationPromise;
+      try {
+        await creationPromise;
+        if (!pendingAttachment) showToast("Task captured · saved to Todoist");
+      } catch (error) {
+        let refreshed = false;
+        if (createRequestAttempted && !error?.definitelyRejected) {
+          // The command may have committed even though every response was
+          // lost. Drop the pending marker before reconciliation so a full
+          // snapshot can replace the temporary row with the real task.
+          task.keydoCreatePromise = null;
+          refreshed = (await withTaskOrderLock(() => refreshFromSync({ full: true }))) ?? false;
+          if (!refreshed) state.orderSyncUncertain = true;
+        }
+        tasks = tasks.filter(item => item !== task);
+        if (state.selectedId === task.id) state.selectedId = previousSelectedId;
+        render();
+        if (error?.rateLimited) {
+          captureInput.value = captureText;
+          state.captureAttachment = pendingAttachment;
+          state.captureOpen = true;
+          quickCapture.hidden = false;
+          renderCaptureAttachment();
+          updateCapturePreview();
+          captureInput.focus();
+        }
+        showToast(error?.rateLimited ? `Todoist rate limit${error.retryAfterSeconds ? ` · retry in ${error.retryAfterSeconds}s` : " · try again shortly"}`
+          : error?.definitelyRejected ? "Todoist rejected the task · not created"
+          : error instanceof OrderLockUnavailableError && !createRequestAttempted
+          ? "Shared task ordering unavailable · task not created"
+          : refreshed ? "Create result uncertain · list reloaded from Todoist"
+            : createRequestAttempted ? "Create result uncertain · sync before retrying"
+              : "Todoist capture failed · task not created");
+      } finally {
+        task.keydoCreatePromise = null;
+      }
+    }
+
+    function openCommands(mode = "all", prefix = "") {
+      state.commandMode = mode;
+      state.commandIndex = 0;
+      commandSearch.value = prefix;
+      commandSearch.placeholder = mode === "goto" ? "Go to a view, project, or workspace…" : mode === "moveto" ? "Move to project…" : "Type a command…";
+      renderCommands();
+      commandBackdrop.classList.add("visible");
+      commandSearch.focus();
+    }
+
+    function commandMatches() {
+      const query = commandSearch.value.trim().toLowerCase();
+      const allProjects = [...state.projectsById.values()];
+      const duplicateProjectNames = new Set(allProjects
+        .filter(project => allProjects.some(other => other.id !== project.id && other.name === project.name))
+        .map(project => project.name));
+      const projectLabel = project => duplicateProjectNames.has(project.name)
+        ? `${project.name} · ${project.id}`
+        : project.name;
+      if (state.commandMode === "moveto") {
+        return allProjects
+          .map(project => ({ title: `Move to ${projectLabel(project)}`, description: "Move the selected task into this project", action: `moveto:${project.id}` }))
+          .filter(command => `${command.title} ${command.description}`.toLowerCase().includes(query));
+      }
+      const projectCommands = state.liveTodoist
+        ? allProjects.map(project => ({
+          title: `Go to project: ${projectLabel(project)}`,
+          description: `Browse the ${projectLabel(project)} project`,
+          action: `project:${project.id}`
+        }))
+        : state.commands.filter(command => command.action.startsWith("project:"));
+      return [...state.commands.filter(command => !command.action.startsWith("project:")), ...projectCommands].filter(command => {
+        const modeMatch = state.commandMode === "goto" ? command.action.startsWith("view:") || command.action.startsWith("project:") || command.action.startsWith("workspace:") : true;
+        return modeMatch && `${command.title} ${command.description}`.toLowerCase().includes(query);
+      });
+    }
+
+    function renderCommands() {
+      const matches = commandMatches();
+      state.commandIndex = Math.min(state.commandIndex, Math.max(0, matches.length - 1));
+      commandList.innerHTML = matches.length ? matches.map((command, index) => `<div class="command-item ${index === state.commandIndex ? "active" : ""}" data-command="${escapeHtml(command.action)}"><div><div class="command-item-title">${escapeHtml(command.title)}</div><div class="command-item-description">${escapeHtml(command.description)}</div></div><span class="command-hints"><kbd>↵</kbd></span></div>`).join("") : `<div class="empty-state"><strong>No commands found</strong><span>Try a different phrase.</span></div>`;
+    }
+
+    function closeModals() {
+      commandBackdrop.classList.remove("visible");
+      helpBackdrop.classList.remove("visible");
+      commandSearch.blur();
+    }
+
+    function setView(view, project = state.project, projectId = state.projectId) {
+      state.view = view;
+      state.project = project;
+      state.projectId = view === "project" ? projectId : state.projectId;
+      state.selected.clear();
+      resetSelectionRange(null);
+      state.moveFromId = null;
+      state.moveTargetId = null;
+      state.query = "";
+      searchInput.value = "";
+      state.detailEditing = false;
+      render();
+    }
+
+    async function setTaskDue(label, dueString) {
+      const taskId = currentTask()?.id;
+      if (!taskId) return;
+      return withTaskOrderLock(() => setTaskDueWithOrderLock(taskId, label, dueString));
+    }
+
+    async function setTaskDueWithOrderLock(taskId, label, dueString) {
+      if (state.liveTodoist && !await ensureTaskOrderKnown()) return;
+      const task = tasks.find(item => item.id === taskId);
+      if (!task) return;
+      if (task.keydoCreatePromise) {
+        showToast("Wait for task creation before changing its date");
+        return;
+      }
+      const releaseAction = state.liveTodoist ? taskActionGate.acquire([task.id]) : () => {};
+      if (!releaseAction) {
+        showToast("Wait for the current task change to finish");
+        return;
+      }
+      const previousLabel = task.due;
+      const previousDueDateKey = task.dueDateKey;
+      const previousClass = task.dueClass;
+      const previousDayOrder = task.dayOrder;
+      const nextDueDateKey = dueDateKeyForRelativeLabel(label);
+      applyTaskDueChange(task, label, nextDueDateKey);
+      render();
+      if (!state.liveTodoist) {
+        showToast(`${label === "No date" ? "Due date cleared" : `Moved to ${label}`} · demo mode`);
+        releaseAction();
+        return;
+      }
+      showToast(`${label === "No date" ? "Due date cleared" : `Moved to ${label}`} · syncing to Todoist`);
+      try {
+        await persistTaskMutation(task, "update", { due_string: dueString });
+        const currentTask = tasks.find(item => item.id === task.id);
+        if (currentTask) {
+          applyTaskDueChange(currentTask, label, nextDueDateKey);
+          render();
+        }
+        const refreshed = await refreshFromSync();
+        if (!refreshed) state.orderSyncUncertain = true;
+        showToast(refreshed ? "Saved to Todoist" : "Saved · Todoist order refresh unavailable");
+      } catch {
+        // A dropped response can follow a successful Todoist update. Reload
+        // before deciding the date; if that also fails, the old day position
+        // is no longer safe to present as current.
+        const optimisticTask = tasks.find(item => item.id === task.id);
+        if (optimisticTask) {
+          optimisticTask.due = previousLabel;
+          optimisticTask.dueDateKey = previousDueDateKey;
+          optimisticTask.dueClass = previousClass;
+          optimisticTask.dayOrder = previousDayOrder;
+        }
+        render();
+        const refreshed = await refreshFromSync({ full: true });
+        if (!refreshed) state.orderSyncUncertain = true;
+        const currentTask = tasks.find(item => item.id === task.id);
+        if (!refreshed && currentTask) {
+          currentTask.due = previousLabel;
+          currentTask.dueDateKey = previousDueDateKey;
+          currentTask.dueClass = previousClass;
+          currentTask.dayOrder = null;
+        }
+        render();
+        showToast(refreshed ? "Todoist update failed · list reloaded" : "Todoist update failed · sync unavailable; order is unknown");
+      }
+      releaseAction();
+    }
+
+    async function runBulk(kind) {
+      const requestedIds = [...state.selected];
+      if (["complete", "today", "clear"].includes(kind)) {
+        return withTaskOrderLock(() => runBulkWithOrderLock(kind, requestedIds));
+      }
+      return runBulkWithOrderLock(kind, requestedIds);
+    }
+
+    function removeRequestedSelection(ids) {
+      const currentAnchor = state.selectionAnchorId;
+      state.selected = removeTaskSelectionIds(state.selected, new Set(ids));
+      if (!state.selected.has(currentAnchor)) resetSelectionRange(state.selectedId);
+    }
+
+    async function runBulkWithOrderLock(kind, requestedIds) {
+      const ids = requestedIds;
+      if (!ids.length) return;
+      const requestedIdSet = new Set(ids);
+      if (tasks.some(task => requestedIdSet.has(task.id) && task.keydoCreatePromise)) {
+        showToast("Wait for task creation before applying bulk changes");
+        return;
+      }
+      if (["complete", "today", "clear"].includes(kind) && state.orderMutationPending) {
+        showToast("Wait for the current order change to finish");
+        return;
+      }
+      // The selected root set depends on current parent links. Refresh while
+      // holding the shared order lock so another Keydo client cannot have
+      // changed the hierarchy since this selection was made.
+      if (["complete", "today", "clear"].includes(kind) && state.liveTodoist && !await ensureTaskOrderKnown()) return;
+      let actionIds = ids;
+      let affectedIds = new Set(ids);
+      let subtreeIdsByRoot = new Map();
+      let releaseTaskActions = () => {};
+      if (kind === "complete") {
+        actionIds = selectedTaskRoots(tasks, requestedIdSet, true, true);
+        subtreeIdsByRoot = taskSubtreeIdsByRoot(tasks, actionIds);
+        affectedIds = new Set([...subtreeIdsByRoot.values()].flatMap(subtree => [...subtree]));
+        if (!actionIds.length) {
+          removeRequestedSelection(ids);
+          render();
+          showToast("No active selected tasks to complete");
+          return;
+        }
+        releaseTaskActions = state.liveTodoist ? taskActionGate.acquire(affectedIds) : () => {};
+        if (!releaseTaskActions) {
+          showToast("Wait for the current task change to finish");
+          return;
+        }
+        if (state.liveTodoist) {
+          const pendingTasks = tasks.filter(task => affectedIds.has(task.id));
+          const saved = await Promise.all(pendingTasks.map(async task => {
+            window.clearTimeout(task.keydoSaveTimer);
+            return flushTaskUpdates(task);
+          }));
+          if (saved.some(result => !result)) {
+            releaseTaskActions();
+            showToast("Save pending edits before completing the selected tasks");
+            return;
+          }
+        }
+      } else if (kind === "today" || kind === "clear") {
+        actionIds = retainExistingTaskIds(tasks, ids);
+        if (!actionIds.length) {
+          removeRequestedSelection(ids);
+          render();
+          showToast("No selected tasks remain in Todoist");
+          return;
+        }
+        affectedIds = new Set(actionIds);
+        releaseTaskActions = state.liveTodoist ? taskActionGate.acquire(actionIds) : () => {};
+        if (!releaseTaskActions) {
+          showToast("Wait for the current task change to finish");
+          return;
+        }
+      }
+      const optimisticTasksById = new Map(tasks.map(task => [task.id, task]));
+      const previous = new Map(tasks.filter(task => affectedIds.has(task.id)).map(task => [task.id, { due: task.due, dueDateKey: task.dueDateKey, dueClass: task.dueClass, dayOrder: task.dayOrder, completed: task.completed }]));
+      if (kind === "today") ids.forEach(id => { const task = optimisticTasksById.get(id); if (task) applyTaskDueChange(task, "Today", dueDateKeyForRelativeLabel("Today")); });
+      if (kind === "clear") ids.forEach(id => { const task = optimisticTasksById.get(id); if (task) applyTaskDueChange(task, "No date", null); });
+      if (kind === "complete") {
+        for (const id of actionIds) {
+          const task = optimisticTasksById.get(id);
+          if (task) setTaskSubtreeCompletion(tasks, id, true, Boolean(task.recurring));
+        }
+      }
+      if (kind === "complete") removeRequestedSelection(ids);
+      else {
+        state.selected.clear();
+        resetSelectionRange(state.selectedId);
+      }
+      render();
+      if (!state.liveTodoist) {
+        showToast(kind === "today" ? "Selected tasks moved to Today · demo mode" : kind === "clear" ? "Due dates cleared · demo mode" : "Selected tasks completed · demo mode");
+        releaseTaskActions();
+        return;
+      }
+      showToast("Saving selected tasks to Todoist…");
+      let failed = 0;
+      const failedIds = new Set();
+      const savedIds = new Set();
+      const requestTasksById = new Map(tasks.map(task => [task.id, task]));
+      await Promise.all(actionIds.map(async id => {
+        const task = requestTasksById.get(id);
+        if (!task) return;
+        try {
+          if (kind === "today") await persistTaskMutation(task, "update", { due_string: "today" });
+          else if (kind === "clear") await persistTaskMutation(task, "update", { due_string: "no date" });
+          else await persistTaskMutation(task, "complete");
+          savedIds.add(id);
+        } catch {
+          failed += 1;
+          failedIds.add(id);
+        }
+      }));
+      // Sync snapshots can replace task objects while these writes wait their
+      // turn. Reapply confirmed results to the current array before refreshing.
+      const currentTasksById = new Map(tasks.map(task => [task.id, task]));
+      const currentSubtreeIdsByRoot = kind === "complete"
+        ? taskSubtreeIdsByRoot(tasks, actionIds)
+        : subtreeIdsByRoot;
+      for (const id of failedIds) {
+        const rollbackIds = kind === "complete" ? currentSubtreeIdsByRoot.get(id) ?? [] : [id];
+        for (const rollbackId of rollbackIds) {
+          const currentTask = currentTasksById.get(rollbackId);
+          const prev = previous.get(rollbackId);
+          if (currentTask && prev) Object.assign(currentTask, prev);
+        }
+      }
+      if (kind === "complete") {
+        // Restore recurring roots first, then reapply successful ordinary
+        // descendant completions. Request completion order is nondeterministic.
+        for (const id of savedIds) {
+          if (!currentTasksById.get(id)?.recurring) continue;
+          for (const descendantId of currentSubtreeIdsByRoot.get(id) ?? []) {
+            const currentTask = currentTasksById.get(descendantId);
+            const previousTask = previous.get(descendantId);
+            if (currentTask && previousTask) currentTask.completed = previousTask.completed;
+          }
+        }
+        for (const id of savedIds) {
+          if (currentTasksById.get(id)?.recurring) continue;
+          for (const descendantId of currentSubtreeIdsByRoot.get(id) ?? []) {
+            const currentTask = currentTasksById.get(descendantId);
+            if (currentTask) currentTask.completed = true;
+          }
+        }
+      } else {
+        for (const id of savedIds) {
+          const currentTask = currentTasksById.get(id);
+          if (!currentTask) continue;
+          applyTaskDueChange(currentTask, kind === "today" ? "Today" : "No date", dueDateKeyForRelativeLabel(kind === "today" ? "Today" : "No date"));
+        }
+      }
+      const refreshed = await refreshFromSync({ full: failed > 0 });
+      if (!refreshed && failedIds.size && (kind === "today" || kind === "clear")) {
+        const tasksById = new Map(tasks.map(task => [task.id, task]));
+        for (const id of failedIds) {
+          const currentTask = tasksById.get(id);
+          if (currentTask) currentTask.dayOrder = null;
+        }
+      }
+      if (!refreshed) state.orderSyncUncertain = true;
+      render();
+      showToast(failed ? `Saved ${actionIds.length - failed} · ${failed} failed · reverted` : refreshed ? `Saved ${actionIds.length} to Todoist` : `Saved ${actionIds.length} · list refresh unavailable`);
+      releaseTaskActions();
+    }
+
+    async function moveTaskToProject(projectId) {
+      const requestedTaskId = state.selectedId;
+      return withTaskOrderLock(() => moveTaskToProjectWithLock(projectId, requestedTaskId));
+    }
+
+    async function moveTaskToProjectWithLock(projectId, requestedTaskId) {
+      if (state.orderMutationPending) {
+        showToast("Wait for the current order change to finish");
+        return;
+      }
+      if (!await ensureTaskOrderKnown()) return;
+      if (state.orderMutationPending) {
+        showToast("Wait for the current order change to finish");
+        return;
+      }
+      if (!isCurrentTaskSelection(tasks, requestedTaskId, state.selectedId)) {
+        showToast("Move cancelled · selected task changed during sync");
+        return;
+      }
+      const task = tasks.find(item => item.id === requestedTaskId);
+      if (!task) return;
+      if (task.keydoCreatePromise) {
+        showToast("Wait for task creation before moving it to another project");
+        return;
+      }
+      const projectName = state.projectsById.get(projectId)?.name;
+      if (!projectName) {
+        showToast("Unknown project");
+        return;
+      }
+      if (task.projectId === projectId) {
+        showToast(`Already in ${projectName}`);
+        return;
+      }
+      const releaseAction = state.liveTodoist ? taskActionGate.acquire(taskSubtreeIds(tasks, task.id)) : () => {};
+      if (!releaseAction) {
+        showToast("Wait for the current task change to finish");
+        return;
+      }
+      const movingIds = taskSubtreeIds(tasks, task.id);
+      const taskIndexById = new Map(tasks.map((item, index) => [item.id, index]));
+      const previousSubtree = tasks.filter(item => movingIds.has(item.id)).map(item => ({
+        id: item.id,
+        index: taskIndexById.get(item.id),
+        project: item.project,
+        projectId: item.projectId ?? null,
+        projectOrderKey: item.projectOrderKey ?? null,
+        projectChildOrder: item.projectChildOrder ?? null,
+        projectOrderParentId: item.projectOrderParentId ?? null,
+        parentId: item.parentId ?? null,
+        sectionId: item.sectionId ?? null,
+        sectionOrder: item.sectionOrder ?? null,
+        sectionOrderKey: item.sectionOrderKey ?? null,
+        orderKey: item.orderKey ?? null,
+        childOrder: item.childOrder ?? null,
+        dayOrder: item.dayOrder ?? null
+      }));
+      const destinationProject = state.projectsById.get(projectId);
+      tasks = orderTaskTree(applyProjectTaskMove(tasks, task.id, projectId, projectName, destinationProject?.orderKey ?? null, destinationProject?.childOrder ?? null, destinationProject?.parentId ?? null));
+      render();
+      if (!state.liveTodoist) {
+        showToast(`Moved to ${projectName} · demo mode`);
+        releaseAction();
+        return;
+      }
+      state.orderMutationPending = true;
+      showToast(`Moving to ${projectName} · syncing to Todoist`);
+      try {
+        await persistTaskMutation(task, "move", { destination: { project_id: projectId } });
+        const destinationProject = state.projectsById.get(projectId);
+        tasks = orderTaskTree(applyProjectTaskMove(tasks, task.id, projectId, projectName, destinationProject?.orderKey ?? null, destinationProject?.childOrder ?? null, destinationProject?.parentId ?? null));
+        render();
+        const refreshed = await refreshFromSync();
+        if (!refreshed) state.orderSyncUncertain = true;
+        showToast(refreshed ? "Saved to Todoist" : "Saved · Todoist order refresh unavailable");
+      } catch {
+        restoreTaskSnapshots(tasks, previousSubtree);
+        tasks = orderTaskTree(tasks);
+        render();
+        const refreshed = await refreshFromSync({ full: true });
+        if (!refreshed) state.orderSyncUncertain = true;
+        if (!refreshed) {
+          restoreTaskSnapshots(tasks, previousSubtree);
+          tasks = orderTaskTree(tasks);
+          render();
+        }
+        showToast(refreshed ? "Move reloaded from Todoist after the save failed" : "Todoist move failed · local change reverted");
+      } finally {
+        state.orderMutationPending = false;
+        releaseAction();
+      }
+    }
+
+    function moveModeTargets() {
+      return validTaskNestTargets(tasks, state.moveFromId, visibleTasks());
+    }
+
+    async function enterMoveMode() {
+      const requestedTaskId = state.selectedId;
+      if (!canEditTaskOrder()) {
+        showToast("Move mode needs the complete project list · clear search and workspace filters");
+        return;
+      }
+      if (state.orderMutationPending) {
+        showToast("Wait for the current order change to finish");
+        return;
+      }
+      if (!await ensureTaskOrderKnown()) return;
+      if (!canEditTaskOrder()) {
+        showToast("Move mode needs the complete project list · clear search and workspace filters");
+        return;
+      }
+      if (!isCurrentTaskSelection(tasks, requestedTaskId, state.selectedId)) {
+        showToast("Move mode cancelled · selected task changed during sync");
+        return;
+      }
+      const task = tasks.find(item => item.id === requestedTaskId);
+      if (!task) return;
+      if (task.keydoCreatePromise) {
+        showToast("Wait for task creation before entering move mode");
+        return;
+      }
+      state.moveFromId = task.id;
+      state.moveTargetId = moveModeTargets()[0]?.id ?? null;
+      state.selectedId = state.moveTargetId ?? task.id;
+      resetSelectionRange(state.selectedId);
+      render();
+      focusSelectedTask();
+      showToast("Move mode · ↑↓ pick a parent · Enter drops · Esc cancels");
+    }
+
+    function exitMoveMode() {
+      state.moveFromId = null;
+      state.moveTargetId = null;
+      resetSelectionRange(state.selectedId);
+      render();
+    }
+
+    async function confirmMoveMode() {
+      const requestedSourceId = state.moveFromId;
+      const requestedTargetId = state.moveTargetId;
+      return withTaskOrderLock(() => confirmMoveModeWithLock(requestedSourceId, requestedTargetId));
+    }
+
+    async function confirmMoveModeWithLock(requestedSourceId, requestedTargetId) {
+      if (!canEditTaskOrder()) {
+        exitMoveMode();
+        showToast("Structural moves need the complete project list · clear search and workspace filters");
+        return;
+      }
+      if (state.orderMutationPending) {
+        exitMoveMode();
+        showToast("Wait for the current order change to finish");
+        return;
+      }
+      if (!await ensureTaskOrderKnown()) return;
+      if (state.orderMutationPending) {
+        exitMoveMode();
+        showToast("Wait for the current order change to finish");
+        return;
+      }
+      if (!canEditTaskOrder()) {
+        exitMoveMode();
+        showToast("Structural moves need the complete project list · clear search and workspace filters");
+        return;
+      }
+      if (state.moveFromId !== requestedSourceId || state.moveTargetId !== requestedTargetId) {
+        exitMoveMode();
+        showToast("Move cancelled · task changed during sync");
+        return;
+      }
+      const task = tasks.find(item => item.id === requestedSourceId);
+      const target = tasks.find(item => item.id === requestedTargetId);
+      if (!task || !target || !visibleTasks().some(item => item.id === requestedSourceId) || !moveModeTargets().some(item => item.id === requestedTargetId)) {
+        exitMoveMode();
+        showToast("Move cancelled · the source or target is no longer visible");
+        return;
+      }
+      state.moveFromId = null;
+      state.moveTargetId = null;
+      if (!task || !target || !canNestTask(tasks, task.id, target.id)) {
+        render();
+        showToast("Move cancelled · the target is no longer valid");
+        return;
+      }
+      if (task.keydoCreatePromise || target.keydoCreatePromise) {
+        showToast("Wait for task creation before changing the hierarchy");
+        return;
+      }
+      const releaseAction = state.liveTodoist ? taskActionGate.acquire([...taskSubtreeIds(tasks, task.id), target.id]) : () => {};
+      if (!releaseAction) {
+        showToast("Wait for the current task change to finish");
+        return;
+      }
+      const previousSubtree = taskPlacementSnapshots(taskSubtreeIds(tasks, task.id));
+      tasks = orderTaskTree(applyTaskHierarchyMove(tasks, task.id, target.id));
+      state.selectedId = task.id;
+      resetSelectionRange(task.id);
+      render();
+      focusSelectedTask();
+      if (!state.liveTodoist) {
+        showToast(`Moved under “${target.title}” · demo mode`);
+        releaseAction();
+        return;
+      }
+      state.orderMutationPending = true;
+      showToast(`Moving under “${target.title}” · syncing to Todoist`);
+      try {
+        await persistTaskMutation(task, "move", { destination: { parent_id: target.id } });
+        tasks = orderTaskTree(applyTaskHierarchyMove(tasks, task.id, target.id));
+        render();
+        focusSelectedTask();
+        const refreshed = await refreshFromSync();
+        if (!refreshed) state.orderSyncUncertain = true;
+        showToast(refreshed ? "Saved to Todoist" : "Saved · Todoist order refresh unavailable");
+      } catch {
+        const refreshed = await refreshFromSync({ full: true });
+        if (!refreshed) state.orderSyncUncertain = true;
+        if (!refreshed) {
+          restoreTaskSnapshots(tasks, previousSubtree);
+          tasks = orderTaskTree(tasks);
+          render();
+          focusSelectedTask();
+        }
+        showToast(refreshed ? "Move reloaded from Todoist after the save failed" : "Todoist move failed · local change reverted");
+      } finally {
+        state.orderMutationPending = false;
+        releaseAction();
+      }
+    }
+
+    function runCommand(action) {
+      closeModals();
+      if (action.startsWith("view:")) { setView(action.slice(5)); return; }
+      if (action.startsWith("project:")) {
+        const projectId = action.slice(8);
+        const project = state.projectsById.get(projectId);
+        if (project) setView("project", project.name, project.id);
+        else setView("project", projectId, null);
+        return;
+      }
+      if (action.startsWith("workspace:")) { state.workspace = action.slice(10); setView("today"); showToast(`Switched to ${state.workspace} workspace`); return; }
+      if (action === "task:today") { setTaskDue("Today", "today"); return; }
+      if (action === "task:tomorrow") { setTaskDue("Tomorrow", "tomorrow"); return; }
+      if (action === "task:clear") { setTaskDue("No date", "no date"); return; }
+      if (action === "task:priority-up") { changePriority(1); return; }
+      if (action === "task:priority-down") { changePriority(-1); return; }
+      if (action === "task:complete") { toggleComplete(state.selectedId); return; }
+      if (action === "task:delete") { openDeleteConfirmation(); return; }
+      if (action === "task:edit") { enterDetail(); return; }
+      if (action === "task:open") { showToast("Open in Todoist is ready for API integration"); return; }
+      if (action === "task:attach") { showToast("Copy a screenshot, then press Ctrl+V"); return; }
+      if (action === "task:moveto") { openCommands("moveto"); return; }
+      if (action === "task:nest") { enterMoveMode(); return; }
+      if (action.startsWith("moveto:")) { moveTaskToProject(action.slice(7)); return; }
+      if (action === "bulk:today") { runBulk("today"); return; }
+      if (action === "bulk:clear") { runBulk("clear"); return; }
+      if (action === "bulk:complete") { runBulk("complete"); return; }
+      if (action === "help") helpBackdrop.classList.add("visible");
+    }
+
+    function attachmentSrcFor(task) {
+      if (!task?.attachment) return "";
+      if (typeof task.attachment.data === "string" && task.attachment.data.startsWith("data:image/")) return task.attachment.data;
+      // Todoist file URLs require authorization, which a bare <img> cannot
+      // send, so remote images load through the same-origin proxy instead.
+      if (typeof task.attachment.url === "string" && task.attachment.url.startsWith("https://")) return `/api/todoist/files?url=${encodeURIComponent(task.attachment.url)}`;
+      return "";
+    }
+
+    async function removeAttachment() {
+      const task = currentTask();
+      if (!task?.attachment) return;
+      const taskId = task.id;
+      const releaseAction = state.liveTodoist ? taskActionGate.acquire([task.id]) : () => {};
+      if (!releaseAction) {
+        showToast("Wait for the current task change to finish");
+        return;
+      }
+      const previous = task.attachment;
+      task.attachment = null;
+      render();
+      if (!previous.commentId || !state.liveTodoist) {
+        showToast("Attachment removed locally");
+        releaseAction();
+        return;
+      }
+      try {
+        const response = await withLockedTodoistWrite(() => syncCoordinator.withMutation(() => todoistFetch(`/api/todoist/comments/${encodeURIComponent(previous.commentId)}`, { method: "DELETE" }, true)));
+        if (!response.ok) throw new Error("Attachment removal failed");
+        setTaskAttachment(tasks, taskId, null);
+        render();
+        // Deleting the newest image note can expose an older surviving note,
+        // which an incremental Sync will not include because it did not change.
+        const refreshed = await refreshFromSync({ full: true });
+        if (!refreshed) state.orderSyncUncertain = true;
+        showToast(refreshed ? "Attachment removed from Todoist" : "Attachment removed · sync refresh unavailable");
+      } catch {
+        const refreshed = await refreshFromSync({ full: true });
+        if (!refreshed) {
+          state.orderSyncUncertain = true;
+          setTaskAttachment(tasks, taskId, previous);
+        }
+        render();
+        showToast(refreshed ? "Attachment state reloaded from Todoist" : "Removal uncertain · attachment restored locally");
+      } finally {
+        releaseAction();
+      }
+    }
+
+    async function compressImageForUpload(file) {
+      const limit = Math.floor(4.5 * 1024 * 1024);
+      if (file.size <= limit) return { blob: file, name: file.name || "pasted-screenshot.png", type: file.type };
+      try {
+        const bitmap = await createImageBitmap(file);
+        const encode = (maxDim, quality) => new Promise(resolve => {
+          const scale = Math.min(1, maxDim / Math.max(bitmap.width, bitmap.height));
+          const canvas = document.createElement("canvas");
+          canvas.width = Math.max(1, Math.round(bitmap.width * scale));
+          canvas.height = Math.max(1, Math.round(bitmap.height * scale));
+          canvas.getContext("2d").drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+          canvas.toBlob(result => resolve(result), "image/jpeg", quality);
+        });
+        for (const [maxDim, quality] of [[1920, 0.85], [1920, 0.7], [1920, 0.55], [1280, 0.7]]) {
+          const blob = await encode(maxDim, quality);
+          if (blob && blob.size <= limit) {
+            const base = (file.name || "pasted-screenshot").replace(/\.\w+$/, "");
+            return { blob, name: `${base}.jpg`, type: "image/jpeg" };
+          }
+        }
+      } catch {
+        // Fall through to the original file; the server validates size.
+      }
+      return { blob: file, name: file.name || "pasted-screenshot.png", type: file.type };
+    }
+
+    function attachImage(file) {
+      if (!file || !file.type.startsWith("image/")) return;
+      const task = currentTask();
+      if (!task) return;
+      const taskId = task.id;
+      if (task.keydoCreatePromise) {
+        showToast("Wait for task creation before attaching an image");
+        return;
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        showToast("Screenshot too large · 5 MB limit");
+        return;
+      }
+      const reader = new FileReader();
+      reader.addEventListener("load", async () => {
+        if (!state.liveTodoist) {
+          setTaskAttachment(tasks, taskId, { name: file.name || "pasted-screenshot.png", type: file.type, data: reader.result });
+          render();
+          showToast("Screenshot attached locally · demo mode");
+          return;
+        }
+        const releaseAction = taskActionGate.acquire([task.id]);
+        if (!releaseAction) {
+          showToast("Wait for the current task change to finish");
+          return;
+        }
+        const localAttachment = { name: file.name || "pasted-screenshot.png", type: file.type, data: reader.result };
+        setTaskAttachment(tasks, taskId, localAttachment);
+        render();
+        showToast("Screenshot attached · uploading to Todoist…");
+        try {
+          const compressed = await compressImageForUpload(file);
+          const form = new FormData();
+          form.set("file", compressed.blob, compressed.name);
+          const response = await withLockedTodoistWrite(() => syncCoordinator.withMutation(() => todoistFetch(`/api/todoist/tasks/${encodeURIComponent(taskId)}/attachments`, { method: "POST", body: form }, true)));
+          if (!response.ok) {
+            if (response.status === 404) throw new Error("Upload endpoint missing · restart the server with bun run dev");
+            if (response.status === 413) throw new Error("Image exceeds the 5 MB limit");
+            const detail = await response.json().catch(() => null);
+            throw new Error(typeof detail?.error === "string" ? detail.error : "Attachment upload failed");
+          }
+          const result = await response.json();
+          setTaskAttachment(tasks, taskId, { name: result.attachment.name, type: result.attachment.type, data: reader.result, url: result.attachment.url, commentId: result.attachment.commentId, postedAt: result.comment?.posted_at });
+          render();
+          showToast("Screenshot saved to Todoist");
+        } catch (error) {
+          releaseAction();
+          const reconciled = await refreshFromSync({ full: true });
+          if (!reconciled) state.orderSyncUncertain = true;
+          const currentTask = tasks.find(item => item.id === taskId);
+          if (!currentTask?.attachment?.commentId) setTaskAttachment(tasks, taskId, localAttachment);
+          render();
+          showToast(currentTask?.attachment?.commentId
+            ? "Screenshot saved to Todoist"
+            : error instanceof Error ? error.message : "Upload failed · kept locally");
+        } finally {
+          releaseAction();
+        }
+      });
+      reader.addEventListener("error", () => showToast("Screenshot could not be read"));
+      reader.readAsDataURL(file);
+    }
+
+    taskList.addEventListener("click", event => {
+      if (state.moveFromId) {
+        const row = event.target.closest("[data-task-id]");
+        if (!row) return;
+        const targetId = row.dataset.taskId;
+        if (!moveModeTargets().some(task => task.id === targetId)) {
+          showToast("Choose a valid parent for this task");
+          return;
+        }
+        state.moveTargetId = targetId;
+        state.selectedId = targetId;
+        resetSelectionRange(targetId);
+        render();
+        focusSelectedTask();
+        return;
+      }
+      const complete = event.target.closest("[data-complete]");
+      const select = event.target.closest("[data-select]");
+      const row = event.target.closest("[data-task-id]");
+      if (complete) { toggleComplete(complete.dataset.complete); return; }
+      if (select) { toggleSelection(select.dataset.select); return; }
+      if (row) selectTask(row.dataset.taskId);
+    });
+
+    document.querySelectorAll("[data-view]").forEach(button => button.addEventListener("click", () => {
+      if (button.dataset.view === "workspace") {
+        state.workspace = button.dataset.workspace;
+        setView("today");
+        showToast(`Switched to ${state.workspace} workspace`);
+        return;
+      }
+      setView(button.dataset.view, button.dataset.project || state.project);
+    }));
+
+    document.getElementById("search-input").addEventListener("input", event => { state.query = event.target.value; resetSelectionRange(state.selectedId); render(); });
+    document.getElementById("bulk-button").addEventListener("click", () => showToast("Use Shift+Arrow to select a range, or Shift+Space to toggle a task"));
+    document.getElementById("bulk-clear").addEventListener("click", () => { state.selected.clear(); resetSelectionRange(state.selectedId); render(); });
+    document.getElementById("bulk-clear-dates").addEventListener("click", () => runBulk("clear"));
+    document.getElementById("bulk-complete").addEventListener("click", () => runBulk("complete"));
+    document.getElementById("bulk-today").addEventListener("click", () => runBulk("today"));
+    document.getElementById("close-detail").addEventListener("click", leaveDetail);
+    document.getElementById("complete-detail").addEventListener("click", () => toggleComplete(state.selectedId));
+    document.getElementById("detail-actions").addEventListener("click", () => openCommands());
+    document.getElementById("open-todoist").addEventListener("click", () => runCommand("task:open"));
+    document.getElementById("description-editor").addEventListener("input", event => { const task = currentTask(); task.description = event.target.value; document.getElementById("description-preview").innerHTML = renderMarkdown(event.target.value); queueTaskUpdate(task, { description: task.description }); });
+    document.getElementById("detail-title-input").addEventListener("input", event => { const task = currentTask(); task.title = event.target.value; document.getElementById("detail-title").textContent = event.target.value; queueTaskUpdate(task, { content: task.title }); });
+    document.getElementById("subtask-list").addEventListener("click", event => {
+      const subtask = event.target.closest("[data-subtask]");
+      if (subtask) openSubtask(subtask.dataset.subtask);
+    });
+    document.getElementById("preview-media").addEventListener("click", event => {
+      const task = currentTask();
+      if (event.target.closest("[data-view-attachment]")) { const src = attachmentSrcFor(task); if (src) window.open(src, "_blank", "noopener"); }
+      if (event.target.closest("[data-remove-attachment]") && task) removeAttachment();
+    });
+    document.getElementById("capture-button").addEventListener("click", openQuickCapture);
+    document.getElementById("capture-cancel").addEventListener("click", closeQuickCapture);
+    document.getElementById("capture-save").addEventListener("click", createQuickTask);
+    document.getElementById("capture-remove-image").addEventListener("click", () => { state.captureAttachment = null; renderCaptureAttachment(); captureInput.focus(); });
+    captureInput.addEventListener("input", updateCapturePreview);
+    captureInput.addEventListener("keydown", event => { if (event.key === "Enter") { event.preventDefault(); createQuickTask(); } });
+    document.getElementById("command-search").addEventListener("input", renderCommands);
+    commandList.addEventListener("click", event => { const command = event.target.closest("[data-command]"); if (command) runCommand(command.dataset.command); });
+    commandBackdrop.addEventListener("click", event => { if (event.target === commandBackdrop) closeModals(); });
+    helpBackdrop.addEventListener("click", event => { if (event.target === helpBackdrop) closeModals(); });
+    document.getElementById("delete-cancel").addEventListener("click", closeDeleteConfirmation);
+    document.getElementById("delete-confirm").addEventListener("click", deleteSelectedTask);
+    deleteBackdrop.addEventListener("click", event => { if (event.target === deleteBackdrop) closeDeleteConfirmation(); });
+
+    commandSearch.addEventListener("keydown", event => {
+      const matches = commandMatches();
+      if (event.key === "ArrowDown") { event.preventDefault(); state.commandIndex = Math.min(state.commandIndex + 1, matches.length - 1); renderCommands(); }
+      if (event.key === "ArrowUp") { event.preventDefault(); state.commandIndex = Math.max(state.commandIndex - 1, 0); renderCommands(); }
+      if (event.key === "Enter" && matches[state.commandIndex]) runCommand(matches[state.commandIndex].action);
+    });
+
+    document.addEventListener("keydown", event => {
+      if (state.booting) {
+        event.preventDefault();
+        return;
+      }
+      const target = event.target;
+      const typing = target.matches("input, textarea");
+      if (deleteBackdrop.classList.contains("visible")) {
+        if (event.key === "Escape") { event.preventDefault(); closeDeleteConfirmation(); return; }
+        if (event.key === "Enter") {
+          event.preventDefault();
+          if (document.activeElement === deleteConfirm) deleteSelectedTask();
+          else closeDeleteConfirmation();
+          return;
+        }
+        if (event.key === "Tab") {
+          event.preventDefault();
+          if (document.activeElement === deleteCancel) deleteConfirm.focus();
+          else deleteCancel.focus();
+          return;
+        }
+        return;
+      }
+      if (state.moveFromId && event.key === "Escape") { event.preventDefault(); exitMoveMode(); focusSelectedTask(false); return; }
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") { event.preventDefault(); openCommands(); return; }
+      if (event.key === "Escape") {
+        if (state.captureOpen) { event.preventDefault(); closeQuickCapture(); return; }
+        if (commandBackdrop.classList.contains("visible") || helpBackdrop.classList.contains("visible")) { closeModals(); focusSelectedTask(false); return; }
+        if (state.detailEditing) { event.preventDefault(); leaveDetail(); return; }
+        if (typing) { event.preventDefault(); target.blur(); return; }
+        if (state.selected.size) { event.preventDefault(); state.selected.clear(); resetSelectionRange(state.selectedId); render(); return; }
+        const row = queryTaskRow(state.selectedId);
+        if (row) row.focus({ preventScroll: true });
+        return;
+      }
+      if (event.altKey && !event.ctrlKey && !event.metaKey && state.detailEditing) {
+        const altKey = event.key.toLowerCase();
+        if (altKey === "t") { event.preventDefault(); focusDetailTitle(); return; }
+        if (altKey === "n") { event.preventDefault(); focusDetailNotes(); return; }
+        if (altKey === "s") { event.preventDefault(); focusFirstSubtask(); return; }
+        if (altKey === "c") { event.preventDefault(); toggleComplete(state.selectedId); return; }
+      }
+      if (typing) {
+        if (event.ctrlKey && event.key === "Enter" && target.matches("textarea, input")) { event.preventDefault(); saveDescription(); }
+        return;
+      }
+      if (state.moveFromId) {
+        if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+          event.preventDefault();
+          const targets = moveModeTargets();
+          const current = Math.max(0, targets.findIndex(task => task.id === state.moveTargetId));
+          const next = Math.max(0, Math.min(targets.length - 1, current + (event.key === "ArrowDown" ? 1 : -1)));
+          state.moveTargetId = targets[next]?.id ?? null;
+          state.selectedId = state.moveTargetId;
+          render();
+          focusSelectedTask();
+          return;
+        }
+        if (event.key === "Enter") { event.preventDefault(); confirmMoveMode(); return; }
+        return;
+      }
+      if (event.key === "?" && !commandBackdrop.classList.contains("visible")) { event.preventDefault(); helpBackdrop.classList.add("visible"); return; }
+      if (event.key.toLowerCase() === "g") { event.preventDefault(); openCommands("goto"); return; }
+      if (event.key === "/") { event.preventDefault(); searchInput.focus(); return; }
+      if (event.key.toLowerCase() === "n" && state.detailEditing) { event.preventDefault(); focusDetailNotes(); return; }
+      if (event.key.toLowerCase() === "n") { event.preventDefault(); openQuickCapture(); return; }
+      if (event.key.toLowerCase() === "t" && !event.shiftKey && state.detailEditing) { event.preventDefault(); focusDetailTitle(); return; }
+      if (event.key.toLowerCase() === "t") { event.preventDefault(); runCommand(event.shiftKey ? "task:tomorrow" : "task:today"); return; }
+      if (event.key.toLowerCase() === "c" && state.detailEditing) { event.preventDefault(); toggleComplete(state.selectedId); return; }
+      if (event.key.toLowerCase() === "c") { event.preventDefault(); runCommand("task:clear"); return; }
+      if (event.key.toLowerCase() === "s" && state.detailEditing) { event.preventDefault(); focusFirstSubtask(); return; }
+      if (event.key.toLowerCase() === "e") { event.preventDefault(); enterDetail(); return; }
+      if (event.key.toLowerCase() === "o") { event.preventDefault(); runCommand("task:open"); return; }
+      if (event.key === "M") { event.preventDefault(); enterMoveMode(); return; }
+      if (event.key.toLowerCase() === "m") { event.preventDefault(); openCommands("moveto"); return; }
+      if (event.key.toLowerCase() === "a") { event.preventDefault(); runCommand("task:attach"); return; }
+      if (event.key === "+" || event.key === "=") { event.preventDefault(); changePriority(1); return; }
+      if (event.key === "-" || event.key === "_") { event.preventDefault(); changePriority(-1); return; }
+      if (event.altKey && event.key === "ArrowDown") { event.preventDefault(); moveHierarchy("down"); return; }
+      if (event.altKey && event.key === "ArrowUp") { event.preventDefault(); moveHierarchy("up"); return; }
+      if (event.altKey && event.key === "ArrowRight") { event.preventDefault(); moveHierarchy("right"); return; }
+      if (event.altKey && event.key === "ArrowLeft") { event.preventDefault(); moveHierarchy("left"); return; }
+      if (state.detailEditing && (event.key === "ArrowDown" || event.key === "ArrowUp") && target.closest("#subtask-list")) {
+        event.preventDefault();
+        const items = [...document.querySelectorAll("#subtask-list [data-subtask]")];
+        const current = items.indexOf(document.activeElement);
+        const nextIndex = Math.max(0, Math.min(items.length - 1, current + (event.key === "ArrowDown" ? 1 : -1)));
+        const next = items[nextIndex];
+        if (next) next.focus();
+        return;
+      }
+      if (state.detailEditing && event.key === "Enter") {
+        const subtask = target.closest("#subtask-list [data-subtask]");
+        if (subtask) {
+          event.preventDefault();
+          openSubtask(subtask.dataset.subtask);
+          return;
+        }
+      }
+      if (state.detailEditing) return;
+      if (event.key === "PageDown") { event.preventDefault(); moveSelectionByPage(1); return; }
+      if (event.key === "PageUp") { event.preventDefault(); moveSelectionByPage(-1); return; }
+      if (event.key === "Delete") { event.preventDefault(); openDeleteConfirmation(); return; }
+      if (event.key === "ArrowDown") { event.preventDefault(); moveSelection(1, event.shiftKey); return; }
+      if (event.key === "ArrowUp") { event.preventDefault(); moveSelection(-1, event.shiftKey); return; }
+      if (event.key === "ArrowRight") { event.preventDefault(); toggleCollapse("right"); return; }
+      if (event.key === "ArrowLeft") { event.preventDefault(); toggleCollapse("left"); return; }
+      if (event.key === " ") { if (target.closest("button")) return; event.preventDefault(); if (event.shiftKey) toggleSelection(state.selectedId); else toggleComplete(state.selectedId); return; }
+      if (event.key === "Enter") {
+        if (target.closest("button")) return;
+        event.preventDefault();
+        if (state.selected.size) openCommands("all", "selected");
+        else enterDetail();
+      }
+    });
+
+    document.addEventListener("paste", event => {
+      if (state.booting) return;
+      const item = [...(event.clipboardData?.items || [])].find(entry => entry.type.startsWith("image/"));
+      if (!item) return;
+      const file = item.getAsFile();
+      if (!file) return;
+      event.preventDefault();
+      if (state.captureOpen) capturePasteImage(file);
+      else attachImage(file);
+    });
+
+    loadRuntimeState();
+    render();
+  </script>
+</body>
+</html>

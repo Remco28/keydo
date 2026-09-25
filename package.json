@@ -1,0 +1,20 @@
+{
+  "name": "keydo",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "bun --hot src/server.ts",
+    "start": "bun src/server.ts",
+    "start:tailscale": "bash scripts/start-tailscale.sh",
+    "test": "bun test",
+    "typecheck": "bunx tsc --noEmit && bun scripts/check-inline-identifiers.js"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "typescript": "latest"
+  },
+  "dependencies": {
+    "fractional-indexing": "^4.0.0"
+  }
+}

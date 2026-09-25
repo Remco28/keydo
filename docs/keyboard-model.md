@@ -1,128 +1,82 @@
 # Keyboard Interaction Model
 
-This is a provisional interaction model. The final bindings should be tested with a small prototype before being treated as commitments.
+This model describes the implemented bindings, not aspirations. Keys are
+**context-sensitive**: the list, the detail room, move mode, and the capture
+composer each have their own small map. The on-screen hint lines and the
+command palette (`Ctrl+K`) are the source of truth when in doubt.
 
 ## Principles
 
-- Every important action has a keyboard path.
-- Shortcuts are accelerators, not the only discoverable path.
-- The currently focused context determines which commands are valid.
-- Single-letter shortcuts do not fire while a text input is being edited.
-- The interface always shows the selected item, current view, and pending command state.
-- The user can always discover the available actions through a help or command view.
+- Every important action has a direct keyboard path — no Tab chains.
+- Tab is not a navigation key. It belongs to the browser (inputs, text
+  areas); action buttons are reachable by key or by mouse, never by tabbing.
+- Single-letter shortcuts never fire while typing in an input or editor.
+- The interface always shows the selected item, current view, and pending
+  state; transient feedback appears in the bottom status strip.
+- Optimistic updates: the UI changes immediately, Todoist syncs in the
+  background, failures revert with a visible message.
 
-## Suggested global commands
-
-| Binding | Action |
-| --- | --- |
-| `/` or `Ctrl+K` | Focus search or command input |
-| `?` | Show keyboard help |
-| `Escape` | Close a panel, cancel a command, or return focus |
-| `Ctrl+Enter` | Save and create another item |
-| `Enter` | Save or activate the current item |
-| `Shift+Enter` | Insert a line break where supported |
-
-The command palette may be used instead of a large number of global shortcuts. The command input should accept both natural-language task capture and slash commands.
-
-## Task-list navigation
+## Task list
 
 | Binding | Action |
 | --- | --- |
-| `j` / `Down` | Select the next task |
-| `k` / `Up` | Select the previous task |
+| `↑` / `↓` | Select previous / next task |
+| `PageUp` / `PageDown` | Move selection by a page |
 | `Space` | Complete or reopen the selected task |
-| `Right` | Enter the selected task's detail editor |
-| `Left` | Return from the detail editor to the list |
-| `g` then a view key | Navigate to a view, such as Today or Inbox |
-| `Enter` | Open or activate the selected task's detail state |
-| `v` | View the selected task's image or larger preview |
+| `Shift+Space` | Toggle bulk selection on the selected task |
+| `Shift+↑` / `Shift+↓` | Extend bulk selection |
+| `Enter` | Open details (or commands when bulk selection exists) |
+| `Delete` | Delete with confirmation |
+| `T` / `Shift+T` | Move to Today / Tomorrow |
+| `C` | Clear due date |
+| `+` / `-` | Increase / decrease priority |
+| `Alt+→` / `Alt+←` | In an unfiltered project view, indent under previous sibling / outdent one level |
+| `Alt+↑` / `Alt+↓` | In an unfiltered project view, reorder among siblings |
+| `M` | Move selected task to a project |
+| `Shift+M` | In an unfiltered project view, move mode: pick any parent with `↑↓`, `Enter` drops, `Esc` cancels |
+| `G` | Go to view / project / workspace |
+| `/` | Search across all tasks (ignores the current view filter) |
+| `N` | Capture composer (type + optional pasted screenshot, `Enter` creates) |
+| `Ctrl+K` | Command palette |
+| `Ctrl+V` | Attach pasted screenshot to the selected task |
+| `?` | Keyboard help |
+| `Esc` | Close panel / clear selection / return focus |
 
-The list should retain focus context when tasks are inserted, removed, completed, or reordered. Completion is optimistic: the selected task changes immediately while the Todoist update proceeds in the background.
+## Detail room
 
-## Detail editing
-
-When a task is selected, its details are shown in the right-hand pane. Pressing `Right` enters an editing context for that pane. `Tab` and `Shift+Tab` move between editable fields, and `Escape` returns focus to the task list.
-
-The first version should autosave text edits after a short pause and on `Ctrl+Enter`. It should not send a request for every keystroke. The interface should display the synchronization state for the selected task.
-
-## Structural navigation
-
-Plain `Up` and `Down` move selection. In a project or other explicitly structured view:
+Opening a task (`Enter`) focuses the detail room itself, so the detail keys
+are live immediately — nothing is autofocused into an editor. These keys
+apply while the detail room is open; list-only meanings (`T`oday, `C`lear,
+`N`ew) are available there through the command palette instead. From inside
+an editor, the same section keys work with `Alt` held.
 
 | Binding | Action |
 | --- | --- |
-| `Alt+Up` / `Alt+Down` | Reorder the task among its siblings |
-| `Alt+Left` | Outdent the task one level |
-| `Alt+Right` | Indent the task under the previous valid sibling |
+| `T` | Edit the task title |
+| `N` | Edit notes |
+| `S` | Jump to the first subtask |
+| `↑` / `↓` on a subtask | Walk the subtask list |
+| `Enter` on a subtask | Drill into that subtask |
+| `C` | Complete or reopen the task |
+| `Alt+T` / `Alt+N` / `Alt+S` / `Alt+C` | Same section keys, usable while editing |
+| `Ctrl+Enter` | Save title/notes |
+| `Esc` | Return to the list |
 
-These structural mutations should be disabled or explicitly invoked in flattened views such as Today or the main list. Moving a task is distinct from changing its order or deleting it.
+Subtasks are full tasks: each level carries its own notes, photos, and
+children. Drilling in keeps the editing context; `Esc` always returns to
+the list selection.
 
-## Selected-task actions
+## Capture composer
 
-These should be available as commands even if they also receive shortcut bindings:
+| Binding | Action |
+| --- | --- |
+| `N` | Open the composer |
+| Type + optional image paste | Title with natural input (`Call Alex tomorrow #Launch p1`), screenshot chip with remove |
+| `Enter` | Create task and upload the screenshot as a comment |
+| `Esc` | Cancel |
 
-- Change priority up or down
-- Set due date to Today, Tomorrow, next week, or a chosen date
-- Clear due date
-- Move to a project
-- Move to Inbox
-- Add or change a label
-- Indent as a subtask
-- Outdent to a parent task
-- Move up or down among siblings
-- Archive or delete the task
-- Attach a pasted image
-- Open the Markdown description
-- Add a comment
+## Command palette
 
-A destructive action must have a confirmation or undo path. Moving a task is distinct from deleting it.
-
-## Subtask manipulation
-
-The initial model should distinguish indentation from ordering:
-
-- Indent/outdent changes the task's parent relationship.
-- Move up/down changes its order among siblings.
-- Moving a task into a project changes its project context.
-- Moving a task to Inbox should not be represented as deletion.
-
-These operations should be visually apparent in the list and reflected in the task detail pane.
-
-## Commands
-
-A command is a named operation with a context, input requirements, and result. Examples:
-
-- `/today`
-- `/tomorrow`
-- `/project`
-- `/priority`
-- `/attach`
-- `/subtask`
-- `/search`
-
-The first implementation should favor a small, stable command vocabulary. Commands can later be enhanced with fuzzy matching and aliases.
-
-## Attachment interaction
-
-For the initial Ubuntu workflow:
-
-1. The user copies an annotated screenshot to the operating system clipboard.
-2. The user focuses Keydo and presses `Ctrl+V`.
-3. Keydo detects the image in the paste event.
-4. Keydo uploads it and attaches it to the selected task.
-5. The right-side detail pane shows the image immediately after upload completes.
-6. A larger viewer is available from the keyboard without leaving the task list.
-
-The interface should show upload progress and a recoverable error if the image is too large, unsupported, or the network request fails.
-
-## Help and discoverability
-
-Keyboard-first does not mean shortcut-only. The help view should list:
-
-- Contextual actions
-- Global commands
-- Current key bindings
-- Available aliases
-- Whether a command is available for the selected task
-
-The help view should be searchable and usable without a mouse.
+`Ctrl+K` opens all commands; `G` opens the goto section; `M` opens the
+move-to-project section, which lists live projects for the selected task.
+`↑↓` navigate, `Enter` runs, `Esc` closes.

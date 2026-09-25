@@ -27,7 +27,9 @@ The initial interface should contain:
 5. A quick-add path
 6. A visible, keyboard-discoverable action set
 
-The initial task interaction is list-first: the user sees tasks, moves the selection with the arrow keys, presses `Space` to complete or reopen a task, and sees the selected task's details on the right. Pressing the right arrow enters the detail editor, where `Tab` moves between fields.
+The initial task interaction is list-first: the user sees tasks, moves the selection with the arrow keys, presses `Space` to complete or reopen a task, and presses `Enter` to replace the list with the selected task's detail view. In the detail view, the notes editor and a live preview sit side-by-side. The preview gives images priority over text and renders Markdown when present.
+
+Plain Left/Right controls task-tree expansion in the list. `Alt+Arrow` controls structural nesting and sibling ordering. Priority can be changed directly with `+` and `-`.
 
 Changes should be optimistic and appear immediately. Todoist synchronization happens in the background, with visible syncing, saved, and error states. Operations may be batched underneath the interface, but the interface should not make the user wait for a network round trip.
 
@@ -55,6 +57,7 @@ Todoist OAuth is the only separate authorization. Its tokens must be stored secu
 - Search across the locally synchronized task set
 - Display task metadata without opening a task dialog
 - Attach and view images associated with a task
+- Show images at the largest practical size before text or Markdown
 
 ### Command model
 
