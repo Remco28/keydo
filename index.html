@@ -584,7 +584,7 @@
   </div>
 
   <div class="modal-backdrop" id="help-backdrop">
-    <div class="help-modal" role="dialog" aria-modal="true" aria-label="Keyboard shortcuts">
+    <div class="help-modal" id="help-dialog" role="dialog" aria-modal="true" aria-label="Keyboard shortcuts" tabindex="-1">
       <h2>Keydo shortcuts</h2>
       <p>Keyboard-first, with every action available through a command.</p>
       <div class="help-grid">
@@ -2561,6 +2561,17 @@
       commandSearch.focus();
     }
 
+    function openHelp() {
+      helpBackdrop.classList.add("visible");
+      document.getElementById("help-dialog").focus({ preventScroll: true });
+    }
+
+    function closeHelp() {
+      helpBackdrop.classList.remove("visible");
+      if (state.detailEditing) document.getElementById("detail-pane").focus({ preventScroll: true });
+      else focusSelectedTask(false);
+    }
+
     function commandMatches() {
       const query = commandSearch.value.trim().toLowerCase();
       const allProjects = [...state.projectsById.values()];
@@ -3109,7 +3120,7 @@
       if (action === "bulk:today") { runBulk("today"); return; }
       if (action === "bulk:clear") { runBulk("clear"); return; }
       if (action === "bulk:complete") { runBulk("complete"); return; }
-      if (action === "help") helpBackdrop.classList.add("visible");
+      if (action === "help") openHelp();
     }
 
     function attachmentSrcFor(task) {
@@ -3317,7 +3328,7 @@
     document.getElementById("command-search").addEventListener("input", renderCommands);
     commandList.addEventListener("click", event => { const command = event.target.closest("[data-command]"); if (command) runCommand(command.dataset.command); });
     commandBackdrop.addEventListener("click", event => { if (event.target === commandBackdrop) closeModals(); });
-    helpBackdrop.addEventListener("click", event => { if (event.target === helpBackdrop) closeModals(); });
+    helpBackdrop.addEventListener("click", event => { if (event.target === helpBackdrop) closeHelp(); });
     document.getElementById("delete-cancel").addEventListener("click", closeDeleteConfirmation);
     document.getElementById("delete-confirm").addEventListener("click", deleteSelectedTask);
     deleteBackdrop.addEventListener("click", event => { if (event.target === deleteBackdrop) closeDeleteConfirmation(); });
@@ -3356,10 +3367,14 @@
         if (event.key === "Escape") {
           event.preventDefault();
           if (state.captureOpen) closeQuickCapture();
+          else if (helpBackdrop.classList.contains("visible")) closeHelp();
           else {
             closeModals();
             focusSelectedTask(false);
           }
+        } else if (event.key === "Tab" && helpBackdrop.classList.contains("visible")) {
+          event.preventDefault();
+          document.getElementById("help-dialog").focus({ preventScroll: true });
         }
         return;
       }
@@ -3399,7 +3414,7 @@
         if (event.key === "Enter") { event.preventDefault(); confirmMoveMode(); return; }
         return;
       }
-      if (event.key === "?" && !commandBackdrop.classList.contains("visible")) { event.preventDefault(); helpBackdrop.classList.add("visible"); return; }
+      if (event.key === "?" && !commandBackdrop.classList.contains("visible")) { event.preventDefault(); openHelp(); return; }
       if (event.key.toLowerCase() === "g") { event.preventDefault(); openCommands("goto"); return; }
       if (event.key === "/") { event.preventDefault(); searchInput.focus(); return; }
       if (event.key.toLowerCase() === "n" && state.detailEditing) { event.preventDefault(); focusDetailNotes(); return; }
