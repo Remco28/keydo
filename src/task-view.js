@@ -389,6 +389,29 @@ export function dueDateKeyForRelativeLabel(label, now = new Date()) {
   return `${year}-${month}-${day}`;
 }
 
+// Todoist represents fixed-timezone due datetimes as UTC timestamps, while
+// floating due dates use the user's wall-clock date without a timezone. Keep
+// floating/full-day dates as written; convert only absolute timestamps to the
+// calendar day Keydo displays in the user's local timezone.
+export function todoistDueDateKey(due, timeZone) {
+  const value = due?.date;
+  if (typeof value !== "string" || !value) return null;
+  const datePart = value.slice(0, 10);
+  if (!/(?:Z|[+-]\d{2}:?\d{2})$/i.test(value)) return datePart;
+
+  const instant = new Date(value);
+  if (Number.isNaN(instant.getTime())) return datePart;
+  const options = {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    ...(timeZone ? { timeZone } : {})
+  };
+  const parts = new Intl.DateTimeFormat("en-CA", options).formatToParts(instant);
+  const fields = Object.fromEntries(parts.map(part => [part.type, part.value]));
+  return `${fields.year}-${fields.month}-${fields.day}`;
+}
+
 function localIsoDate(date) {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0");

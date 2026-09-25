@@ -71,6 +71,7 @@ export function orderTasksByDayOrder<T extends {
   priority?: number;
 }>(items: T[]): T[];
 export function dueDateKeyForRelativeLabel(label: string, now?: Date): string | null;
+export function todoistDueDateKey(due: { date?: string | null } | null | undefined, timeZone?: string): string | null;
 export function dueStateForDateKey(dateKey: string | null | undefined, recurring?: boolean, now?: Date): { due: string; dueClass: string };
 export function refreshTaskDueStates<T extends { dueDateKey?: string | null; recurring?: boolean; due?: string; dueClass?: string }>(items: T[], now?: Date): boolean;
 

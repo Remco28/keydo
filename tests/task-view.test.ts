@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { canNestTask, isCurrentTaskSelection, isCurrentTaskTarget, isCompleteProjectOrderView, isTaskInProject, isUnfilteredProjectView, filterTasksByWorkspaceAndQuery, retainExistingTaskIds, makeSiblingReorder, orderTaskTree, orderTasksByDayOrder, dueDateKeyForRelativeLabel, dueStateForDateKey, refreshTaskDueStates, projectVisibleTree, reconcileTaskSelection, removeTaskSelectionIds, sameTaskSiblingGroup, selectedTaskRoots, setTaskAncestorCompletion, setTaskSubtreeCompletion, swapSiblingTaskOrder, taskDeletionClosure, taskRootsForDeletedProjects, taskRootsForDeletedSections, taskParentOverridesForDelta, taskDepth, taskOutdentDestination, taskParentIdsWithChildren, taskRangeIds, taskSubtreeIds, taskSubtreeIdsByRoot, validTaskNestTargets } from "../src/task-view.js";
+import { canNestTask, isCurrentTaskSelection, isCurrentTaskTarget, isCompleteProjectOrderView, isTaskInProject, isUnfilteredProjectView, filterTasksByWorkspaceAndQuery, retainExistingTaskIds, makeSiblingReorder, orderTaskTree, orderTasksByDayOrder, dueDateKeyForRelativeLabel, todoistDueDateKey, dueStateForDateKey, refreshTaskDueStates, projectVisibleTree, reconcileTaskSelection, removeTaskSelectionIds, sameTaskSiblingGroup, selectedTaskRoots, setTaskAncestorCompletion, setTaskSubtreeCompletion, swapSiblingTaskOrder, taskDeletionClosure, taskRootsForDeletedProjects, taskRootsForDeletedSections, taskParentOverridesForDelta, taskDepth, taskOutdentDestination, taskParentIdsWithChildren, taskRangeIds, taskSubtreeIds, taskSubtreeIdsByRoot, validTaskNestTargets } from "../src/task-view.js";
 
 const hierarchy = [
   { id: "parent", parentId: null },
@@ -458,6 +458,12 @@ describe("task view hierarchy", () => {
     expect(dueDateKeyForRelativeLabel("Today", now)).toBe("2026-12-31");
     expect(dueDateKeyForRelativeLabel("Tomorrow", now)).toBe("2027-01-01");
     expect(dueDateKeyForRelativeLabel("No date", now)).toBeNull();
+  });
+
+  test("maps fixed-timezone Todoist timestamps to the displayed local day", () => {
+    expect(todoistDueDateKey({ date: "2026-09-26T02:00:00Z" }, "America/New_York")).toBe("2026-09-25");
+    expect(todoistDueDateKey({ date: "2026-09-26T10:00:00.000000" }, "America/New_York")).toBe("2026-09-26");
+    expect(todoistDueDateKey({ date: "2026-09-26" }, "America/New_York")).toBe("2026-09-26");
   });
 
   test("recalculates Today and overdue state across midnight without a Sync delta", () => {
