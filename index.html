@@ -1565,6 +1565,11 @@
       }
     }
 
+    function focusCurrentTaskContext() {
+      if (state.detailEditing) document.getElementById("detail-pane").focus({ preventScroll: true });
+      else focusSelectedTask(false);
+    }
+
     function resetSelectionRange(anchorId = state.selectedId) {
       state.selectionAnchorId = anchorId;
       state.rangeBaseSelection = null;
@@ -2568,8 +2573,7 @@
 
     function closeHelp() {
       helpBackdrop.classList.remove("visible");
-      if (state.detailEditing) document.getElementById("detail-pane").focus({ preventScroll: true });
-      else focusSelectedTask(false);
+      focusCurrentTaskContext();
     }
 
     function commandMatches() {
@@ -3370,7 +3374,7 @@
           else if (helpBackdrop.classList.contains("visible")) closeHelp();
           else {
             closeModals();
-            focusSelectedTask(false);
+            focusCurrentTaskContext();
           }
         } else if (event.key === "Tab" && helpBackdrop.classList.contains("visible")) {
           event.preventDefault();
