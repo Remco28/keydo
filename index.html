@@ -3163,8 +3163,9 @@
     async function compressImageForUpload(file) {
       const limit = Math.floor(4.5 * 1024 * 1024);
       if (file.size <= limit) return { blob: file, name: file.name || "pasted-screenshot.png", type: file.type };
+      let bitmap;
       try {
-        const bitmap = await createImageBitmap(file);
+        bitmap = await createImageBitmap(file);
         const encode = (maxDim, quality) => new Promise(resolve => {
           const scale = Math.min(1, maxDim / Math.max(bitmap.width, bitmap.height));
           const canvas = document.createElement("canvas");
@@ -3182,6 +3183,8 @@
         }
       } catch {
         // Fall through to the original file; the server validates size.
+      } finally {
+        bitmap?.close();
       }
       return { blob: file, name: file.name || "pasted-screenshot.png", type: file.type };
     }
