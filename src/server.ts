@@ -202,7 +202,8 @@ export function createServer(options: KeydoServerOptions = {}) {
   const allowedHosts = new Set([
     hostname,
     ...(options.allowedHosts ?? []),
-    ...(Bun.env.KEYDO_ALLOWED_HOSTS ?? "").split(",")
+    ...(Bun.env.KEYDO_ALLOWED_HOSTS ?? "").split(","),
+    ...(Bun.env.KEYDO_TAILSCALE_HOSTS ?? "").split(",")
   ].map(normalizeHostName).filter(host => host && !isWildcardHost(host)));
   if (isWildcardHost(hostname) || ["127.0.0.1", "::1", "localhost"].includes(normalizeHostName(hostname))) {
     ["127.0.0.1", "::1", "localhost"].forEach(host => allowedHosts.add(host));

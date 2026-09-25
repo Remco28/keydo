@@ -63,6 +63,28 @@ describe("Keydo server", () => {
     }
   });
 
+  test("accepts operator and Tailscale hostname environment aliases", async () => {
+    const previousAllowedHosts = Bun.env.KEYDO_ALLOWED_HOSTS;
+    const previousTailscaleHosts = Bun.env.KEYDO_TAILSCALE_HOSTS;
+    Bun.env.KEYDO_ALLOWED_HOSTS = "operator.keydo.test";
+    Bun.env.KEYDO_TAILSCALE_HOSTS = "node.tailnet.test";
+    const server = createServer({ port: 0, todoistToken: "" });
+    try {
+      for (const hostname of ["operator.keydo.test", "node.tailnet.test"]) {
+        const response = await fetch(new URL("/api/health", server.url), {
+          headers: { Host: `${hostname}:${server.port}` }
+        });
+        expect(response.status).toBe(200);
+      }
+    } finally {
+      server.stop(true);
+      if (previousAllowedHosts === undefined) delete Bun.env.KEYDO_ALLOWED_HOSTS;
+      else Bun.env.KEYDO_ALLOWED_HOSTS = previousAllowedHosts;
+      if (previousTailscaleHosts === undefined) delete Bun.env.KEYDO_TAILSCALE_HOSTS;
+      else Bun.env.KEYDO_TAILSCALE_HOSTS = previousTailscaleHosts;
+    }
+  });
+
   test("reports connection status without exposing credentials", async () => {
     const server = createServer({ port: 0, todoistToken: "server-only-token" });
     try {

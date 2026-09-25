@@ -23,8 +23,5 @@ if [[ -z "$tailscale_dns_name" ]]; then
 else
   tailscale_allowed_hosts="$tailscale_ip,$tailscale_dns_name"
 fi
-if [[ -n "${KEYDO_ALLOWED_HOSTS:-}" ]]; then
-  tailscale_allowed_hosts="$tailscale_allowed_hosts,$KEYDO_ALLOWED_HOSTS"
-fi
-export KEYDO_ALLOWED_HOSTS="$tailscale_allowed_hosts"
+export KEYDO_TAILSCALE_HOSTS="$tailscale_allowed_hosts"
 exec bun src/server.ts

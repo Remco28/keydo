@@ -109,7 +109,7 @@ Browser → Keydo backend → Todoist
 
 For a local-only application, the backend may run on the user's machine. OAuth tokens and refresh tokens should use the operating system's credential storage when the application is packaged as a desktop application.
 
-Validate the request `Host` against an explicit allowlist before serving any route. Comparing `Origin` only with the request URL is insufficient: DNS rebinding can make both reflect an attacker-controlled hostname. The default server accepts its bind hostname and loopback aliases; deployments can add names with `KEYDO_ALLOWED_HOSTS`, and the Tailscale launcher supplies the node IP and MagicDNS name.
+Validate the request `Host` against an explicit allowlist before serving any route. Comparing `Origin` only with the request URL is insufficient: DNS rebinding can make both reflect an attacker-controlled hostname. The default server accepts its bind hostname and loopback aliases; deployments can add names with `KEYDO_ALLOWED_HOSTS`, and the Tailscale launcher supplies its node IP and MagicDNS name through `KEYDO_TAILSCALE_HOSTS`.
 
 The Todoist Sync `user` resource contains credentials and profile data. The server returns only `user.tz_info` to the browser and marks Sync snapshots `no-store`. The authenticated attachment proxy is restricted to same-origin embedding, and the app shell denies framing.
 
