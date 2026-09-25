@@ -2616,6 +2616,10 @@
     function openTaskInTodoist() {
       const task = currentTask();
       if (!task) return;
+      if (task.keydoCreatePromise) {
+        showToast("Task is still being created · try again when saved");
+        return;
+      }
       if (!state.liveTodoist) {
         showToast("Open in Todoist requires a connected account");
         return;
