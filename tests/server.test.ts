@@ -35,6 +35,34 @@ describe("Keydo server", () => {
     }
   });
 
+  test("rejects unconfigured Host headers even when their Origin matches", async () => {
+    const server = createServer({ port: 0, todoistToken: "" });
+    try {
+      const attackerHost = `attacker.test:${server.port}`;
+      const response = await fetch(new URL("/api/todoist/order-lock", server.url), {
+        method: "POST",
+        headers: { Host: attackerHost, Origin: `http://${attackerHost}` }
+      });
+      expect(response.status).toBe(421);
+      expect(await response.json()).toEqual({ error: "Unrecognized host" });
+    } finally {
+      server.stop(true);
+    }
+  });
+
+  test("accepts an explicitly configured hostname alias", async () => {
+    const server = createServer({ port: 0, allowedHosts: ["keydo.test"], todoistToken: "" });
+    try {
+      const response = await fetch(new URL("/api/health", server.url), {
+        headers: { Host: `keydo.test:${server.port}` }
+      });
+      expect(response.status).toBe(200);
+      expect(await response.json()).toEqual({ ok: true, service: "keydo", todoistConfigured: false });
+    } finally {
+      server.stop(true);
+    }
+  });
+
   test("reports connection status without exposing credentials", async () => {
     const server = createServer({ port: 0, todoistToken: "server-only-token" });
     try {

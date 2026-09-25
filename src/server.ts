@@ -5,6 +5,7 @@ import { createAsyncLock } from "./order-lock.js";
 export type KeydoServerOptions = {
   port?: number;
   hostname?: string;
+  allowedHosts?: string[];
   todoistToken?: string;
   todoistApiBase?: string;
   fetcher?: Fetcher;
@@ -174,9 +175,38 @@ function isSameOrigin(request: Request): boolean {
   }
 }
 
+function normalizeHostName(value: string): string {
+  return value.trim().toLowerCase().replace(/^\[|\]$/g, "").replace(/\.$/, "");
+}
+
+function isWildcardHost(value: string): boolean {
+  const host = normalizeHostName(value);
+  return host === "0.0.0.0" || host === "::";
+}
+
+function isAllowedHost(request: Request, allowedHosts: Set<string>): boolean {
+  const hostHeader = request.headers.get("host");
+  if (!hostHeader) return false;
+  try {
+    const parsed = new URL(`http://${hostHeader}`);
+    if (parsed.username || parsed.password || parsed.pathname !== "/" || parsed.search || parsed.hash) return false;
+    return allowedHosts.has(normalizeHostName(parsed.hostname));
+  } catch {
+    return false;
+  }
+}
+
 export function createServer(options: KeydoServerOptions = {}) {
   const port = options.port ?? Number(Bun.env.PORT ?? 7710);
   const hostname = options.hostname ?? Bun.env.HOST ?? "127.0.0.1";
+  const allowedHosts = new Set([
+    hostname,
+    ...(options.allowedHosts ?? []),
+    ...(Bun.env.KEYDO_ALLOWED_HOSTS ?? "").split(",")
+  ].map(normalizeHostName).filter(host => host && !isWildcardHost(host)));
+  if (isWildcardHost(hostname) || ["127.0.0.1", "::1", "localhost"].includes(normalizeHostName(hostname))) {
+    ["127.0.0.1", "::1", "localhost"].forEach(host => allowedHosts.add(host));
+  }
   const token = options.todoistToken ?? Bun.env.TODOIST_ACCESS_TOKEN ?? "";
   const todoist = token ? createTodoistClient({ token, apiBase: options.todoistApiBase ?? Bun.env.TODOIST_API_BASE, fetcher: options.fetcher }) : null;
   const taskOrderLock = createAsyncLock();
@@ -213,6 +243,8 @@ export function createServer(options: KeydoServerOptions = {}) {
     maxRequestBodySize: 5 * 1024 * 1024 + 64 * 1024,
     async fetch(request) {
       const url = new URL(request.url);
+
+      if (!isAllowedHost(request, allowedHosts)) return errorResponse("Unrecognized host", 421);
 
       if (url.pathname.startsWith("/api/todoist/") && !["GET", "HEAD"].includes(request.method) && !isSameOrigin(request)) {
         return errorResponse("Cross-origin Todoist requests are not allowed", 403);
