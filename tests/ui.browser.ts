@@ -39,6 +39,20 @@ try {
   await page.locator("#boot-overlay").waitFor({ state: "hidden" });
   assert.match(await page.locator("#sync-state").innerText(), /Demo/);
 
+  await check("supplied logo and checkmark favicon load without distorting the header", async () => {
+    const logo = page.locator(".brand-logo");
+    assert.equal(await logo.getAttribute("alt"), "Keydo");
+    assert.equal(await logo.evaluate(element => (element as HTMLImageElement).complete && (element as HTMLImageElement).naturalWidth === 768), true);
+    const dimensions = await logo.boundingBox();
+    assert.ok(dimensions && dimensions.height === 44 && dimensions.width > 130);
+    assert.equal(await page.locator(".brand-mark").count(), 0);
+    assert.equal(await page.locator("link[rel='icon'][type='image/png']").getAttribute("href"), "/assets/favicon.png");
+    for (const path of ["/assets/favicon.png", "/favicon.ico"]) {
+      assert.equal((await page.request.get(new URL(path, server.url).href)).status(), 200);
+    }
+    await noOverflow(page);
+  });
+
   await check("readable task typography and quiet default selection", async () => {
     assert.equal(await page.locator(".task-title").first().evaluate(element => getComputedStyle(element).fontSize), "15px");
     assert.equal(await page.locator(".select-box").first().isVisible(), false);

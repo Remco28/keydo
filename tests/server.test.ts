@@ -24,6 +24,27 @@ async function appRequest(server: ReturnType<typeof createServer>, path: string,
 }
 
 describe("Keydo server", () => {
+  test("serves only the approved brand assets with correct types", async () => {
+    const server = createServer({ port: 0, todoistToken: "" });
+    try {
+      for (const [path, type] of [["/assets/keydo-logo.png", "image/png"], ["/assets/favicon.png", "image/png"], ["/favicon.ico", "image/x-icon"]]) {
+        const response = await fetch(new URL(path, server.url));
+        expect(response.status).toBe(200);
+        expect(response.headers.get("Content-Type")).toBe(type);
+        expect(response.headers.get("X-Content-Type-Options")).toBe("nosniff");
+        const bytes = new Uint8Array(await response.arrayBuffer());
+        expect([...bytes.slice(0, 4)]).toEqual(type === "image/png" ? [137, 80, 78, 71] : [0, 0, 1, 0]);
+        const head = await fetch(new URL(path, server.url), { method: "HEAD" });
+        expect(head.status).toBe(200);
+        expect(await head.text()).toBe("");
+        expect((await fetch(new URL(path, server.url), { method: "POST" })).status).toBe(405);
+      }
+      for (const path of ["/assets/missing.png", "/assets/completion-recovery.sqlite", "/keydo_logo_check.png"]) {
+        expect((await fetch(new URL(path, server.url))).status).toBe(404);
+      }
+    } finally { server.stop(true); }
+  });
+
   test("reports health", async () => {
     const server = createServer({ port: 0, todoistToken: "" });
     try {

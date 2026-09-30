@@ -17,6 +17,12 @@ export type KeydoServerOptions = {
 };
 
 const indexFile = Bun.file(new URL("../index.html", import.meta.url));
+// Explicit assets only: never expose the repository or runtime data as a static root.
+const brandAssets = new Map([
+  ["/assets/keydo-logo.png", { file: Bun.file(new URL("../assets/keydo-logo.png", import.meta.url)), type: "image/png" }],
+  ["/assets/favicon.png", { file: Bun.file(new URL("../assets/favicon.png", import.meta.url)), type: "image/png" }],
+  ["/favicon.ico", { file: Bun.file(new URL("../assets/favicon.ico", import.meta.url)), type: "image/x-icon" }]
+]);
 const taskViewFile = Bun.file(new URL("./task-view.js", import.meta.url));
 const taskActionGateFile = Bun.file(new URL("./task-action-gate.js", import.meta.url));
 const taskMutationsFile = Bun.file(new URL("./task-mutations.js", import.meta.url));
@@ -302,6 +308,16 @@ export function createServer(options: KeydoServerOptions = {}) {
       const forwardedOrigin = forwardedOriginForRequest(request, clientAddress, trustTailscaleServe, allowedHosts);
 
       if (!isAllowedHost(request, allowedHosts, forwardedOrigin)) return errorResponse("Unrecognized host", 421);
+
+      const brandAsset = brandAssets.get(url.pathname);
+      if (brandAsset) {
+        if (!["GET", "HEAD"].includes(request.method)) return errorResponse("Method not allowed", 405);
+        return new Response(brandAsset.file, { headers: {
+          "Content-Type": brandAsset.type,
+          "X-Content-Type-Options": "nosniff",
+          "Cache-Control": "no-cache"
+        } });
+      }
 
       if (url.pathname.startsWith("/api/todoist/") && !["GET", "HEAD"].includes(request.method) && !isSameOrigin(request, forwardedOrigin)) {
         return errorResponse("Cross-origin Todoist requests are not allowed", 403);

@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f5f4f0">
   <title>Keydo — keyboard-first Todoist</title>
+  <link rel="icon" href="/favicon.ico" sizes="16x16 32x32 48x48 64x64">
+  <link rel="icon" type="image/png" href="/assets/favicon.png" sizes="32x32">
   <style>
     :root {
       color-scheme: light;
@@ -79,24 +81,13 @@
     .brand {
       display: flex;
       align-items: center;
-      gap: var(--space-3);
-      color: var(--ink);
-      font-size: 18px;
-      font-weight: 650;
-      letter-spacing: -0.03em;
+      flex-shrink: 0;
     }
 
-    .brand-mark {
-      display: grid;
-      width: 28px;
-      height: 28px;
-      place-items: center;
-      border-radius: 8px;
-      background: var(--accent);
-      color: var(--panel);
-      font-family: var(--mono);
-      font-size: 12px;
-      font-weight: 800;
+    .brand-logo {
+      display: block;
+      width: auto;
+      height: 44px;
     }
 
     .topbar-actions, .brand-meta, .sync-state, .shortcut-hint, .user-chip, .button-row, .detail-actions, .tag-row, .task-meta, .selection-summary, .command-hints, .view-switcher {
@@ -544,6 +535,7 @@
 
     @media (max-width: 680px) {
       .topbar { padding: var(--space-3) var(--space-4); }
+      .brand-logo { height: 38px; }
       .brand-meta, .shortcut-hint, .user-chip { display: none; }
       .sync-state { max-width: 160px; }
       .content { padding: var(--space-4) var(--space-3) 160px; }
@@ -580,7 +572,7 @@
   <div class="boot-overlay" id="boot-overlay" role="status" aria-live="polite">Loading Keydo…</div>
   <div class="app">
     <header class="topbar">
-      <div class="brand"><span class="brand-mark">K</span><span>Keydo</span></div>
+      <div class="brand"><img class="brand-logo" src="/assets/keydo-logo.png" width="768" height="242" alt="Keydo"></div>
       <div class="topbar-actions">
         <div class="sync-state" id="sync-state"><span class="sync-dot"></span><span>Synced</span></div>
         <div class="shortcut-hint"><button class="header-tool" id="help-button" type="button" tabindex="-1">Shortcuts <kbd>?</kbd></button><button class="header-tool" id="commands-button" type="button" tabindex="-1">Commands <kbd>Ctrl K</kbd></button></div>
