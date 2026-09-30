@@ -43,6 +43,11 @@ command palette (`Ctrl+K`) are the source of truth when in doubt.
 | `?` | Keyboard help |
 | `Esc` | Close panel / clear selection / return focus |
 
+The active keyboard task is marked separately from bulk-selected tasks. The
+**Select tasks** control reveals selection checkboxes for mouse use; Shift
+shortcuts reveal them automatically. **Cancel selection**, **Clear selection**,
+or `Esc` dismiss selection mode, and changing views resets it.
+
 ## Detail room
 
 Opening a task (`Enter`) focuses the detail room itself, so the detail keys
@@ -66,6 +71,12 @@ an editor, the same section keys work with `Alt` held.
 Subtasks are full tasks: each level carries its own notes, photos, and
 children. Drilling in keeps the editing context; `Esc` always returns to
 the list selection.
+
+The compact **Detail shortcuts** disclosure contains the section-key map.
+Plain/empty notes use one column; formatted notes show a rendered preview.
+**Show/Hide preview** overrides that presentation until the task is reopened.
+Attachments keep the preview visible. `Ctrl+Enter` saves and restores focus to
+the task list.
 
 ## Capture composer
 

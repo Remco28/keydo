@@ -9,7 +9,7 @@ Todoist provides a capable task model, but many useful operations require openin
 - Add and move tasks without navigating through task dialogs
 - Change priority and move tasks to Today or Tomorrow with one action
 - Search and filter the local task set quickly
-- Preview Markdown descriptions beside the task list
+- Read and edit notes with an optional Markdown preview in task details
 - Create and manage subtasks with direct keyboard commands
 - Attach screenshots by pasting them from the operating system clipboard
 - Use command-based actions for less frequent operations
@@ -25,7 +25,7 @@ Todoist provides a capable task model, but many useful operations require openin
 
 ## Current status
 
-The runnable web-app shell is in place. It serves the interactive prototype, exposes health/configuration endpoints, and performs a server-side Todoist Sync when configured. The browser hydrates real Todoist tasks when `TODOIST_ACCESS_TOKEN` is available, refreshes incrementally when the app returns online or becomes visible, and polls every minute while visible. It otherwise remains in demo mode. In live mode, all synced tasks currently appear in the Personal workspace; Work/Personal classification has no agreed rule yet, so the separate Work workspace is demo-only. Task details include a due-date picker. In live mode, Quick Capture uses Todoist Smart Add for natural-language dates and times; Create exact retains the structured path, and pasted screenshots use that path. OAuth and persistent local task storage remain future implementation slices.
+The runnable web app includes a polished list and task-detail workspace, exposes health/configuration endpoints, and performs a server-side Todoist Sync when configured. The browser hydrates real Todoist tasks when `TODOIST_ACCESS_TOKEN` is available, refreshes incrementally when the app returns online or becomes visible, and polls every minute while visible. It otherwise remains in demo mode. In live mode, all synced tasks currently appear in the Personal workspace; Work/Personal classification has no agreed rule yet, so the separate Work workspace is demo-only. Task details include a due-date picker. In live mode, Quick Capture uses Todoist Smart Add for natural-language dates and times; Create exact retains the structured path, and pasted screenshots use that path. OAuth and persistent local task storage remain future implementation slices.
 
 ## Development
 
@@ -56,7 +56,18 @@ Run validation with:
 ```bash
 bun test
 bun run typecheck
+bun run test:browser
 ```
+
+The browser suite requires installed Chrome/Chromium (or `KEYDO_TEST_BROWSER` pointing to its executable). It starts an isolated demo server with Todoist explicitly disabled, exercises keyboard and mouse flows, and captures desktop/narrow screenshots in a temporary artifact directory. Set `KEYDO_BROWSER_ARTIFACTS` to choose that directory.
+
+### Interface
+
+- Warm neutral surfaces, larger task titles, and consistent spacing keep the list readable.
+- Teal marks the active keyboard task and primary actions; bulk-selected tasks use a separate treatment. Selection checkboxes appear only when selecting, via **Select tasks** or the existing Shift shortcuts.
+- Task details keep plain/empty notes in one column. Formatted notes show a preview automatically; **Show/Hide preview** provides an override. Attachments remain visible even when text preview was hidden.
+- Notes grow with their content up to a bounded editor height. Detail shortcuts are collapsed by default, and header controls open help and commands.
+- The layout reflows on narrow screens without changing the desktop-first keyboard model.
 
 ## Documentation
 

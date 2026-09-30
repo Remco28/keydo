@@ -3,28 +3,36 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#f6f5f1">
+  <meta name="theme-color" content="#f5f4f0">
   <title>Keydo — keyboard-first Todoist</title>
   <style>
     :root {
       color-scheme: light;
-      --bg: #f6f5f1;
+      --bg: #f5f4f0;
       --panel: #fffefa;
-      --panel-soft: #f1f0eb;
-      --panel-strong: #e8e7e0;
-      --ink: #23241f;
-      --muted: #85867e;
-      --muted-strong: #64665e;
-      --line: #deded5;
-      --line-strong: #cbc9bd;
-      --accent: #d96b4b;
-      --accent-soft: #f8e2d9;
-      --green: #64886d;
-      --green-soft: #e4eee5;
-      --yellow: #b69243;
-      --blue: #6687a8;
-      --shadow: 0 12px 32px rgba(49, 48, 41, 0.08);
+      --panel-soft: #f3f2ed;
+      --panel-strong: #e9e8e0;
+      --ink: #292e2b;
+      --muted: #70756e;
+      --muted-strong: #535b54;
+      --line: #e3e5de;
+      --line-strong: #bfc6bd;
+      --accent: #356f68;
+      --accent-soft: #eaf2ef;
+      --danger: #ad482f;
+      --danger-soft: #fbeee8;
+      --green: #427250;
+      --green-soft: #e8f0e8;
+      --yellow: #927024;
+      --blue: #57779c;
+      --shadow: 0 2px 8px rgba(41, 46, 43, 0.035);
       --radius: 12px;
+      --space-1: 4px;
+      --space-2: 8px;
+      --space-3: 12px;
+      --space-4: 16px;
+      --space-6: 24px;
+      --space-8: 32px;
       --mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
       --sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     }
@@ -41,7 +49,7 @@
       color: var(--ink);
       font-family: var(--sans);
       font-size: 14px;
-      line-height: 1.45;
+      line-height: 1.5;
     }
 
     button, input, textarea { font: inherit; }
@@ -62,30 +70,29 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      height: 52px;
-      padding: 0 24px;
+      min-height: 64px;
+      padding: var(--space-3) var(--space-8);
       border-bottom: 1px solid var(--line);
-      background: rgba(255, 254, 250, 0.86);
-      backdrop-filter: blur(12px);
+      background: var(--panel);
     }
 
     .brand {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: var(--space-3);
       color: var(--ink);
-      font-size: 17px;
-      font-weight: 750;
+      font-size: 18px;
+      font-weight: 650;
       letter-spacing: -0.03em;
     }
 
     .brand-mark {
       display: grid;
-      width: 25px;
-      height: 25px;
+      width: 28px;
+      height: 28px;
       place-items: center;
-      border-radius: 7px;
-      background: var(--ink);
+      border-radius: 8px;
+      background: var(--accent);
       color: var(--panel);
       font-family: var(--mono);
       font-size: 12px;
@@ -97,36 +104,37 @@
       align-items: center;
     }
 
-    .topbar-actions { gap: 16px; }
+    .topbar-actions { gap: var(--space-6); }
+    .header-tool { display: inline-flex; align-items: center; gap: var(--space-2); padding: var(--space-2) 0; border: 0; background: transparent; color: var(--muted-strong); font-size: 12px; }
+    .header-tool:hover { color: var(--accent); }
 
     .brand-meta { gap: 8px; }
 
-    .sync-state { gap: 7px; color: var(--green); font-size: 12px; }
+    .sync-state { gap: var(--space-2); color: var(--green); font-size: 12px; }
 
     .sync-state.demo { color: var(--yellow); }
-    .sync-state.error { color: var(--accent); }
+    .sync-state.error { color: var(--danger); }
     .sync-state.demo .sync-dot { background: var(--yellow); box-shadow: 0 0 0 3px #f0ead7; }
-    .sync-state.error .sync-dot { background: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+    .sync-state.error .sync-dot { background: var(--danger); box-shadow: 0 0 0 3px var(--danger-soft); }
     .sync-dot {
-      width: 7px;
-      height: 7px;
+      width: 6px;
+      height: 6px;
       border-radius: 999px;
       background: var(--green);
       box-shadow: 0 0 0 3px var(--green-soft);
     }
 
     .shortcut-hint {
-      gap: 6px;
+      gap: var(--space-4);
       color: var(--muted);
       font-size: 12px;
     }
 
     kbd {
       min-width: 20px;
-      padding: 2px 5px;
-      border: 1px solid var(--line-strong);
-      border-bottom-width: 2px;
-      border-radius: 5px;
+      padding: 1px 4px;
+      border: 1px solid var(--line);
+      border-radius: 4px;
       background: var(--panel-soft);
       color: var(--muted-strong);
       font-family: var(--mono);
@@ -136,7 +144,7 @@
 
     .user-chip {
       gap: 8px;
-      padding-left: 14px;
+      padding-left: var(--space-6);
       border-left: 1px solid var(--line);
       color: var(--muted-strong);
       font-size: 12px;
@@ -144,8 +152,8 @@
 
     .avatar {
       display: grid;
-      width: 26px;
-      height: 26px;
+      width: 28px;
+      height: 28px;
       place-items: center;
       border-radius: 999px;
       background: #ded8ca;
@@ -159,7 +167,7 @@
       border-radius: 8px;
       background: var(--panel);
       color: var(--ink);
-      transition: 120ms ease;
+      transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
     }
 
     .primary-button:hover, .quiet-button:hover, .icon-button:hover, .bulk-button:hover {
@@ -169,33 +177,35 @@
 
     .content {
       min-width: 0;
-      max-width: 980px;
+      max-width: 1040px;
       margin: 0 auto;
-      padding: 22px 24px 64px;
+      padding: var(--space-8) var(--space-8) 80px;
       overflow: visible;
     }
 
     .view-header {
       display: flex;
-      align-items: flex-start;
+      align-items: flex-end;
       justify-content: space-between;
-      margin-bottom: 14px;
+      gap: var(--space-6);
+      margin-bottom: var(--space-6);
     }
 
-    .eyebrow { margin-bottom: 4px; color: var(--muted); font-size: 11px; font-weight: 700; letter-spacing: 0.04em; }
+    .eyebrow { margin-bottom: var(--space-2); color: var(--muted-strong); font-size: 12px; font-weight: 450; }
     h1, h2, h3, p { margin: 0; }
-    h1 { font-size: 26px; letter-spacing: -0.04em; line-height: 1.1; }
-    .header-date { margin-top: 5px; color: var(--muted); font-size: 12px; }
-    .view-switcher { gap: 3px; padding: 3px; border: 1px solid var(--line); border-radius: 9px; background: var(--panel-soft); }
-    .view-switcher button { padding: 6px 10px; border: 0; border-radius: 6px; background: transparent; color: var(--muted); font-size: 12px; }
-    .view-switcher button.active { background: var(--panel); color: var(--ink); box-shadow: 0 1px 2px rgba(45, 44, 37, 0.08); }
-    .view-switcher .view-jump { margin-left: 5px; padding-left: 11px; border-left: 1px solid var(--line); color: var(--muted-strong); }
-    .view-switcher .view-jump kbd { min-width: 17px; margin-left: 4px; padding: 1px 4px; font-size: 10px; }
+    h1 { font-size: 32px; font-weight: 600; letter-spacing: -0.04em; line-height: 1.2; }
+    .header-date { margin-top: var(--space-2); color: var(--muted); font-size: 13px; }
+    .view-switcher { flex: none; gap: var(--space-1); border-bottom: 1px solid var(--line); }
+    .view-switcher button { min-height: 40px; padding: var(--space-2) var(--space-3); border: 0; border-bottom: 2px solid transparent; background: transparent; color: var(--muted-strong); font-size: 13px; }
+    .view-switcher button:hover { color: var(--accent); }
+    .view-switcher button.active { border-bottom-color: var(--accent); color: var(--accent); font-weight: 600; }
+    .view-switcher .view-jump { margin-left: var(--space-2); color: var(--muted); }
+    .view-switcher .view-jump kbd { min-width: 17px; margin-left: var(--space-1); font-size: 10px; }
 
     .workspace-grid {
       display: grid;
       grid-template-columns: minmax(0, 1fr);
-      min-height: 480px;
+      min-height: 320px;
       border: 1px solid var(--line);
       border-radius: var(--radius);
       background: var(--panel);
@@ -214,8 +224,8 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 10px;
-      padding: 10px 14px;
+      gap: var(--space-3);
+      padding: var(--space-4);
       border-bottom: 1px solid var(--line);
     }
 
@@ -225,7 +235,8 @@
       gap: 8px;
       min-width: 0;
       flex: 1;
-      padding: 8px 10px;
+      min-height: 40px;
+      padding: var(--space-2) var(--space-3);
       border: 1px solid var(--line);
       border-radius: 8px;
       background: var(--panel-soft);
@@ -233,152 +244,170 @@
     }
 
     .search-wrap:focus-within { border-color: var(--accent); background: var(--panel); }
-    .search-icon { color: var(--muted); font-family: var(--mono); font-size: 13px; }
-    .search-input { width: 100%; min-width: 0; border: 0; outline: 0; background: transparent; color: var(--ink); font-size: 12px; }
+    .search-icon { display: flex; flex: none; color: var(--muted); }
+    .search-icon svg { width: 16px; height: 16px; }
+    .search-input { width: 100%; min-width: 0; border: 0; outline: 0; background: transparent; color: var(--ink); font-size: 14px; }
     .search-input::placeholder { color: var(--muted); }
 
-    .bulk-button { padding: 7px 9px; color: var(--muted-strong); font-size: 11px; white-space: nowrap; }
+    .bulk-button { min-height: 36px; padding: var(--space-2) var(--space-3); color: var(--muted-strong); font-size: 12px; white-space: nowrap; }
     .bulk-button:disabled { cursor: default; opacity: .5; }
-    .bulk-button:not(:disabled) { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); }
+    #capture-button { min-height: 40px; border-color: var(--accent); background: var(--accent); color: white; font-weight: 550; }
+    #capture-button:hover { background: #285b55; }
+    #capture-button kbd { border-color: transparent; background: rgba(255,255,255,.16); color: white; }
+    #bulk-button { border-color: transparent; background: transparent; }
+    #bulk-button[aria-pressed="true"] { background: var(--accent-soft); color: var(--accent); }
 
-    .selection-summary { gap: 7px; color: var(--accent); font-size: 11px; font-weight: 700; }
+    .selection-summary { gap: var(--space-2); color: var(--accent); font-size: 12px; font-weight: 550; }
 
     .list-meta {
       display: flex;
       align-items: center;
       justify-content: space-between;
       flex-wrap: wrap;
-      gap: 6px 14px;
-      padding: 13px 17px 8px;
+      gap: var(--space-2) var(--space-4);
+      padding: var(--space-4) var(--space-6) var(--space-2);
       color: var(--muted);
-      font-size: 11px;
+      font-size: 12px;
     }
 
-    .list-meta strong { color: var(--muted-strong); font-weight: 700; }
-    .list-meta #reorder-view { margin-left: auto; font-size: 11px; }
+    .list-meta strong { color: var(--muted-strong); font-weight: 550; }
+    .list-meta #reorder-view { margin-left: auto; color: var(--muted); font-size: 12px; font-weight: 450; }
 
-    .task-list { padding: 0 8px 12px; }
+    .task-list { padding: 0 var(--space-2) var(--space-4); }
 
     .task-row {
       display: grid;
-      grid-template-columns: 18px 22px 22px minmax(0, 1fr);
+      grid-template-columns: 16px 24px minmax(0, 1fr);
       align-items: center;
-      gap: 7px;
-      min-height: 44px;
-      padding: 5px 10px;
+      gap: var(--space-2);
+      min-height: 56px;
+      padding: var(--space-2) var(--space-4) var(--space-2) calc(var(--space-2) + var(--task-depth, 0) * 24px);
       border: 1px solid transparent;
       border-radius: 8px;
       cursor: pointer;
-      transition: background 100ms ease, border-color 100ms ease;
+      transition: background 100ms ease;
     }
 
     .task-row:hover { background: var(--panel-soft); }
     .keyboard-navigation .task-row:hover:not(.selected) { background: transparent; }
-    .task-row.selected { border-color: var(--line-strong); background: #f8f7f2; box-shadow: 0 1px 2px rgba(45, 44, 37, 0.04); }
+    .task-row.selected { background: var(--accent-soft); box-shadow: inset 3px 0 0 var(--accent); }
+    .task-row:focus { outline: none; }
+    .task-row:focus-visible { box-shadow: inset 3px 0 0 var(--accent), inset 0 0 0 1px var(--accent); }
     .task-row.selected .task-title { color: var(--ink); }
     .task-row.completed .task-title { color: var(--muted); text-decoration: line-through; }
-    .task-row.selected.completed { background: #f5f5f0; }
+    .task-row.selected.completed { background: var(--accent-soft); }
 
-    .tree-toggle { width: 20px; min-width: 20px; padding: 0; border: 0; background: transparent; color: var(--muted); font: inherit; font-size: 12px; line-height: 1; text-align: center; }
+    .tree-toggle { width: 16px; min-width: 16px; padding: 0; border: 0; background: transparent; color: var(--muted); font: inherit; font-size: 14px; line-height: 1; text-align: center; }
     button.tree-toggle { cursor: pointer; }
     button.tree-toggle:hover, button.tree-toggle:focus { color: var(--accent); }
     .task-row.collapsed .tree-toggle { color: var(--accent); }
 
     .select-box {
-      display: grid;
-      width: 16px;
-      height: 16px;
+      display: none;
+      width: 18px;
+      height: 18px;
       place-items: center;
       border: 1px solid var(--line-strong);
       border-radius: 4px;
+      background: var(--panel);
+      padding: 0;
       color: transparent;
       font-size: 11px;
       line-height: 1;
     }
 
-    .task-row.selected .select-box { border-color: var(--accent); background: var(--accent); color: white; }
-    .task-row.bulk-selected { background: var(--accent-soft); }
+    .bulk-selecting .task-row { grid-template-columns: 16px 20px 24px minmax(0, 1fr); }
+    .bulk-selecting .select-box { display: grid; }
+    .task-row.bulk-selected { background: #eef3e9; }
+    .task-row.bulk-selected.selected { background: var(--accent-soft); }
     .task-row.move-target { border-color: var(--accent); background: var(--accent-soft); box-shadow: 0 0 0 1px var(--accent); }
     .task-row.move-source { opacity: .55; }
-    .task-row.bulk-selected .select-box { border-color: var(--accent); color: var(--accent); }
+    .task-row.bulk-selected .select-box { border-color: var(--accent); background: var(--accent); color: white; }
 
     .complete-button {
       display: grid;
       width: 20px;
       height: 20px;
       place-items: center;
-      border: 1.5px solid var(--line-strong);
+      border: 1px solid var(--line-strong);
       border-radius: 999px;
       background: transparent;
       color: transparent;
       font-size: 12px;
     }
 
+    .complete-button.p4 { border-color: var(--danger); background: var(--danger-soft); }
+    .complete-button.p3 { border-color: var(--yellow); background: #fbf4e2; }
+    .complete-button.p2 { border-color: var(--blue); background: #eef3f9; }
+    .complete-button:hover { color: var(--muted-strong); }
     .task-row.completed .complete-button { border-color: var(--green); background: var(--green); color: white; }
 
     .task-main { min-width: 0; }
-    .task-row.depth-1 .task-main { margin-left: 18px; }
-    .task-row.depth-2 .task-main { margin-left: 36px; }
-    .task-row.depth-3 .task-main { margin-left: 54px; }
-    .task-title-line { display: flex; align-items: center; gap: 7px; min-width: 0; }
-    .task-title { overflow: hidden; color: var(--ink); font-size: 13px; font-weight: 620; text-overflow: ellipsis; white-space: nowrap; }
-    .task-subtitle { display: flex; gap: 7px; margin-top: 4px; color: var(--muted); font-size: 11px; }
-    .task-subtitle .overdue { color: var(--accent); }
-    .priority-mark { width: 4px; height: 15px; flex: none; border-radius: 4px; background: var(--line-strong); }
-    .priority-mark.p4 { background: var(--accent); }
-    .priority-mark.p3 { background: var(--yellow); }
-    .priority-mark.p2 { background: #7b9aaf; }
+    .task-title-line { display: flex; align-items: center; min-width: 0; }
+    .task-title { overflow: hidden; color: var(--ink); font-size: 15px; font-weight: 500; text-overflow: ellipsis; white-space: nowrap; }
+    .task-subtitle { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-top: 2px; color: var(--muted); font-size: 12px; }
+    .task-subtitle span + span::before { content: "·"; margin-right: var(--space-2); color: var(--line-strong); }
+    .task-subtitle .overdue { color: var(--danger); }
 
-    .empty-state { padding: 38px 20px; color: var(--muted); text-align: center; }
-    .empty-state strong { display: block; margin-bottom: 5px; color: var(--ink); }
+    .empty-state { max-width: 480px; margin: 0 auto; padding: 64px var(--space-6); color: var(--muted); text-align: center; }
+    .empty-state strong { display: block; margin-bottom: var(--space-2); color: var(--ink); font-size: 18px; font-weight: 550; }
+    .empty-state .quiet-button { display: block; margin: var(--space-4) auto 0; }
 
-    .pane-footer { display: flex; align-items: center; justify-content: space-between; margin: 0 17px; padding: 13px 0 16px; border-top: 1px solid var(--line); color: var(--muted); font-size: 11px; }
+    .pane-footer { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-2) var(--space-4); margin: 0 var(--space-6); padding: var(--space-4) 0; border-top: 1px solid var(--line); color: var(--muted); font-size: 12px; }
     .pane-footer .sync-note { display: flex; align-items: center; gap: 6px; }
     .pane-footer .sync-note::before { content: ""; width: 5px; height: 5px; border-radius: 999px; background: var(--green); }
+    .pane-footer .sync-note[data-status="demo"]::before { background: var(--yellow); }
+    .pane-footer .sync-note[data-status="error"]::before { background: var(--danger); }
 
-    .detail-pane { display: none; flex-direction: column; background: #fbfaf6; }
-    .detail-head { padding: 19px 22px 15px; border-bottom: 1px solid var(--line); }
-    .detail-head-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
-    .detail-label { color: var(--muted); font-size: 11px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
-    .detail-title { max-width: 480px; margin-top: 7px; font-size: 22px; font-weight: 700; letter-spacing: -.035em; line-height: 1.15; }
-    .detail-title-input { display: none; width: 100%; padding: 0; border: 0; border-bottom: 1px solid var(--accent); outline: 0; background: transparent; color: var(--ink); font-size: 22px; font-weight: 700; letter-spacing: -.035em; }
+    .detail-pane { display: none; flex-direction: column; background: var(--panel); }
+    .detail-pane:focus { outline: none; }
+    .detail-head { padding: var(--space-6) var(--space-8); border-bottom: 1px solid var(--line); }
+    .detail-head-top { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-4); }
+    .detail-head-top > div { flex: 1; min-width: 0; }
+    .detail-label { color: var(--muted-strong); font-size: 12px; font-weight: 500; }
+    .detail-title { margin-top: var(--space-2); font-size: 24px; font-weight: 600; letter-spacing: -.025em; line-height: 1.35; }
+    .detail-title-input { display: none; width: 100%; margin-top: var(--space-1); padding: var(--space-1) 0; border: 1px solid transparent; border-radius: 4px; background: transparent; color: var(--ink); font-size: 24px; font-weight: 600; letter-spacing: -.025em; line-height: 1.35; }
+    .detail-title-input:hover { border-bottom-color: var(--line-strong); }
+    .detail-title-input:focus { outline: 2px solid var(--accent); outline-offset: 4px; }
     .detail-pane.editing .detail-title { display: none; }
     .detail-pane.editing .detail-title-input { display: block; }
-    .icon-button { width: 30px; height: 30px; padding: 0; color: var(--muted); }
+    .icon-button { min-width: 40px; height: 32px; padding: 0 var(--space-2); color: var(--muted-strong); font-size: 12px; }
     .icon-button:hover { background: var(--panel-soft); }
 
-    .detail-properties { display: flex; flex-wrap: wrap; align-items: center; gap: 7px 16px; margin-top: 12px; }
-    .tag { display: inline-flex; align-items: center; gap: 5px; padding: 4px 7px; border-radius: 5px; background: var(--panel-soft); color: var(--muted-strong); font-size: 11px; }
+    .detail-properties { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2) var(--space-6); margin-top: var(--space-4); }
+    .tag { display: inline-flex; align-items: center; gap: var(--space-1); padding: var(--space-1) var(--space-2); border-radius: 4px; background: var(--panel-soft); color: var(--muted-strong); font-size: 12px; }
     .tag.project { background: #edf0e7; color: #5d745d; }
-    .tag.due { background: var(--accent-soft); color: #a65c42; }
-    .tag.priority { background: #f0ead7; color: #92732f; }
-    .detail-date-row { display: flex; align-items: center; gap: 8px; color: var(--muted-strong); font-size: 11px; }
-    .detail-date-row input { padding: 5px 7px; border: 1px solid var(--line-strong); border-radius: 6px; background: var(--panel); color: var(--ink); font: inherit; }
+    .tag.due { background: var(--danger-soft); color: var(--danger); }
+    .tag.priority { background: var(--panel-soft); color: var(--muted-strong); }
+    .tag.priority.p4 { background: var(--danger-soft); color: var(--danger); }
+    .tag.priority.p3 { background: #fbf4e2; color: #795b19; }
+    .tag.priority.p2 { background: #eef3f9; color: #46658a; }
+    .detail-date-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); color: var(--muted-strong); font-size: 12px; }
+    .detail-date-row input { min-height: 32px; padding: var(--space-1) var(--space-2); border: 1px solid var(--line); border-radius: 6px; background: var(--panel); color: var(--ink); font: inherit; }
     .detail-date-row input:focus { outline: 2px solid var(--accent-soft); border-color: var(--accent); }
-    .detail-date-row button { padding: 5px 7px; border: 0; background: transparent; color: var(--accent); font: inherit; cursor: pointer; }
+    .detail-date-row button { padding: var(--space-1) var(--space-2); border: 0; background: transparent; color: var(--muted-strong); font: inherit; cursor: pointer; }
 
-    .detail-actions { gap: 7px; margin-top: 16px; }
-    .detail-link-row { display: flex; align-items: center; gap: 11px; margin-top: 10px; }
-    .detail-link-hint { color: var(--muted); font-size: 11px; }
-    .quiet-button, .primary-button { padding: 7px 10px; font-size: 11px; font-weight: 650; }
-    .primary-button { border-color: var(--ink); background: var(--ink); color: white; }
-    .primary-button:hover { border-color: var(--accent); background: var(--accent); color: white; }
+    .detail-actions { gap: var(--space-2); margin-top: var(--space-4); }
+    .detail-link-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2) var(--space-4); margin-top: var(--space-4); }
+    .detail-link-hint { color: var(--muted); font-size: 12px; }
+    .quiet-button, .primary-button { min-height: 36px; padding: var(--space-2) var(--space-3); font-size: 12px; font-weight: 550; }
+    .primary-button { border-color: var(--accent); background: var(--accent); color: white; }
+    .primary-button:hover { border-color: #285b55; background: #285b55; color: white; }
 
-    .detail-body { flex: 1; padding: 22px; overflow: auto; }
-    .detail-columns { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: 24px; }
-    .detail-columns.notes-expanded { grid-template-columns: minmax(0, 1fr); }
-    .detail-columns.notes-expanded .preview-column { display: none; }
+    .detail-body { flex: 1; padding: var(--space-6) var(--space-8) var(--space-8); }
+    .detail-columns { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-6); }
+    .detail-columns.preview-visible { grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); }
     .detail-column { min-width: 0; }
-    .preview-column { padding-left: 24px; border-left: 1px solid var(--line); }
-    .preview-heading { display: flex; align-items: center; justify-content: space-between; margin-bottom: 11px; color: var(--muted-strong); font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
-    .preview-heading span:last-child { color: var(--muted); font-size: 10px; font-weight: 500; letter-spacing: 0; text-transform: none; }
-    .preview-media { display: grid; gap: 10px; margin-bottom: 17px; }
+    .preview-column { padding-left: var(--space-6); border-left: 1px solid var(--line); }
+    .preview-heading { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); margin-bottom: var(--space-3); color: var(--muted-strong); font-size: 13px; font-weight: 550; }
+    .preview-heading span:last-child { color: var(--muted); font-size: 12px; font-weight: 400; }
+    .preview-media { display: grid; gap: var(--space-3); margin-bottom: var(--space-4); }
     .preview-media:empty { display: none; }
-    .detail-section { padding-bottom: 22px; margin-bottom: 20px; border-bottom: 1px solid var(--line); }
+    .detail-section { padding-bottom: var(--space-6); margin-bottom: var(--space-6); border-bottom: 1px solid var(--line); }
     .detail-section:last-child { border-bottom: 0; }
-    .section-heading { display: flex; align-items: center; justify-content: space-between; margin-bottom: 11px; color: var(--muted-strong); font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
-    .section-heading button { border: 0; background: transparent; color: var(--muted); font-size: 11px; }
-    .description { color: #4c4d45; font-size: 13px; line-height: 1.65; }
+    .section-heading { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); margin-bottom: var(--space-3); color: var(--muted-strong); font-size: 13px; font-weight: 550; }
+    .section-heading button { border: 0; background: transparent; color: var(--muted); font-size: 12px; font-weight: 450; }
+    .description { color: var(--muted-strong); font-size: 14px; line-height: 1.7; overflow-wrap: anywhere; }
     .description p { margin: 0 0 10px; }
     .description p:last-child { margin-bottom: 0; }
     .description h1, .description h2, .description h3, .description h4, .description h5, .description h6 { margin: 16px 0 7px; color: var(--ink); line-height: 1.25; }
@@ -390,9 +419,10 @@
     .description a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: 2px; }
     .description ul { padding-left: 18px; margin: 5px 0 10px; }
     .description code { padding: 2px 4px; border-radius: 4px; background: var(--panel-soft); font-family: var(--mono); font-size: 11px; }
-    .description-editor { display: block; width: 100%; min-height: clamp(320px, 48vh, 620px); resize: vertical; padding: 11px; border: 1px solid var(--line); border-radius: 8px; outline: 0; background: var(--panel); color: var(--ink); font-size: 13px; line-height: 1.6; }
+    .description-editor { display: block; width: 100%; min-height: 160px; max-height: 480px; resize: none; padding: var(--space-4); border: 1px solid var(--line); border-radius: 8px; background: var(--panel); color: var(--ink); font-size: 14px; line-height: 1.7; }
+    .description-editor::placeholder { color: var(--muted); }
     .description-editor:focus { border-color: var(--accent); }
-    .edit-hint { margin-top: 7px; color: var(--muted); font-size: 11px; }
+    .edit-hint { margin-top: var(--space-2); color: var(--muted); font-size: 12px; }
 
     .attachment-card { display: flex; align-items: center; gap: 12px; padding: 10px; border: 1px solid var(--line); border-radius: 9px; background: var(--panel); }
     .attachment-thumb { display: grid; width: 52px; height: 42px; place-items: center; overflow: hidden; border-radius: 5px; background: var(--panel-soft); color: var(--muted); font-size: 11px; }
@@ -408,14 +438,15 @@
     .preview-media .attachment-view + .attachment-view { margin-left: 8px; }
     .attachment-view { border: 0; background: transparent; color: var(--accent); font-size: 11px; font-weight: 700; }
 
-    .subtask-list { display: grid; gap: 7px; }
-    .subtask-create-form { display: flex; gap: 7px; margin-top: 12px; }
-    .subtask-create-input { min-width: 0; flex: 1; padding: 8px 10px; border: 1px solid var(--line); border-radius: 7px; outline: 0; background: var(--panel); color: var(--ink); font: inherit; font-size: 12px; }
+    .subtask-list { display: grid; gap: var(--space-2); }
+    .subtask-create-form { display: flex; gap: var(--space-2); margin-top: var(--space-3); }
+    .subtask-create-input { min-width: 0; flex: 1; min-height: 40px; padding: var(--space-2) var(--space-3); border: 1px solid var(--line); border-radius: 8px; background: var(--panel); color: var(--ink); font: inherit; font-size: 14px; }
     .subtask-create-input:focus { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft); }
-    .subtask-create-button { flex: none; padding: 7px 10px; border: 1px solid var(--accent); border-radius: 7px; background: var(--accent); color: white; font-size: 11px; font-weight: 750; }
+    .subtask-create-button { flex: none; padding: var(--space-2) var(--space-4); border: 1px solid var(--line-strong); border-radius: 8px; background: var(--panel); color: var(--ink); font-size: 13px; font-weight: 500; }
+    .subtask-create-button:hover { border-color: var(--accent); color: var(--accent); }
     .subtask-create-button:disabled { opacity: .55; cursor: wait; }
-    .subtask { display: flex; align-items: center; gap: 8px; color: var(--muted-strong); font-size: 12px; }
-    button.subtask { width: 100%; padding: 2px 0; border: 0; background: transparent; text-align: left; font: inherit; }
+    .subtask { display: flex; align-items: center; gap: var(--space-3); color: var(--muted-strong); font-size: 14px; }
+    button.subtask { width: 100%; min-height: 36px; padding: var(--space-1) 0; border: 0; background: transparent; text-align: left; font: inherit; }
     button.subtask:hover { color: var(--accent); }
     button.subtask:focus { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; background: var(--accent-soft); color: var(--ink); }
     .subtask::before { content: ""; width: 6px; height: 6px; flex: none; border: 1px solid var(--line-strong); border-radius: 999px; }
@@ -426,34 +457,36 @@
     .detail-empty-inner { max-width: 220px; }
     .detail-empty-mark { display: grid; width: 40px; height: 40px; place-items: center; margin: 0 auto 12px; border: 1px solid var(--line); border-radius: 11px; color: var(--accent); font-family: var(--mono); }
 
-    .bulk-bar { position: fixed; right: 28px; bottom: 52px; z-index: 5; display: none; align-items: center; gap: 12px; padding: 10px 12px; border: 1px solid var(--line-strong); border-radius: 10px; background: var(--panel); box-shadow: var(--shadow); }
+    .bulk-bar { position: fixed; left: 50%; bottom: var(--space-6); transform: translateX(-50%); width: max-content; max-width: calc(100vw - 32px); z-index: 5; display: none; flex-wrap: wrap; align-items: center; gap: var(--space-2) var(--space-3); padding: var(--space-3) var(--space-4); border: 1px solid var(--line-strong); border-radius: 12px; background: var(--panel); box-shadow: 0 8px 32px rgba(41,46,43,.12); }
     .bulk-bar.visible { display: flex; }
     .bulk-bar strong { color: var(--ink); font-size: 12px; }
     .bulk-bar span { color: var(--muted); font-size: 11px; }
 
-    .quick-capture { padding: 13px 16px 14px; border-bottom: 1px solid var(--line); background: #fcfaf3; }
+    .quick-capture { padding: var(--space-4); border-bottom: 1px solid var(--line); background: var(--accent-soft); }
     .quick-capture[hidden] { display: none; }
-    .quick-capture-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; color: var(--muted-strong); font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+    .quick-capture-top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-2); margin-bottom: var(--space-2); color: var(--muted-strong); font-size: 13px; font-weight: 550; }
     .quick-capture-hint { color: var(--muted); font-size: 11px; font-weight: 500; letter-spacing: 0; text-transform: none; }
-    .quick-capture-input { width: 100%; padding: 11px 12px; border: 1px solid var(--line-strong); border-radius: 8px; outline: 0; background: var(--panel); color: var(--ink); font-size: 13px; }
+    .quick-capture-input { width: 100%; min-height: 44px; padding: var(--space-3); border: 1px solid var(--line-strong); border-radius: 8px; background: var(--panel); color: var(--ink); font-size: 15px; }
     .quick-capture-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
     .quick-capture-attachment { display: flex; align-items: center; gap: 10px; margin-top: 8px; padding: 7px 9px; border: 1px dashed var(--line-strong); border-radius: 8px; background: var(--panel); }
     .quick-capture-attachment[hidden] { display: none; }
     .capture-thumb { width: 44px; height: 34px; border-radius: 5px; object-fit: cover; background: var(--panel-soft); }
     .capture-file-name { min-width: 0; flex: 1; overflow: hidden; color: var(--muted-strong); font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
-    .quick-capture-bottom { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 8px; }
+    .quick-capture-bottom { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-3); margin-top: var(--space-2); }
     .quick-capture-preview { min-width: 0; color: var(--muted); font-size: 11px; }
     .quick-capture-preview strong { color: var(--muted-strong); }
     .quick-capture-actions { display: flex; gap: 6px; }
     .quick-capture-actions .quiet-button, .quick-capture-actions .primary-button { padding: 6px 9px; }
-    .text-action { padding: 0; border: 0; background: transparent; color: var(--accent); font-size: 11px; font-weight: 700; }
+    .text-action { padding: 0; border: 0; background: transparent; color: var(--accent); font-size: 12px; font-weight: 500; }
     .text-action:hover { color: var(--ink); text-decoration: underline; }
-    .detail-shortcuts { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 15px; margin-top: 12px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel-soft); color: var(--ink); font-size: 12px; font-weight: 400; }
-    .detail-shortcuts-label { color: var(--muted-strong); font-size: 10px; font-weight: 500; letter-spacing: .08em; text-transform: uppercase; }
-    .detail-shortcuts span:not(.detail-shortcuts-label) { display: inline-flex; align-items: center; gap: 5px; }
-    .detail-shortcuts kbd { padding: 3px 6px; border-color: var(--line-strong); background: var(--panel); color: var(--ink); font-size: 11px; font-weight: 800; }
-    .toast { position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; padding: 8px 20px; border-top: 1px solid var(--line-strong); background: var(--ink); color: white; box-shadow: 0 -8px 24px rgba(49, 48, 41, 0.12); font-size: 12px; opacity: 0; transform: translateY(8px); pointer-events: none; transition: 160ms ease; }
+    .detail-shortcuts { margin-top: var(--space-3); color: var(--muted); font-size: 12px; }
+    .detail-shortcuts summary { width: fit-content; cursor: pointer; }
+    .detail-shortcuts summary:hover { color: var(--accent); }
+    .detail-shortcuts-items { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-4); margin-top: var(--space-3); }
+    .detail-shortcuts-items span { display: inline-flex; align-items: center; gap: var(--space-1); }
+    .toast { position: fixed; left: var(--space-6); bottom: var(--space-6); max-width: min(480px, calc(100vw - 48px)); z-index: 20; padding: var(--space-3) var(--space-4); border-radius: 8px; background: var(--ink); color: white; box-shadow: 0 4px 16px rgba(41,46,43,.12); font-size: 12px; opacity: 0; transform: translateY(8px); pointer-events: none; transition: opacity 160ms ease, transform 160ms ease; }
     .toast.visible { opacity: 1; transform: translateY(0); }
+    .bulk-actions-visible .toast { bottom: 104px; }
 
     .boot-overlay { position: fixed; inset: 0; z-index: 90; display: grid; place-items: center; padding: 24px; background: rgba(245, 243, 237, .9); color: var(--muted-strong); font-size: 13px; font-weight: 700; backdrop-filter: blur(4px); }
     .boot-overlay[hidden] { display: none; }
@@ -463,11 +496,11 @@
     #help-backdrop { place-items: center; padding: 20px; }
     .command-modal { width: min(560px, calc(100vw - 32px)); overflow: hidden; border: 1px solid var(--line-strong); border-radius: 12px; background: var(--panel); box-shadow: 0 24px 60px rgba(35, 36, 31, .18); }
     .command-search { width: 100%; padding: 16px 18px; border: 0; border-bottom: 1px solid var(--line); outline: 0; background: transparent; color: var(--ink); font-size: 16px; }
-    .command-list { max-height: min(55vh, 480px); padding: 7px; overflow: auto; overscroll-behavior: contain; }
-    .command-item { display: flex; align-items: center; justify-content: space-between; padding: 11px 12px; border-radius: 7px; color: var(--muted-strong); }
-    .command-item.active { background: var(--panel-soft); color: var(--ink); }
-    .command-item-title { font-size: 12px; font-weight: 700; }
-    .command-item-description { margin-top: 2px; color: var(--muted); font-size: 11px; }
+    .command-list { max-height: min(55vh, 480px); padding: var(--space-2); overflow: auto; overscroll-behavior: contain; }
+    .command-item { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); padding: var(--space-3); border-radius: 8px; color: var(--muted-strong); }
+    .command-item.active { background: var(--accent-soft); color: var(--ink); box-shadow: inset 3px 0 0 var(--accent); }
+    .command-item-title { font-size: 14px; font-weight: 550; }
+    .command-item-description { margin-top: var(--space-1); color: var(--muted); font-size: 12px; }
     .command-hints { gap: 6px; }
 
     .delete-modal { position: relative; z-index: 1; width: min(440px, calc(100vw - 32px)); padding: 21px; border-radius: 12px; background: var(--panel); box-shadow: 0 24px 60px rgba(35, 36, 31, .18); }
@@ -475,8 +508,8 @@
     .delete-modal p { margin-top: 7px; color: var(--muted-strong); font-size: 12px; }
     .delete-modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; }
     .delete-modal-actions .quiet-button, .delete-modal-actions .primary-button { min-height: 34px; }
-    .delete-modal-actions .primary-button { background: var(--accent); border-color: var(--accent); color: white; }
-    .delete-modal-actions .primary-button:hover { background: #bd5a3d; border-color: #bd5a3d; color: white; }
+    .delete-modal-actions .primary-button { background: var(--danger); border-color: var(--danger); color: white; }
+    .delete-modal-actions .primary-button:hover { background: #913a25; border-color: #913a25; color: white; }
 
     .help-modal { position: relative; z-index: 1; width: min(780px, 100%); max-height: calc(100dvh - 40px); overflow: auto; overscroll-behavior: contain; padding: 20px; border: 1px solid var(--line-strong); border-radius: 12px; background: var(--panel); box-shadow: 0 24px 60px rgba(35, 36, 31, .18); }
     .help-modal h2 { font-size: 20px; letter-spacing: -.03em; }
@@ -490,20 +523,42 @@
     .mobile-warning { display: none; }
 
     @media (max-width: 980px) {
-      .content { padding: 20px 18px 64px; }
-      .task-pane { border-right: 0; border-bottom: 1px solid var(--line); }
-      .detail-pane { min-height: 520px; }
+      .content { padding: var(--space-6) var(--space-6) 80px; }
+      .view-header { align-items: flex-start; flex-direction: column; gap: var(--space-4); }
+      .topbar-actions { gap: var(--space-4); }
     }
 
     @media (max-width: 680px) {
-      .topbar { padding: 0 16px; }
-      .brand-meta, .shortcut-hint, .user-chip span { display: none; }
-      .content { padding: 16px 12px 64px; }
-      .view-header { display: block; }
-      .view-switcher { width: max-content; margin-top: 16px; }
-      .workspace-grid { border-radius: 9px; }
+      .topbar { padding: var(--space-3) var(--space-4); }
+      .brand-meta, .shortcut-hint, .user-chip { display: none; }
+      .sync-state { max-width: 160px; }
+      .content { padding: var(--space-4) var(--space-3) 160px; }
+      .view-header { display: flex; }
+      .view-switcher { width: 100%; gap: 0; flex-wrap: wrap; }
+      .view-switcher button { padding: var(--space-2); font-size: 12px; }
+      .view-switcher .view-jump { margin-left: auto; }
+      .workspace-grid { border-radius: 8px; }
+      .pane-toolbar { flex-wrap: wrap; gap: var(--space-2); padding: var(--space-3); }
+      .search-wrap { flex-basis: 100%; }
+      .list-meta { padding: var(--space-4); gap: var(--space-2); }
+      .task-row { padding-right: var(--space-2); }
+      .task-title { white-space: normal; overflow-wrap: anywhere; }
+      .detail-head, .detail-body { padding: var(--space-6) var(--space-4); }
+      .detail-title-input { font-size: 21px; }
+      .detail-columns.preview-visible { grid-template-columns: minmax(0, 1fr); }
+      .preview-column { padding-left: 0; border-left: 0; }
+      .bulk-bar { bottom: var(--space-3); padding: var(--space-3); }
+      .bulk-bar > span { display: none; }
+      .bulk-actions-visible .toast { bottom: 144px; }
+      .pane-footer { margin: 0 var(--space-4); }
+      .quick-capture-actions { flex-wrap: wrap; }
+      .modal-backdrop { padding-top: 64px; }
       .help-grid { grid-template-columns: 1fr; }
-      .mobile-warning { display: block; padding: 9px 14px; border-bottom: 1px solid var(--line); background: var(--accent-soft); color: #9c573f; font-size: 11px; text-align: center; }
+      .mobile-warning { display: block; margin-bottom: var(--space-4); color: var(--muted); font-size: 12px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { transition: none !important; animation: none !important; scroll-behavior: auto !important; }
     }
   </style>
 </head>
@@ -514,26 +569,26 @@
       <div class="brand"><span class="brand-mark">K</span><span>Keydo</span></div>
       <div class="topbar-actions">
         <div class="sync-state" id="sync-state"><span class="sync-dot"></span><span>Synced</span></div>
-        <div class="shortcut-hint"><kbd>?</kbd> Shortcuts <kbd>Ctrl</kbd><kbd>K</kbd> Commands</div>
+        <div class="shortcut-hint"><button class="header-tool" id="help-button" type="button" tabindex="-1">Shortcuts <kbd>?</kbd></button><button class="header-tool" id="commands-button" type="button" tabindex="-1">Commands <kbd>Ctrl K</kbd></button></div>
         <div class="user-chip"><span class="avatar">R</span><span>Remco</span></div>
       </div>
     </header>
 
     <main class="content">
-      <div class="mobile-warning">Keydo is designed for desktop. Resize the window for the full experience.</div>
+      <div class="mobile-warning">Best with a keyboard. Tap controls to browse.</div>
       <div class="view-header">
         <div>
           <div class="eyebrow" id="view-eyebrow">Personal workspace · Task browser</div>
           <h1 id="view-title">Today</h1>
           <div class="header-date" id="view-subtitle">4 tasks · 1 high priority · 1 overdue</div>
         </div>
-        <div class="view-switcher">
+        <nav class="view-switcher" aria-label="Task views">
           <button tabindex="-1" class="active" data-view="today">Today</button>
           <button tabindex="-1" data-view="upcoming">Upcoming</button>
           <button tabindex="-1" data-view="priority">Priority</button>
           <button tabindex="-1" data-view="completed">Completed</button>
           <button tabindex="-1" class="view-jump" id="view-jump" type="button" title="Jump to any view or project">Jump <kbd>G</kbd></button>
-        </div>
+        </nav>
       </div>
 
       <div class="workspace-grid" id="workspace-grid">
@@ -549,13 +604,13 @@
             <div class="quick-capture-bottom"><div class="quick-capture-preview" id="capture-preview">Type a task, date, project, or priority.</div><div class="quick-capture-actions"><button class="quiet-button" id="capture-cancel" tabindex="-1">Esc</button><button class="quiet-button" id="capture-exact" tabindex="-1" hidden>Create exact</button><button class="primary-button" id="capture-save" tabindex="-1">Create task ↵</button></div></div>
           </div>
           <div class="pane-toolbar">
-            <label class="search-wrap"><span class="search-icon">⌕</span><input class="search-input" id="search-input" placeholder="Search tasks…" autocomplete="off"><kbd>/</kbd></label>
+            <label class="search-wrap"><span class="search-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 4 4"/></svg></span><input class="search-input" id="search-input" aria-label="Search tasks" placeholder="Search tasks…" autocomplete="off"><kbd>/</kbd></label>
             <button class="bulk-button" id="capture-button" tabindex="-1">+ Capture <kbd>N</kbd></button>
-            <button class="bulk-button" id="bulk-button" tabindex="-1" disabled>Select tasks</button>
+            <button class="bulk-button" id="bulk-button" type="button" tabindex="-1" aria-pressed="false">Select tasks</button>
           </div>
           <div class="list-meta"><strong id="list-label">Today</strong><button class="text-action" id="reorder-view" type="button">Reorder in project <kbd>R</kbd></button><span id="selection-summary"></span></div>
-          <div class="task-list" id="task-list" tabindex="-1"></div>
-          <div class="pane-footer"><span class="sync-note">Todoist sync active</span><span>Space complete · Delete remove · PageUp/PageDown jump · +/- priority · Alt+Arrow tree in project views</span></div>
+          <div class="task-list" id="task-list" role="list" tabindex="-1"></div>
+          <div class="pane-footer"><span class="sync-note" id="list-sync-note">Connecting…</span><span><kbd>Enter</kbd> details · <kbd>Shift ↑↓</kbd> select · <kbd>?</kbd> shortcuts</span></div>
         </section>
 
         <section class="detail-pane" id="detail-pane" aria-label="Task details" tabindex="-1">
@@ -575,21 +630,20 @@
                 <button class="primary-button" id="complete-detail" tabindex="-1">Complete task</button>
                 <button class="quiet-button" id="detail-actions" tabindex="-1">Actions <kbd>Ctrl K</kbd></button>
               </div>
-              <div class="detail-shortcuts" aria-label="Task detail keyboard shortcuts">
-                <span class="detail-shortcuts-label">Keyboard</span>
-                <span><kbd>T</kbd> Title</span><span><kbd>N</kbd> Notes</span><span><kbd>S</kbd> Subtasks</span><span><kbd>C</kbd> Complete</span>
-                <span><kbd>Alt</kbd> + key while typing</span><span><kbd>Ctrl</kbd> + <kbd>Enter</kbd> Save</span>
-              </div>
+              <details class="detail-shortcuts">
+                <summary tabindex="-1">Detail shortcuts</summary>
+                <div class="detail-shortcuts-items"><span><kbd>T</kbd> Title</span><span><kbd>N</kbd> Notes</span><span><kbd>S</kbd> Subtasks</span><span><kbd>C</kbd> Complete</span><span><kbd>Alt</kbd> + key while typing</span><span><kbd>Ctrl Enter</kbd> Save &amp; return</span></div>
+              </details>
               <div class="detail-link-row"><button class="text-action" id="open-todoist" tabindex="-1">Open in Todoist ↗</button><span class="detail-link-hint">Paste a screenshot with Ctrl+V to attach it</span></div>
             </div>
             <div class="detail-body">
               <div class="detail-columns">
                 <section class="detail-section detail-column editor-column">
-                  <div class="section-heading"><span>Notes</span><button class="text-action" id="toggle-notes-width" type="button">Expand notes</button></div>
-                  <textarea class="description-editor" id="description-editor" aria-label="Task notes"></textarea>
-                  <div class="edit-hint">Changes preview live · Ctrl+Enter saves · Esc leaves notes · Esc again returns to list</div>
+                  <div class="section-heading"><span>Notes</span><button class="text-action" id="toggle-notes-width" type="button" aria-controls="notes-preview" aria-expanded="false">Show preview</button></div>
+                  <textarea class="description-editor" id="description-editor" aria-label="Task notes" placeholder="Add a note, a link, or a little context…" rows="6"></textarea>
+                  <div class="edit-hint"><kbd>Ctrl Enter</kbd> save &amp; return · <kbd>Esc</kbd> leave notes</div>
                 </section>
-                <section class="detail-section detail-column preview-column">
+                <section class="detail-section detail-column preview-column" id="notes-preview" hidden>
                   <div class="preview-heading"><span>Preview</span><span id="preview-mode">Rendered live</span></div>
                   <div class="preview-media" id="preview-media"></div>
                   <div class="description" id="description-preview"></div>
@@ -818,11 +872,13 @@
       sectionOrderKeys: new Map(),
       selectedId: "task-1",
       selected: new Set(),
+      bulkSelecting: false,
       selectionAnchorId: null,
       rangeBaseSelection: null,
       rangeSelectedIds: new Set(),
       detailEditing: false,
-      notesExpanded: false,
+      notesPreviewOverride: null,
+      detailPresentationId: null,
       detailReturnId: null,
       booting: true,
       captureOpen: false,
@@ -1481,6 +1537,9 @@
       element.lastElementChild.textContent = label;
       element.classList.toggle("demo", status === "demo");
       element.classList.toggle("error", status === "error");
+      const note = document.getElementById("list-sync-note");
+      note.textContent = status === "demo" ? "Demo · not connected" : label;
+      note.dataset.status = status;
     }
 
     async function loadRuntimeState() {
@@ -1625,19 +1684,24 @@
       taskList.innerHTML = filtered.length ? filtered.map((task, index) => {
         const selected = task.id === state.selectedId;
         const bulkSelected = state.selected.has(task.id);
-        return `<article class="task-row depth-${taskDepth(task, parentById, visibleIds)} ${selected ? "selected" : ""} ${state.collapsed.has(task.id) ? "collapsed" : ""} ${task.completed ? "completed" : ""} ${bulkSelected ? "bulk-selected" : ""} ${task.id === state.moveTargetId ? "move-target" : ""} ${task.id === state.moveFromId ? "move-source" : ""}" data-task-id="${escapeAttr(task.id)}" data-index="${index}" tabindex="${selected ? 0 : -1}">
-          ${parentIdsWithChildren.has(task.id) ? `<button class="tree-toggle" type="button" tabindex="-1" data-collapse="${escapeAttr(task.id)}" aria-label="${state.collapsed.has(task.id) ? "Expand" : "Collapse"} subtasks of ${escapeAttr(task.title)}" aria-expanded="${!state.collapsed.has(task.id)}">${state.collapsed.has(task.id) ? "+" : "−"}</button>` : `<span class="tree-toggle" aria-hidden="true"></span>`}
-          <button class="select-box" tabindex="-1" aria-label="Select ${escapeHtml(task.title)}" data-select="${escapeAttr(task.id)}">${bulkSelected ? "✓" : ""}</button>
-          <button class="complete-button" tabindex="-1" aria-label="${task.completed ? "Reopen" : "Complete"} ${escapeHtml(task.title)}" data-complete="${escapeAttr(task.id)}">✓</button>
-          <div class="task-main"><div class="task-title-line"><span class="priority-mark p${task.priority}" title="${priorityLabel(task.priority)}"></span><div class="task-title">${escapeHtml(task.title)}</div></div><div class="task-subtitle"><span>${escapeHtml(task.project)}</span><span class="${task.dueClass}">${escapeHtml(task.due)}</span></div></div>
+        const depth = taskDepth(task, parentById, visibleIds);
+        return `<article class="task-row depth-${depth} ${selected ? "selected" : ""} ${state.collapsed.has(task.id) ? "collapsed" : ""} ${task.completed ? "completed" : ""} ${bulkSelected ? "bulk-selected" : ""} ${task.id === state.moveTargetId ? "move-target" : ""} ${task.id === state.moveFromId ? "move-source" : ""}" style="--task-depth: ${depth}" role="listitem" aria-current="${selected}" data-task-id="${escapeAttr(task.id)}" data-index="${index}" tabindex="${selected ? 0 : -1}">
+          ${parentIdsWithChildren.has(task.id) ? `<button class="tree-toggle" type="button" tabindex="-1" data-collapse="${escapeAttr(task.id)}" aria-label="${state.collapsed.has(task.id) ? "Expand" : "Collapse"} subtasks of ${escapeAttr(task.title)}" aria-expanded="${!state.collapsed.has(task.id)}">${state.collapsed.has(task.id) ? "▸" : "▾"}</button>` : `<span class="tree-toggle" aria-hidden="true"></span>`}
+          <button class="select-box" type="button" tabindex="-1" aria-label="Select ${escapeAttr(task.title)}" aria-pressed="${bulkSelected}" data-select="${escapeAttr(task.id)}">${bulkSelected ? "✓" : ""}</button>
+          <button class="complete-button p${task.priority}" type="button" tabindex="-1" title="${priorityLabel(task.priority)}" aria-label="${task.completed ? "Reopen" : "Complete"} ${escapeAttr(task.title)} · ${priorityLabel(task.priority)}" data-complete="${escapeAttr(task.id)}">✓</button>
+          <div class="task-main"><div class="task-title-line"><div class="task-title" title="${escapeAttr(task.title)}">${escapeHtml(task.title)}</div></div><div class="task-subtitle"><span>${escapeHtml(task.project)}</span>${task.due === "No date" ? "" : `<span class="${escapeAttr(task.dueClass)}" aria-label="${task.dueClass === "overdue" ? "Overdue: " : ""}${escapeAttr(task.due)}">${escapeHtml(task.due)}</span>`}</div></div>
         </article>`;
       }).join("") : emptyState;
 
-      document.getElementById("bulk-button").disabled = state.selected.size === 0;
-      document.getElementById("bulk-button").textContent = state.selected.size ? `${state.selected.size} selected` : "Select tasks";
+      const selecting = state.bulkSelecting || state.selected.size > 0;
+      taskList.classList.toggle("bulk-selecting", selecting);
+      document.getElementById("bulk-button").disabled = filtered.length === 0 && !selecting;
+      document.getElementById("bulk-button").textContent = selecting ? "Cancel selection" : "Select tasks";
+      document.getElementById("bulk-button").setAttribute("aria-pressed", String(selecting));
       document.getElementById("selection-summary").textContent = state.selected.size ? `${state.selected.size} selected for bulk actions` : `${filtered.length} visible`;
       document.getElementById("bulk-count").textContent = `${state.selected.size} selected`;
       bulkBar.classList.toggle("visible", state.selected.size > 0);
+      document.body.classList.toggle("bulk-actions-visible", state.selected.size > 0);
       const selectedProject = state.projectsById.get(state.projectId);
       const duplicateProjectName = selectedProject && [...state.projectsById.values()].some(project => project.id !== selectedProject.id && project.name === selectedProject.name);
       const viewTitle = state.view === "project"
@@ -1646,7 +1710,7 @@
       document.getElementById("view-title").textContent = viewTitle;
       const todayLabel = new Date().toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric", year: "numeric" });
       document.getElementById("view-eyebrow").textContent = `${state.workspace} workspace · ${state.view === "today" ? todayLabel : "Task browser"}`;
-      document.getElementById("view-subtitle").textContent = state.view === "today" ? `${filtered.length} tasks · ${filtered.filter(task => task.priority === 4 && !task.completed).length} high priority · ${filtered.filter(task => task.dueClass === "overdue" && !task.completed).length} overdue` : state.view === "completed" ? `${filtered.length} recent completed tasks · click the checkmark or press Space to reopen` : `${filtered.length} tasks in this view`;
+      document.getElementById("view-subtitle").textContent = state.view === "today" ? `${filtered.length} tasks · ${filtered.filter(task => task.priority >= 3 && !task.completed).length} high priority · ${filtered.filter(task => task.dueClass === "overdue" && !task.completed).length} overdue` : state.view === "completed" ? `${filtered.length} recent completed tasks · Space to reopen` : `${filtered.length} tasks in this view`;
       document.getElementById("list-label").textContent = state.query.trim() ? `Search · ${filtered.length}` : viewTitle;
       document.getElementById("reorder-view").hidden = state.view === "completed" || !tasks.some(task => task.id === state.selectedId);
       document.querySelectorAll(".nav-item, .view-switcher button").forEach(button => {
@@ -1656,7 +1720,31 @@
         const projectActive = button.dataset.projectId ? button.dataset.projectId === state.projectId && state.view === "project" : button.dataset.project === state.project && state.view === "project";
         const workspaceActive = button.dataset.workspace === state.workspace;
         button.classList.toggle("active", viewActive || projectActive || workspaceActive);
+        if (button.dataset.view) button.setAttribute("aria-current", viewActive ? "page" : "false");
       });
+    }
+
+    function fitNotesEditor() {
+      if (!state.detailEditing) return;
+      const editor = document.getElementById("description-editor");
+      editor.style.height = "auto";
+      editor.style.height = `${Math.min(480, Math.max(160, editor.scrollHeight + 2))}px`;
+    }
+
+    function updateNotesPresentation() {
+      const task = currentTask();
+      if (!task) return;
+      const richDescription = /(\*\*|__|`|^[-*] |^#+ |^(?:---+|___+)$|(?:^|[^!])\[[^\]]+\]\()/m.test(task.description);
+      // Attachments stay visible even if the user had hidden the text preview.
+      const showPreview = Boolean(task.attachment) || (state.notesPreviewOverride ?? richDescription);
+      document.querySelector(".detail-columns").classList.toggle("preview-visible", showPreview);
+      document.getElementById("notes-preview").hidden = !showPreview;
+      const toggle = document.getElementById("toggle-notes-width");
+      toggle.textContent = showPreview ? "Hide preview" : "Show preview";
+      toggle.setAttribute("aria-expanded", String(showPreview));
+      toggle.hidden = Boolean(task.attachment);
+      document.getElementById("preview-mode").textContent = task.attachment || richDescription ? "Rendered live" : "Plain text";
+      fitNotesEditor();
     }
 
     function renderDetail() {
@@ -1672,21 +1760,26 @@
       detailEmpty.hidden = true;
       detailContent.hidden = false;
       detailPane.classList.toggle("editing", state.detailEditing);
-      document.getElementById("detail-label").textContent = `TASK · ${task.project.toUpperCase()}`;
+      if (state.detailPresentationId !== task.id) {
+        state.detailPresentationId = task.id;
+        state.notesPreviewOverride = null;
+        document.querySelector(".detail-shortcuts").open = false;
+      }
+      document.getElementById("detail-label").textContent = task.project;
       document.getElementById("detail-title").textContent = task.title;
       document.getElementById("detail-title-input").value = task.title;
       document.getElementById("description-preview").innerHTML = renderMarkdown(task.description);
       document.getElementById("description-editor").value = task.description;
       document.getElementById("detail-priority").textContent = `Priority: ${priorityLabel(task.priority)}`;
+      document.getElementById("detail-priority").className = `tag priority p${task.priority}`;
       document.getElementById("detail-due-date").value = task.dueDateKey ?? "";
-      document.querySelector(".detail-columns").classList.toggle("notes-expanded", state.notesExpanded);
-      document.getElementById("toggle-notes-width").textContent = state.notesExpanded ? "Show preview" : "Expand notes";
+      document.getElementById("detail-clear-date").hidden = !task.dueDateKey;
+      updateNotesPresentation();
       document.getElementById("complete-detail").textContent = task.completed ? "Reopen task" : "Complete task";
       const previewMedia = document.getElementById("preview-media");
       const attachmentSrc = attachmentSrcFor(task);
       previewMedia.innerHTML = task.attachment ? `<div class="attachment-card"><div class="attachment-thumb">${attachmentSrc ? `<img src="${escapeAttr(attachmentSrc)}" alt="Pasted screenshot">` : "IMG"}</div><div class="attachment-copy"><div class="attachment-name">${escapeHtml(task.attachment.name)}</div><div class="attachment-meta">${escapeHtml(task.attachment.type)} · ${task.attachment.commentId ? "synced to Todoist" : "stored locally"}</div></div><button class="attachment-view" tabindex="-1" data-view-attachment>View larger</button><button class="attachment-view" tabindex="-1" data-remove-attachment>Remove</button></div>` : "";
-      const richDescription = /(\*\*|__|`|^[-*] |^#+ |^(?:---+|___+)$|(?:^|[^!])\[[^\]]+\]\()/m.test(task.description);
-      document.getElementById("preview-mode").textContent = task.attachment || richDescription ? "Rendered live" : "Plain text";
+
       const childTasks = tasks.filter(item => item.parentId === task.id);
       const subtasks = childTasks.length ? childTasks : task.subtasks || [];
       document.getElementById("subtask-count").textContent = `${subtasks.length} item${subtasks.length === 1 ? "" : "s"}`;
@@ -1709,7 +1802,8 @@
     }
 
     function focusCurrentTaskContext() {
-      if (state.detailEditing) document.getElementById("detail-pane").focus({ preventScroll: true });
+      if (state.captureOpen) captureInput.focus({ preventScroll: true });
+      else if (state.detailEditing) document.getElementById("detail-pane").focus({ preventScroll: true });
       else focusSelectedTask(false);
     }
 
@@ -2392,6 +2486,8 @@
 
     function enterDetail() {
       state.detailReturnId = null;
+      state.notesPreviewOverride = null;
+      document.querySelector(".detail-shortcuts").open = false;
       state.detailEditing = true;
       render();
       // Focus the pane, not the editor: single-letter detail keys must stay
@@ -2444,6 +2540,7 @@
       task.title = document.getElementById("detail-title-input").value.trim() || task.title;
       state.detailEditing = false;
       render();
+      focusSelectedTask();
       if (!state.liveTodoist) {
         showToast("Notes saved locally · demo mode");
         return;
@@ -2755,7 +2852,7 @@
       const pendingAttachment = state.captureAttachment;
       state.captureAttachment = null;
       const projectState = state.projectsById.get(project.id ?? state.inboxProjectId);
-      const task = { id: `task-local-${randomUuid()}`, title: parsed.title, project: project.name, projectId: project.id ?? state.inboxProjectId ?? null, projectOrderKey: projectState?.orderKey ?? null, projectOrderParentId: projectState?.parentId ?? null, parentId: null, sectionId: null, due: parsed.due, dueDateKey: dueDateKeyForRelativeLabel(parsed.due, new Date(), state.todoistTimeZone), dueClass: "", priority: parsed.priority, completed: false, workspace: state.workspace, description: "New task captured in Keydo.", subtasks: [], attachment: null };
+      const task = { id: `task-local-${randomUuid()}`, title: parsed.title, project: project.name, projectId: project.id ?? state.inboxProjectId ?? null, projectOrderKey: projectState?.orderKey ?? null, projectOrderParentId: projectState?.parentId ?? null, parentId: null, sectionId: null, due: parsed.due, dueDateKey: dueDateKeyForRelativeLabel(parsed.due, new Date(), state.todoistTimeZone), dueClass: "", priority: parsed.priority, completed: false, workspace: state.workspace, description: "", subtasks: [], attachment: null };
       state.captureSaving = true;
       document.getElementById("capture-save").disabled = true;
       document.getElementById("capture-save").textContent = "Saving…";
@@ -2763,9 +2860,11 @@
       state.view = parsed.due === "Today" ? "today" : "upcoming";
       state.selectedId = task.id;
       state.selected.clear();
+      state.bulkSelecting = false;
       resetSelectionRange(task.id);
       closeQuickCapture();
       render();
+      focusSelectedTask();
       if (!state.liveTodoist) {
         if (pendingAttachment) {
           task.attachment = { name: pendingAttachment.name, type: pendingAttachment.type, data: pendingAttachment.dataUrl };
@@ -2945,6 +3044,7 @@
     }
 
     function openCommands(mode = "all", prefix = "") {
+      helpBackdrop.classList.remove("visible");
       state.commandMode = mode;
       state.commandIndex = 0;
       commandSearch.value = prefix;
@@ -2955,6 +3055,7 @@
     }
 
     function openHelp() {
+      commandBackdrop.classList.remove("visible");
       helpBackdrop.classList.add("visible");
       document.getElementById("help-dialog").focus({ preventScroll: true });
     }
@@ -3002,6 +3103,7 @@
       commandBackdrop.classList.remove("visible");
       helpBackdrop.classList.remove("visible");
       commandSearch.blur();
+      focusCurrentTaskContext();
     }
 
     function openTaskInTodoist() {
@@ -3029,6 +3131,7 @@
       state.project = project;
       state.projectId = view === "project" ? projectId : state.projectId;
       state.selected.clear();
+      state.bulkSelecting = false;
       resetSelectionRange(null);
       state.moveFromId = null;
       state.moveTargetId = null;
@@ -3060,6 +3163,7 @@
       searchInput.value = "";
       state.detailEditing = false;
       state.selected.clear();
+      state.bulkSelecting = false;
       resetSelectionRange(task.id);
       render();
       focusSelectedTask();
@@ -3228,6 +3332,7 @@
         state.selected.clear();
         resetSelectionRange(state.selectedId);
       }
+      if (!state.selected.size) state.bulkSelecting = false;
       render();
       if (!state.liveTodoist) {
         showToast(kind === "today" ? "Selected tasks moved to Today · demo mode" : kind === "clear" ? "Due dates cleared · demo mode" : "Selected tasks completed · demo mode");
@@ -3758,8 +3863,20 @@
       focusSelectedTask();
     });
     document.addEventListener("pointermove", () => document.body.classList.remove("keyboard-navigation"), { passive: true });
-    document.getElementById("bulk-button").addEventListener("click", () => showToast("Use Shift+Arrow to select a range, or Shift+Space to toggle a task"));
-    document.getElementById("bulk-clear").addEventListener("click", () => { state.selected.clear(); resetSelectionRange(state.selectedId); render(); });
+    function clearBulkSelection() {
+      state.selected.clear();
+      state.bulkSelecting = false;
+      resetSelectionRange(state.selectedId);
+    }
+
+    document.getElementById("bulk-button").addEventListener("click", () => {
+      const cancelling = state.bulkSelecting || state.selected.size > 0;
+      if (cancelling) clearBulkSelection();
+      else state.bulkSelecting = true;
+      render();
+      if (cancelling) focusSelectedTask(false);
+    });
+    document.getElementById("bulk-clear").addEventListener("click", () => { clearBulkSelection(); render(); focusSelectedTask(false); });
     document.getElementById("bulk-clear-dates").addEventListener("click", () => runBulk("clear"));
     document.getElementById("bulk-complete").addEventListener("click", () => runBulk("complete"));
     document.getElementById("bulk-today").addEventListener("click", () => runBulk("today"));
@@ -3771,13 +3888,12 @@
     });
     document.getElementById("detail-clear-date").addEventListener("click", () => { void setTaskDue("No date", "no date"); });
     document.getElementById("toggle-notes-width").addEventListener("click", () => {
-      state.notesExpanded = !state.notesExpanded;
-      document.querySelector(".detail-columns").classList.toggle("notes-expanded", state.notesExpanded);
-      document.getElementById("toggle-notes-width").textContent = state.notesExpanded ? "Show preview" : "Expand notes";
+      state.notesPreviewOverride = document.getElementById("notes-preview").hidden;
+      updateNotesPresentation();
     });
     document.getElementById("detail-actions").addEventListener("click", () => openCommands());
     document.getElementById("open-todoist").addEventListener("click", () => runCommand("task:open"));
-    document.getElementById("description-editor").addEventListener("input", event => { const task = currentTask(); task.description = event.target.value; document.getElementById("description-preview").innerHTML = renderMarkdown(event.target.value); queueTaskUpdate(task, { description: task.description }); });
+    document.getElementById("description-editor").addEventListener("input", event => { const task = currentTask(); if (!task) return; task.description = event.target.value; document.getElementById("description-preview").innerHTML = renderMarkdown(event.target.value); updateNotesPresentation(); queueTaskUpdate(task, { description: task.description }); });
     document.getElementById("detail-title-input").addEventListener("input", event => { const task = currentTask(); task.title = event.target.value; document.getElementById("detail-title").textContent = event.target.value; queueTaskUpdate(task, { content: task.title }); });
     document.getElementById("subtask-list").addEventListener("click", event => {
       const subtask = event.target.closest("[data-subtask]");
@@ -3801,7 +3917,7 @@
       if (event.target.closest("[data-view-attachment]")) { const src = attachmentSrcFor(task); if (src) window.open(src, "_blank", "noopener"); }
       if (event.target.closest("[data-remove-attachment]") && task) removeAttachment();
     });
-    document.getElementById("capture-button").addEventListener("click", openQuickCapture);
+    document.getElementById("capture-button").addEventListener("click", () => openQuickCapture());
     document.getElementById("capture-cancel").addEventListener("click", closeQuickCapture);
     document.getElementById("capture-save").addEventListener("click", createSmartTask);
     document.getElementById("capture-exact").addEventListener("click", createQuickTask);
@@ -3812,6 +3928,9 @@
     commandList.addEventListener("click", event => { const command = event.target.closest("[data-command]"); if (command) runCommand(command.dataset.command); });
     commandBackdrop.addEventListener("click", event => { if (event.target === commandBackdrop) closeModals(); });
     helpBackdrop.addEventListener("click", event => { if (event.target === helpBackdrop) closeHelp(); });
+    document.getElementById("help-button").addEventListener("click", openHelp);
+    document.getElementById("commands-button").addEventListener("click", () => openCommands());
+    window.addEventListener("resize", fitNotesEditor);
     document.getElementById("delete-cancel").addEventListener("click", closeDeleteConfirmation);
     document.getElementById("delete-confirm").addEventListener("click", deleteSelectedTask);
     deleteBackdrop.addEventListener("click", event => { if (event.target === deleteBackdrop) closeDeleteConfirmation(); });
@@ -3856,12 +3975,10 @@
       if (state.captureOpen || commandBackdrop.classList.contains("visible") || helpBackdrop.classList.contains("visible")) {
         if (event.key === "Escape") {
           event.preventDefault();
-          if (state.captureOpen) closeQuickCapture();
-          else if (helpBackdrop.classList.contains("visible")) closeHelp();
-          else {
+          if (helpBackdrop.classList.contains("visible")) closeHelp();
+          else if (commandBackdrop.classList.contains("visible")) {
             closeModals();
-            focusCurrentTaskContext();
-          }
+          } else closeQuickCapture();
         } else if (event.key === "Tab" && helpBackdrop.classList.contains("visible")) {
           event.preventDefault();
           document.getElementById("help-dialog").focus({ preventScroll: true });
@@ -3881,7 +3998,7 @@
         }
         if (state.detailEditing) { event.preventDefault(); leaveDetail(); return; }
         if (typing) { event.preventDefault(); target.blur(); return; }
-        if (state.selected.size) { event.preventDefault(); state.selected.clear(); resetSelectionRange(state.selectedId); render(); return; }
+        if (state.selected.size || state.bulkSelecting) { event.preventDefault(); clearBulkSelection(); render(); focusSelectedTask(false); return; }
         const row = queryTaskRow(state.selectedId);
         if (row) row.focus({ preventScroll: true });
         return;

@@ -8,10 +8,12 @@
     "start": "bun src/server.ts",
     "start:tailscale": "bash scripts/start-tailscale.sh",
     "test": "bun test",
+    "test:browser": "bun tests/ui.browser.ts",
     "typecheck": "bunx tsc --noEmit && bun scripts/check-inline-identifiers.js"
   },
   "devDependencies": {
     "@types/bun": "latest",
+    "playwright-core": "1.63.0",
     "typescript": "latest"
   },
   "dependencies": {
