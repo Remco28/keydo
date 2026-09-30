@@ -52,6 +52,12 @@ The active keyboard task is marked separately from bulk-selected tasks. The
 shortcuts reveal them automatically. **Cancel selection**, **Clear selection**,
 or `Esc` dismiss selection mode, and changing views resets it.
 
+Reopening a parent completed through Keydo also restores the subtasks that
+were unfinished when that parent was completed; already-finished children
+stay finished. If Todoist only restores part of the subtree, **Completed**
+keeps a **Retry reopening unfinished subtasks** entry. Use its checkbox or
+`Space` to retry, including after a browser reload.
+
 ## Detail room
 
 Opening a task (`Enter`) focuses the detail room itself, so the detail keys

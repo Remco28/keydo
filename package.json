@@ -8,7 +8,7 @@
     "start": "bun src/server.ts",
     "start:tailscale": "bash scripts/start-tailscale.sh",
     "test": "bun test",
-    "test:browser": "bun tests/ui.browser.ts",
+    "test:browser": "bun tests/ui.browser.ts && bun tests/completion.browser.ts",
     "typecheck": "bunx tsc --noEmit && bun scripts/check-inline-identifiers.js"
   },
   "devDependencies": {

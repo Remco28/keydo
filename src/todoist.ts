@@ -307,8 +307,14 @@ export function createTodoistClient(options: TodoistClientOptions) {
       return request(`/api/v1/tasks/${encodeURIComponent(taskId)}/close`, { method: "POST" });
     },
 
-    reopenTask(taskId: string) {
-      return request(`/api/v1/tasks/${encodeURIComponent(taskId)}/reopen`, { method: "POST" });
+    getTask(taskId: string) {
+      return request(`/api/v1/tasks/${encodeURIComponent(taskId)}`, { method: "GET" });
+    },
+
+    reopenTask(taskId: string, requestId?: string) {
+      return request(`/api/v1/tasks/${encodeURIComponent(taskId)}/reopen`, {
+        method: "POST", ...(requestId ? { headers: { "X-Request-Id": requestId } } : {})
+      });
     },
 
     deleteTask(taskId: string) {

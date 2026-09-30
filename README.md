@@ -59,7 +59,15 @@ bun run typecheck
 bun run test:browser
 ```
 
-The browser suite requires installed Chrome/Chromium (or `KEYDO_TEST_BROWSER` pointing to its executable). It starts an isolated demo server with Todoist explicitly disabled, exercises keyboard and mouse flows, and captures desktop/narrow screenshots in a temporary artifact directory. Set `KEYDO_BROWSER_ARTIFACTS` to choose that directory.
+The browser suite requires installed Chrome/Chromium (or `KEYDO_TEST_BROWSER` pointing to its executable). It exercises keyboard and mouse flows in an isolated demo server and checks completion recovery against an explicitly fake Todoist upstream; it never uses live credentials. Desktop/narrow screenshots are captured in a temporary artifact directory. Set `KEYDO_BROWSER_ARTIFACTS` to choose that directory.
+
+### Completion recovery
+
+Completing an ordinary Todoist parent also completes its subtasks. Native Todoist reopen restores only the requested task and its ancestors. Keydo records the unfinished subtree before completing it, then explicitly restores those unfinished descendants when you reopen the parent. Previously finished subtasks stay finished; recurring parents retain Todoist's normal recurrence behavior. This also covers bulk completion.
+
+The server keeps an account-token/API-scoped undo journal in `data/completion-recovery.sqlite` (override with `KEYDO_RECOVERY_DB`). It contains only task/hierarchy IDs, completion timestamps and recovery progress—not task content or credentials—and survives browser reloads and server restarts. Keep this gitignored data directory when deploying updates. Tests use an isolated in-memory journal or scratch database.
+
+Partial recovery stays available in **Completed** as **Retry reopening unfinished subtasks**, even when the parent is already active. Recovery verifies task identities, hierarchy and completion timestamps before restoring; external edits or unconfirmed completion responses can cancel automatic recovery rather than revive unrelated completed work. Completions predating this journal or made outside Keydo retain native single-task reopen behavior: Keydo does not infer unfinished children from the recent-completions feed.
 
 ### Interface
 

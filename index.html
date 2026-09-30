@@ -925,6 +925,7 @@
       completedLoading: false,
       completedError: false,
       reopeningCompleted: new Set(),
+      demoCompletionSnapshots: new Map(),
       todoistTimeZone: null,
       todoistConfigured: null,
       runtimeStateLoading: false,
@@ -1112,12 +1113,13 @@
             priority: item.priority ?? 1,
             completed: true,
             completedAt: item.completed_at ?? "",
+            pendingReopen: Boolean(item.keydo_reopen_pending),
             workspace: "Personal",
             description: item.description ?? "",
             subtasks: [],
             attachment: null
           };
-        }).filter(item => item.id).sort((a, b) => b.completedAt.localeCompare(a.completedAt));
+        }).filter(item => item.id).sort((a, b) => Number(b.pendingReopen) - Number(a.pendingReopen) || b.completedAt.localeCompare(a.completedAt));
       } catch {
         state.completedError = true;
         state.recentCompleted = [];
@@ -1477,6 +1479,11 @@
         }, true);
         if (!response.ok) {
           const error = new Error("Todoist task mutation failed");
+          if (action === "complete" || action === "reopen") {
+            const payload = await response.clone().json().catch(() => null);
+            error.recoveryPending = Boolean(payload?.recovery_pending);
+            if (typeof payload?.error === "string") error.message = payload.error;
+          }
           if (action === "reorder") {
             const payload = await response.clone().json().catch(() => null);
             error.rateLimited = isTodoistRateLimited(response.status, payload);
@@ -1725,11 +1732,11 @@
         const selected = task.id === state.selectedId;
         const bulkSelected = state.selected.has(task.id);
         const depth = taskDepth(task, parentById, visibleIds);
-        return `<article class="task-row depth-${depth} ${selected ? "selected" : ""} ${state.collapsed.has(task.id) ? "collapsed" : ""} ${task.completed ? "completed" : ""} ${bulkSelected ? "bulk-selected" : ""} ${task.id === state.moveTargetId ? "move-target" : ""} ${task.id === state.moveFromId ? "move-source" : ""}" style="--task-depth: ${depth}" role="listitem" aria-current="${selected}" data-task-id="${escapeAttr(task.id)}" data-index="${index}" tabindex="${selected ? 0 : -1}">
+        return `<article class="task-row depth-${depth} ${selected ? "selected" : ""} ${state.collapsed.has(task.id) ? "collapsed" : ""} ${task.completed && !task.pendingReopen ? "completed" : ""} ${bulkSelected ? "bulk-selected" : ""} ${task.id === state.moveTargetId ? "move-target" : ""} ${task.id === state.moveFromId ? "move-source" : ""}" style="--task-depth: ${depth}" role="listitem" aria-current="${selected}" data-task-id="${escapeAttr(task.id)}" data-index="${index}" tabindex="${selected ? 0 : -1}">
           ${parentIdsWithChildren.has(task.id) ? `<button class="tree-toggle" type="button" tabindex="-1" data-collapse="${escapeAttr(task.id)}" aria-label="${state.collapsed.has(task.id) ? "Expand" : "Collapse"} subtasks of ${escapeAttr(task.title)}" aria-expanded="${!state.collapsed.has(task.id)}">${state.collapsed.has(task.id) ? "▸" : "▾"}</button>` : `<span class="tree-toggle" aria-hidden="true"></span>`}
           <button class="select-box" type="button" tabindex="-1" aria-label="Select ${escapeAttr(task.title)}" aria-pressed="${bulkSelected}" data-select="${escapeAttr(task.id)}">${bulkSelected ? "✓" : ""}</button>
-          <button class="complete-button p${task.priority}" type="button" tabindex="-1" title="${priorityLabel(task.priority)}" aria-label="${task.completed ? "Reopen" : "Complete"} ${escapeAttr(task.title)} · ${priorityLabel(task.priority)}" data-complete="${escapeAttr(task.id)}">✓</button>
-          <div class="task-main"><div class="task-title-line"><div class="task-title" title="${escapeAttr(task.title)}">${escapeHtml(task.title)}</div></div><div class="task-subtitle"><span>${escapeHtml(task.project)}</span>${task.due === "No date" ? "" : `<span class="${escapeAttr(task.dueClass)}" aria-label="${task.dueClass === "overdue" ? "Overdue: " : ""}${escapeAttr(task.due)}">${escapeHtml(task.due)}</span>`}</div></div>
+          <button class="complete-button p${task.priority}" type="button" tabindex="-1" title="${priorityLabel(task.priority)}" aria-label="${task.pendingReopen ? "Retry reopening subtasks of" : task.completed ? "Reopen" : "Complete"} ${escapeAttr(task.title)} · ${priorityLabel(task.priority)}" data-complete="${escapeAttr(task.id)}">✓</button>
+          <div class="task-main"><div class="task-title-line"><div class="task-title" title="${escapeAttr(task.title)}">${escapeHtml(task.title)}</div></div><div class="task-subtitle"><span>${escapeHtml(task.project)}</span>${task.pendingReopen ? `<span>Retry reopening unfinished subtasks</span>` : ""}${task.due === "No date" ? "" : `<span class="${escapeAttr(task.dueClass)}" aria-label="${task.dueClass === "overdue" ? "Overdue: " : ""}${escapeAttr(task.due)}">${escapeHtml(task.due)}</span>`}</div></div>
         </article>`;
       }).join("") : emptyState;
 
@@ -1934,6 +1941,9 @@
     }
 
     async function toggleComplete(taskId) {
+      if (state.liveTodoist && state.view === "completed" && state.recentCompleted.some(item => item.id === taskId)) {
+        return reopenRecentCompleted(taskId);
+      }
       const task = tasks.find(item => item.id === taskId);
       if (!task) {
         if (state.view === "completed") return reopenRecentCompleted(taskId);
@@ -1949,15 +1959,19 @@
       state.reopeningCompleted.add(taskId);
       showToast("Reopening task in Todoist…");
       try {
-        await persistTaskMutation(task, "reopen");
-        state.recentCompleted = state.recentCompleted.filter(item => item.id !== taskId);
-        render();
-        const refreshed = await refreshFromSync({ full: true });
-        if (!refreshed) state.orderSyncUncertain = true;
-        showToast(refreshed ? "Task reopened in Todoist" : "Task reopened · active list will refresh on sync");
-      } catch {
-        showToast("Reopen result uncertain · refreshing completed tasks");
-        await refreshFromSync({ full: true });
+        await withTaskOrderLock(async () => {
+          try {
+            await persistTaskMutation(task, "reopen");
+            state.recentCompleted = state.recentCompleted.filter(item => item.id !== taskId);
+            render();
+            const refreshed = await refreshFromSync({ full: true });
+            if (!refreshed) state.orderSyncUncertain = true;
+            showToast(refreshed ? "Task reopened in Todoist" : "Task reopened · active list will refresh on sync");
+          } catch (error) {
+            await refreshFromSync({ full: true });
+            showToast(error.recoveryPending ? "Some subtasks remain completed · retry this task in Completed" : error.message || "Reopen result uncertain · refreshing completed tasks");
+          }
+        });
       } finally {
         state.reopeningCompleted.delete(taskId);
         await loadRecentCompleted();
@@ -2001,10 +2015,18 @@
       }
       const previousCompletion = new Map(tasks.filter(item => subtreeIds.has(item.id)).map(item => [item.id, item.completed]));
       const completed = !previous;
+      if (!state.liveTodoist && completed && !task.recurring) state.demoCompletionSnapshots.set(taskId, previousCompletion);
       task.completed = completed;
       if (completed) setTaskSubtreeCompletion(tasks, taskId, true, Boolean(task.recurring));
       render();
       if (!state.liveTodoist) {
+        if (!completed) {
+          const snapshot = state.demoCompletionSnapshots.get(taskId);
+          if (snapshot) restoreTaskSnapshots(tasks, [...snapshot].map(([id, completed]) => ({ id, completed })));
+          state.demoCompletionSnapshots.delete(taskId);
+          setTaskAncestorCompletion(tasks, taskId, false);
+          render();
+        }
         showToast(task.completed ? "Task completed · demo mode" : "Task reopened · demo mode");
         releaseAction();
         return;
@@ -2038,7 +2060,7 @@
           return;
         }
         showToast(refreshed ? "Saved to Todoist" : "Saved · Todoist order refresh unavailable");
-      } catch {
+      } catch (error) {
         // A failed response can be ambiguous: Todoist may have applied the
         // completion/reopen before the connection failed, including changing
         // the task's position in its parent list.
@@ -2052,7 +2074,7 @@
           }
           render();
         }
-        showToast(refreshed ? "Update result uncertain · list reloaded from Todoist" : "Todoist update failed · change reverted; order is uncertain");
+        showToast(error.recoveryPending ? "Some subtasks remain completed · retry this task in Completed" : refreshed ? "Update result uncertain · list reloaded from Todoist" : "Todoist update failed · change reverted; order is uncertain");
       }
       releaseAction();
     }
@@ -3409,6 +3431,10 @@
       if (kind === "complete") {
         for (const id of actionIds) {
           const task = optimisticTasksById.get(id);
+          if (!state.liveTodoist && task && !task.recurring) {
+            const subtree = subtreeIdsByRoot.get(id);
+            state.demoCompletionSnapshots.set(id, new Map(tasks.filter(item => subtree?.has(item.id)).map(item => [item.id, item.completed])));
+          }
           if (task) setTaskSubtreeCompletion(tasks, id, true, Boolean(task.recurring));
         }
       }

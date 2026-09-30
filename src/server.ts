@@ -1,6 +1,9 @@
 import { createTodoistClient, TodoistApiError, TodoistCommandError, type Fetcher, type TodoistSyncRequest, type TodoistSyncResponse, type TodoistTaskCreate, type TodoistTaskMove, type TodoistTaskUpdate } from "./todoist";
 import { hasRasterImageSignature, normalizeRasterImageType } from "./image-content";
 import { createAsyncLock } from "./order-lock.js";
+import { createHash } from "node:crypto";
+import { fileURLToPath } from "node:url";
+import { CompletionRecoveryError, createCompletionJournal, createCompletionRecovery } from "./completion-recovery";
 
 export type KeydoServerOptions = {
   port?: number;
@@ -10,6 +13,7 @@ export type KeydoServerOptions = {
   todoistToken?: string;
   todoistApiBase?: string;
   fetcher?: Fetcher;
+  completionRecoveryPath?: string;
 };
 
 const indexFile = Bun.file(new URL("../index.html", import.meta.url));
@@ -256,6 +260,9 @@ export function createServer(options: KeydoServerOptions = {}) {
   }
   const token = options.todoistToken ?? Bun.env.TODOIST_ACCESS_TOKEN ?? "";
   const todoist = token ? createTodoistClient({ token, apiBase: options.todoistApiBase ?? Bun.env.TODOIST_API_BASE, fetcher: options.fetcher }) : null;
+  const recoveryPath = options.completionRecoveryPath ?? (options.port === 0 ? ":memory:" : Bun.env.KEYDO_RECOVERY_DB ?? fileURLToPath(new URL("../data/completion-recovery.sqlite", import.meta.url)));
+  const recoveryScope = createHash("sha256").update(JSON.stringify([token, options.todoistApiBase ?? Bun.env.TODOIST_API_BASE ?? "https://api.todoist.com"])).digest("hex");
+  const completionRecovery = todoist ? createCompletionRecovery(todoist, createCompletionJournal(recoveryPath, recoveryScope)) : null;
   const taskOrderLock = createAsyncLock();
   type OrderLockOwner = { token: string; release: () => void; activeRequests: number; cancelled: boolean };
   let orderLockOwner: OrderLockOwner | null = null;
@@ -506,7 +513,11 @@ export function createServer(options: KeydoServerOptions = {}) {
         const until = new Date();
         const since = new Date(until.getTime() - 30 * 24 * 60 * 60 * 1000);
         try {
-          return Response.json(await todoist.getCompletedTasks(since.toISOString(), until.toISOString()), {
+          const payload = await todoist.getCompletedTasks(since.toISOString(), until.toISOString()) as { items: Array<Record<string, unknown>> };
+          const pending = await completionRecovery!.pendingTasks();
+          const byId = new Map(payload.items.map(item => [item.id, item]));
+          for (const item of pending) byId.set(item.id, item);
+          return Response.json({ ...payload, items: [...byId.values()] }, {
             headers: { "Cache-Control": "no-store" }
           });
         } catch (error) {
@@ -633,13 +644,16 @@ export function createServer(options: KeydoServerOptions = {}) {
             const result = await todoist.updateTaskOrder(taskId, body.order_key ?? "", body.sync_token ?? "*");
             return Response.json({ ...result, ok: true });
           }
-          if (body.action === "complete") await todoist.completeTask(taskId);
-          if (body.action === "reopen") await todoist.reopenTask(taskId);
-          if (body.action === "delete") await todoist.deleteTask(taskId);
+          if (body.action === "complete") await completionRecovery!.complete(taskId);
+          if (body.action === "reopen") await completionRecovery!.reopen(taskId);
+          if (body.action === "delete") { await todoist.deleteTask(taskId); completionRecovery!.forget(taskId); }
           if (body.action === "update") await todoist.updateTask(taskId, body.updates ?? {});
           if (body.action === "move") await todoist.moveTask(taskId, body.destination ?? {});
           return Response.json({ ok: true });
         } catch (error) {
+          if (error instanceof CompletionRecoveryError) {
+            return Response.json({ error: error.message, recovery_pending: error.recoveryPending }, { status: 502 });
+          }
           if (error instanceof TodoistCommandError) {
             return Response.json({ error: error.message, command_rejected: true, details: error.details }, { status: 422 });
           }

@@ -226,6 +226,37 @@ try {
     await page.keyboard.press("Escape");
   });
 
+  await check("reopening a parent restores its unfinished subtasks", async () => {
+    const recoveryPage = await browser!.newPage();
+    try {
+      await recoveryPage.goto(server.url.href);
+      await recoveryPage.locator("#boot-overlay").waitFor({ state: "hidden" });
+      await recoveryPage.locator("#capture-button").click();
+      await recoveryPage.locator("#capture-input").fill("Recovery parent today");
+      await recoveryPage.keyboard.press("Enter");
+      await recoveryPage.locator("#quick-capture").waitFor({ state: "hidden" });
+      await recoveryPage.keyboard.press("s");
+      for (const title of ["Unfinished child one", "Unfinished child two"]) {
+        await recoveryPage.locator("#subtask-create-input").fill(title);
+        await recoveryPage.keyboard.press("Enter");
+      }
+      assert.equal(await recoveryPage.locator("#subtask-list [data-subtask]").count(), 2);
+      await recoveryPage.locator("#detail-pane").focus();
+      await recoveryPage.keyboard.press("c");
+      await recoveryPage.locator("[data-view='completed']").click();
+      const parent = recoveryPage.locator(".task-row").filter({ hasText: "Recovery parent" });
+      await parent.locator("[data-complete]").click();
+      await recoveryPage.locator("[data-view='today']").click();
+      await parent.click();
+      await recoveryPage.keyboard.press("Enter");
+      await recoveryPage.locator("#detail-pane").waitFor({ state: "visible" });
+      assert.equal(await recoveryPage.locator("#subtask-list [data-subtask]").count(), 2);
+      assert.equal(await recoveryPage.locator("#subtask-list .done").count(), 0);
+    } finally {
+      await recoveryPage.close();
+    }
+  });
+
   await check("project tree, search, and empty states still work", async () => {
     await page.locator(".task-row.selected").focus();
     await page.keyboard.press("r");
