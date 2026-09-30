@@ -55,6 +55,8 @@ export function projectVisibleTree<T extends TaskViewTask>(
   allTasks?: T[]
 ): T[];
 
+export function includeTaskDescendants<T extends TaskViewTask & { completed?: boolean }>(allTasks: T[], matchingTasks: T[]): T[];
+
 export function makeSiblingReorder<T extends TaskViewTask & { orderKey?: string | null }>(
   siblings: T[],
   taskId: string,

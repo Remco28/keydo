@@ -30,13 +30,14 @@ command palette (`Ctrl+K`) are the source of truth when in doubt.
 | `T` / `Shift+T` | Move to Today / Tomorrow |
 | `C` | Clear due date |
 | `+` / `-` | Increase / decrease priority |
+| `R` | Open the selected task's complete project list and clear search before reordering |
 | `Alt+→` / `Alt+←` | In an unfiltered project view, indent under previous sibling / outdent one level |
 | `Alt+↑` / `Alt+↓` | In an unfiltered project view, reorder among siblings |
 | `M` | Move selected task to a project |
 | `Shift+M` | In an unfiltered project view, move mode: pick any parent with `↑↓`, `Enter` drops, `Esc` cancels |
 | `G` | Go to view / project / workspace |
 | `/` | Search across all tasks (ignores the current view filter) |
-| `N` | Capture composer (type + optional pasted screenshot, `Enter` creates) |
+| `N` | Capture composer (`Enter` uses Todoist Smart Add in live mode; pasted screenshots and demo mode use structured creation) |
 | `Ctrl+K` | Command palette |
 | `Ctrl+V` | Attach pasted screenshot to the selected task |
 | `?` | Keyboard help |

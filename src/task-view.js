@@ -151,6 +151,25 @@ export function projectVisibleTree(matchingTasks, collapsedIds, allTasks = match
   return matchingTasks.filter(task => !isHidden(task));
 }
 
+export function includeTaskDescendants(allTasks, matchingTasks) {
+  const included = new Set(matchingTasks.map(task => task.id));
+  const children = new Map();
+  for (const task of allTasks) {
+    if (!task.parentId || task.completed) continue;
+    if (!children.has(task.parentId)) children.set(task.parentId, []);
+    children.get(task.parentId).push(task.id);
+  }
+  const pending = [...included];
+  while (pending.length) {
+    for (const id of children.get(pending.pop()) ?? []) {
+      if (included.has(id)) continue;
+      included.add(id);
+      pending.push(id);
+    }
+  }
+  return allTasks.filter(task => included.has(task.id));
+}
+
 export function makeSiblingReorder(siblings, taskId, direction) {
   const currentIndex = siblings.findIndex(task => task.id === taskId);
   if (currentIndex < 0 || (direction !== "up" && direction !== "down")) return null;

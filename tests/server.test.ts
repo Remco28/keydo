@@ -768,7 +768,7 @@ describe("Keydo server", () => {
       }
     });
     try {
-      const response = await appRequest(server, "/api/todoist/tasks", { method: "POST", body: JSON.stringify({ content: "Call Alex", description: "Created in Keydo", priority: 3, project_id: "project-1", due_string: "tomorrow", command_uuid: "stable-command", temp_id: "stable-temp", sync_token: "saved-read-cursor" }) });
+      const response = await appRequest(server, "/api/todoist/tasks", { method: "POST", body: JSON.stringify({ content: "Call Alex", description: "Created in Keydo", priority: 3, parent_id: "parent-1", project_id: "project-1", due_string: "tomorrow", command_uuid: "stable-command", temp_id: "stable-temp", sync_token: "saved-read-cursor" }) });
       expect(response.status).toBe(200);
       expect(await response.json()).toMatchObject({ id: "task-1" });
       expect(requestUrl).toBe("https://todoist.test/api/v1/sync");
@@ -777,7 +777,7 @@ describe("Keydo server", () => {
         type: "item_add",
         uuid: "stable-command",
         temp_id: "stable-temp",
-        args: { content: "Call Alex", description: "Created in Keydo", priority: 3, project_id: "project-1", due: { string: "tomorrow" } }
+        args: { content: "Call Alex", description: "Created in Keydo", priority: 3, parent_id: "parent-1", project_id: "project-1", due: { string: "tomorrow" } }
       });
     } finally {
       server.stop(true);
@@ -878,7 +878,7 @@ describe("Keydo server", () => {
     }
   });
 
-  test.each(["section_id", "parent_id", "order", "order_key", "day_order"])("rejects unsupported task-create field %s instead of silently dropping it", async field => {
+  test.each(["section_id", "order", "order_key", "day_order"])("rejects unsupported task-create field %s instead of silently dropping it", async field => {
     let upstreamCalled = false;
     const server = createServer({
       port: 0,
@@ -1685,6 +1685,7 @@ describe("Keydo server", () => {
       expect(body).toContain('"fractional-indexing":"/src/fractional-indexing.js"');
       expect(response.headers.get("X-Frame-Options")).toBe("DENY");
       expect(response.headers.get("Content-Security-Policy")).toBe("frame-ancestors 'none'");
+      expect(response.headers.get("Cache-Control")).toBe("no-store");
     } finally {
       server.stop(true);
     }
@@ -1696,6 +1697,7 @@ describe("Keydo server", () => {
       const response = await fetch(new URL("/src/task-view.js", server.url));
       expect(response.status).toBe(200);
       expect(response.headers.get("content-type")).toContain("text/javascript");
+      expect(response.headers.get("cache-control")).toBe("no-store");
       expect(await response.text()).toContain("projectVisibleTree");
     } finally {
       server.stop(true);

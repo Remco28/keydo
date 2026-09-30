@@ -71,6 +71,26 @@ describe("Todoist client", () => {
     });
   });
 
+  test("creates a subtask under its parent with Sync item_add", async () => {
+    let requestInit: RequestInit | undefined;
+    const client = createTodoistClient({
+      token: "test-token",
+      apiBase: "https://todoist.test",
+      fetcher: async (_input, init) => {
+        requestInit = init;
+        const body = init?.body as URLSearchParams;
+        const command = JSON.parse(body.get("commands")!)[0];
+        return Response.json({ sync_status: { [command.uuid]: "ok" }, temp_id_mapping: { [command.temp_id]: "child-1" } });
+      }
+    });
+
+    const result = await client.createTask({ content: "Review draft", parent_id: "parent-1", project_id: "project-1" }, "command-child", "temporary-child", "saved-read-cursor");
+
+    expect(result.id).toBe("child-1");
+    const body = requestInit?.body as URLSearchParams;
+    expect(JSON.parse(body.get("commands")!)[0].args).toEqual({ content: "Review draft", parent_id: "parent-1", project_id: "project-1" });
+  });
+
   test("retries task creation with a full token only when the saved cursor is rejected", async () => {
     const requests: Array<{ token: string; uuid: string; resourceTypes: string | null }> = [];
     const client = createTodoistClient({

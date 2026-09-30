@@ -25,7 +25,7 @@ Todoist provides a capable task model, but many useful operations require openin
 
 ## Current status
 
-The runnable web-app shell is in place. It serves the interactive prototype, exposes health/configuration endpoints, and performs a server-side Todoist Sync when configured. The browser hydrates real Todoist tasks when `TODOIST_ACCESS_TOKEN` is available, refreshes incrementally when the app returns online or becomes visible, and polls every minute while visible. It otherwise remains in demo mode. In live mode, all synced tasks currently appear in the Personal workspace; Work/Personal classification has no agreed rule yet, so the separate Work workspace is demo-only. Chosen-date entry, OAuth, and persistent local task storage also remain future implementation slices.
+The runnable web-app shell is in place. It serves the interactive prototype, exposes health/configuration endpoints, and performs a server-side Todoist Sync when configured. The browser hydrates real Todoist tasks when `TODOIST_ACCESS_TOKEN` is available, refreshes incrementally when the app returns online or becomes visible, and polls every minute while visible. It otherwise remains in demo mode. In live mode, all synced tasks currently appear in the Personal workspace; Work/Personal classification has no agreed rule yet, so the separate Work workspace is demo-only. Task details include a due-date picker. In live mode, Quick Capture uses Todoist Smart Add for natural-language dates and times; Create exact retains the structured path, and pasted screenshots use that path. OAuth and persistent local task storage remain future implementation slices.
 
 ## Development
 
@@ -47,7 +47,7 @@ For HTTPS through Tailscale Serve, keep Keydo bound to loopback, set `KEYDO_ALLO
 
 The server accepts requests only for its configured bind hostname, loopback aliases, and any extra names in the comma-separated `KEYDO_ALLOWED_HOSTS` setting. The Tailscale launcher adds the node's Tailscale IPv4 address and MagicDNS name to the server's allowed hosts. If you bind the server to a custom hostname, add that name to `KEYDO_ALLOWED_HOSTS`.
 
-The server exposes `GET /api/config`, `POST /api/todoist/sync`, and `POST /api/todoist/tasks` for task creation/mutation. Non-GET Todoist API requests require an `Origin` header whose full origin matches the request origin. Task creation and all task mutations—including ordinary task-field updates—plus Sync snapshots, attachment uploads, and comment deletion require the token from `POST /api/todoist/order-lock` in the `X-Keydo-Order-Lock` header. The lock response starts with `locked <token>` and streams until the operation ends; if that stream disconnects, the server rejects later writes from that token and waits for already accepted calls to finish before releasing the lock. The browser-facing Sync endpoint is read-only and accepts only `syncToken` and `resourceTypes`; task writes use dedicated routes. Image attachments upload via `POST /api/todoist/tasks/:id/attachments` (multipart `file`, PNG/JPEG/GIF/WebP only, 5 MB limit), which stores the file through Todoist uploads and links it as a task comment; comments are removed with `DELETE /api/todoist/comments/:id`. Boot sync includes the `notes` resource so saved attachments reappear after reload.
+The server exposes `GET /api/config`, `POST /api/todoist/sync`, `POST /api/todoist/tasks` for structured task creation, and `POST /api/todoist/tasks/quick` for Todoist Smart Add. Non-GET Todoist API requests require an `Origin` header whose full origin matches the request origin. Task creation and all task mutations—including ordinary task-field updates—plus Sync snapshots, attachment uploads, and comment deletion require the token from `POST /api/todoist/order-lock` in the `X-Keydo-Order-Lock` header. The lock response starts with `locked <token>` and streams until the operation ends; if that stream disconnects, the server rejects later writes from that token and waits for already accepted calls to finish before releasing the lock. The browser-facing Sync endpoint is read-only and accepts only `syncToken` and `resourceTypes`; task writes use dedicated routes. Image attachments upload via `POST /api/todoist/tasks/:id/attachments` (multipart `file`, PNG/JPEG/GIF/WebP only, 5 MB limit), which stores the file through Todoist uploads and links it as a task comment; comments are removed with `DELETE /api/todoist/comments/:id`. Boot sync includes the `notes` resource so saved attachments reappear after reload.
 
 OAuth is Todoist authorization, not a Keydo username/password login. The user would approve Keydo on Todoist, and the server would exchange the authorization code for a refreshable Todoist token. Tailscale remains the access boundary; OAuth is only for obtaining Todoist API access.
 
@@ -60,6 +60,12 @@ bun run typecheck
 
 ## Documentation
 
+- [Fieldnotes round 1: first startup attempt](human_feedback/round-01-first-real-test/index.html)
+- [Fieldnotes round 2: retry after server refresh](human_feedback/round-02-after-server-restart/index.html)
+- [Fieldnotes round 3: task creation and subtasks](human_feedback/round-03-task-creation-and-subtasks/index.html)
+- [Fieldnotes round 4: save and detail retest](human_feedback/round-04-save-fix-retest/index.html)
+- [Fieldnotes round 5: keyboard flow and completed tasks](human_feedback/round-05-keyboard-and-recovery/index.html)
+- [Fieldnotes round 6: collapse, dates, and Smart Add](human_feedback/round-06-collapse-dates-smart-add/index.html)
 - [Product brief](docs/product-brief.md)
 - [Todoist capability assessment](docs/todoist-capabilities.md)
 - [Keyboard interaction model](docs/keyboard-model.md)

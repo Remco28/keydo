@@ -98,7 +98,7 @@ function isCreateTask(value: unknown): value is TodoistTaskCreate & { command_uu
   const candidate = value as Record<string, unknown>;
   // The Sync item_add adapter below maps only this subset; reject anything it
   // would otherwise accept and silently omit (section/order fields included).
-  const supportedFields = new Set(["content", "description", "labels", "priority", "project_id", "due_string", "due_date", "command_uuid", "temp_id", "sync_token"]);
+  const supportedFields = new Set(["content", "description", "labels", "priority", "parent_id", "project_id", "due_string", "due_date", "command_uuid", "temp_id", "sync_token"]);
   return typeof candidate.content === "string"
     && candidate.content.trim().length > 0
     && Object.keys(candidate).every(key => supportedFields.has(key))
@@ -106,6 +106,7 @@ function isCreateTask(value: unknown): value is TodoistTaskCreate & { command_uu
     && (candidate.description === undefined || typeof candidate.description === "string")
     && (candidate.labels === undefined || (Array.isArray(candidate.labels) && candidate.labels.every(label => typeof label === "string")))
     && (candidate.priority === undefined || (typeof candidate.priority === "number" && Number.isInteger(candidate.priority) && candidate.priority >= 1 && candidate.priority <= 4))
+    && (candidate.parent_id === undefined || (typeof candidate.parent_id === "string" && candidate.parent_id.length > 0))
     && (candidate.project_id === undefined || candidate.project_id === null || typeof candidate.project_id === "string")
     && (candidate.due_string === undefined || typeof candidate.due_string === "string")
     && (candidate.due_date === undefined || typeof candidate.due_date === "string")
@@ -355,7 +356,8 @@ export function createServer(options: KeydoServerOptions = {}) {
         return new Response(taskViewFile, {
           headers: {
             "Content-Type": "text/javascript; charset=utf-8",
-            "X-Content-Type-Options": "nosniff"
+            "X-Content-Type-Options": "nosniff",
+            "Cache-Control": "no-store"
           }
         });
       }
@@ -365,7 +367,8 @@ export function createServer(options: KeydoServerOptions = {}) {
         return new Response(taskActionGateFile, {
           headers: {
             "Content-Type": "text/javascript; charset=utf-8",
-            "X-Content-Type-Options": "nosniff"
+            "X-Content-Type-Options": "nosniff",
+            "Cache-Control": "no-store"
           }
         });
       }
@@ -375,7 +378,8 @@ export function createServer(options: KeydoServerOptions = {}) {
         return new Response(taskMutationsFile, {
           headers: {
             "Content-Type": "text/javascript; charset=utf-8",
-            "X-Content-Type-Options": "nosniff"
+            "X-Content-Type-Options": "nosniff",
+            "Cache-Control": "no-store"
           }
         });
       }
@@ -385,7 +389,8 @@ export function createServer(options: KeydoServerOptions = {}) {
         return new Response(taskCaptureFile, {
           headers: {
             "Content-Type": "text/javascript; charset=utf-8",
-            "X-Content-Type-Options": "nosniff"
+            "X-Content-Type-Options": "nosniff",
+            "Cache-Control": "no-store"
           }
         });
       }
@@ -395,7 +400,8 @@ export function createServer(options: KeydoServerOptions = {}) {
         return new Response(taskAttachmentsFile, {
           headers: {
             "Content-Type": "text/javascript; charset=utf-8",
-            "X-Content-Type-Options": "nosniff"
+            "X-Content-Type-Options": "nosniff",
+            "Cache-Control": "no-store"
           }
         });
       }
@@ -405,7 +411,8 @@ export function createServer(options: KeydoServerOptions = {}) {
         return new Response(markdownFile, {
           headers: {
             "Content-Type": "text/javascript; charset=utf-8",
-            "X-Content-Type-Options": "nosniff"
+            "X-Content-Type-Options": "nosniff",
+            "Cache-Control": "no-store"
           }
         });
       }
@@ -415,7 +422,8 @@ export function createServer(options: KeydoServerOptions = {}) {
         return new Response(syncCoordinatorFile, {
           headers: {
             "Content-Type": "text/javascript; charset=utf-8",
-            "X-Content-Type-Options": "nosniff"
+            "X-Content-Type-Options": "nosniff",
+            "Cache-Control": "no-store"
           }
         });
       }
@@ -425,7 +433,8 @@ export function createServer(options: KeydoServerOptions = {}) {
         return new Response(syncTokenFile, {
           headers: {
             "Content-Type": "text/javascript; charset=utf-8",
-            "X-Content-Type-Options": "nosniff"
+            "X-Content-Type-Options": "nosniff",
+            "Cache-Control": "no-store"
           }
         });
       }
@@ -435,7 +444,8 @@ export function createServer(options: KeydoServerOptions = {}) {
         return new Response(syncRuntimeFile, {
           headers: {
             "Content-Type": "text/javascript; charset=utf-8",
-            "X-Content-Type-Options": "nosniff"
+            "X-Content-Type-Options": "nosniff",
+            "Cache-Control": "no-store"
           }
         });
       }
@@ -445,7 +455,8 @@ export function createServer(options: KeydoServerOptions = {}) {
         return new Response(crossTabLockFile, {
           headers: {
             "Content-Type": "text/javascript; charset=utf-8",
-            "X-Content-Type-Options": "nosniff"
+            "X-Content-Type-Options": "nosniff",
+            "Cache-Control": "no-store"
           }
         });
       }
@@ -484,6 +495,53 @@ export function createServer(options: KeydoServerOptions = {}) {
             return Response.json({ error: "Todoist API request failed", status: error.status, details: error.payload }, { status: 502 });
           }
           return errorResponse("Todoist Sync failed", 502);
+        } finally {
+          lockUse.release?.();
+        }
+      }
+
+      if (url.pathname === "/api/todoist/completed") {
+        if (request.method !== "GET") return errorResponse("Method not allowed", 405);
+        if (!todoist) return errorResponse("Todoist is not configured", 503);
+        const until = new Date();
+        const since = new Date(until.getTime() - 30 * 24 * 60 * 60 * 1000);
+        try {
+          return Response.json(await todoist.getCompletedTasks(since.toISOString(), until.toISOString()), {
+            headers: { "Cache-Control": "no-store" }
+          });
+        } catch (error) {
+          if (error instanceof TodoistApiError) {
+            return Response.json({ error: "Todoist API request failed", status: error.status, details: error.payload }, { status: 502 });
+          }
+          return errorResponse("Completed tasks could not be loaded", 502);
+        }
+      }
+
+      if (url.pathname === "/api/todoist/tasks/quick") {
+        if (request.method !== "POST") return errorResponse("Method not allowed", 405);
+        if (!todoist) return errorResponse("Todoist is not configured", 503);
+        let body: unknown;
+        try {
+          body = await request.json();
+        } catch {
+          return errorResponse("Request body must be valid JSON", 400);
+        }
+        if (!body || typeof body !== "object" || Array.isArray(body)
+          || Object.keys(body).some(key => key !== "text")
+          || typeof (body as { text?: unknown }).text !== "string"
+          || !(body as { text: string }).text.trim()
+          || (body as { text: string }).text.length > 1000) {
+          return errorResponse("Quick Add text must be 1 to 1000 characters", 400);
+        }
+        const lockUse = holdOrderLockForRequest(request);
+        if (lockUse.response) return lockUse.response;
+        try {
+          return Response.json(await todoist.quickAddTask((body as { text: string }).text.trim()));
+        } catch (error) {
+          if (error instanceof TodoistApiError) {
+            return Response.json({ error: "Todoist API request failed", status: error.status, details: error.payload }, { status: 502 });
+          }
+          return errorResponse("Todoist Quick Add failed", 502);
         } finally {
           lockUse.release?.();
         }
@@ -741,6 +799,7 @@ export function createServer(options: KeydoServerOptions = {}) {
         return new Response(indexFile, {
           headers: {
             "Content-Type": "text/html; charset=utf-8",
+            "Cache-Control": "no-store",
             "X-Content-Type-Options": "nosniff",
             "Referrer-Policy": "no-referrer",
             "X-Frame-Options": "DENY",

@@ -43,6 +43,7 @@ export type TodoistTaskCreate = {
   description?: string;
   labels?: string[];
   priority?: number;
+  parent_id?: string;
   project_id?: string | null;
   due_string?: string;
   due_date?: string;
@@ -205,10 +206,24 @@ export function createTodoistClient(options: TodoistClientOptions) {
       return syncRequest(payload);
     },
 
+    quickAddTask(text: string) {
+      return request("/api/v1/tasks/quick", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text, meta: true })
+      });
+    },
+
+    getCompletedTasks(since: string, until: string) {
+      const params = new URLSearchParams({ since, until, limit: "100" });
+      return request(`/api/v1/tasks/completed/by_completion_date?${params}`, { method: "GET" });
+    },
+
     async createTask(task: TodoistTaskCreate, uuid: string = crypto.randomUUID(), tempId: string = crypto.randomUUID(), syncToken = "*") {
       const args: Record<string, unknown> = { content: task.content };
       if (task.description !== undefined) args.description = task.description;
       if (task.priority !== undefined) args.priority = task.priority;
+      if (task.parent_id !== undefined) args.parent_id = task.parent_id;
       if (task.project_id !== undefined) args.project_id = task.project_id;
       if (task.labels !== undefined) args.labels = task.labels;
       if (task.due_string !== undefined || task.due_date !== undefined) {
