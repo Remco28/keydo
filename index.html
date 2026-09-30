@@ -493,6 +493,20 @@
 
     .modal-backdrop { position: fixed; inset: 0; z-index: 100; display: none; place-items: start center; padding-top: 105px; background: rgba(35, 36, 31, .16); backdrop-filter: blur(3px); }
     .modal-backdrop.visible { display: grid; pointer-events: auto; }
+    .due-modal { width: min(400px, calc(100vw - 32px)); max-height: calc(100dvh - 128px); overflow-y: auto; padding: var(--space-6); border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); box-shadow: 0 16px 48px rgba(41,46,43,.14); }
+    .due-modal h2 { font-size: 20px; font-weight: 600; }
+    .due-task-name { margin: var(--space-2) 0 var(--space-4); color: var(--muted-strong); font-size: 13px; overflow-wrap: anywhere; }
+    .due-choices { display: grid; gap: var(--space-1); }
+    .due-choices button { display: flex; justify-content: space-between; align-items: center; min-height: 44px; padding: var(--space-2) var(--space-3); border: 1px solid transparent; border-radius: 8px; background: transparent; color: var(--ink); text-align: left; }
+    .due-choices button:hover { background: var(--panel-soft); }
+    .due-choices button:focus { outline: 2px solid var(--accent); outline-offset: -2px; background: var(--accent-soft); }
+    .due-specific { margin-top: var(--space-4); }
+    .due-specific[hidden] { display: none; }
+    .due-specific label { display: block; margin-bottom: var(--space-2); color: var(--muted-strong); font-size: 12px; }
+    .due-specific-row { display: flex; gap: var(--space-2); }
+    .due-specific input { min-width: 0; flex: 1; min-height: 40px; padding: var(--space-2); border: 1px solid var(--line-strong); border-radius: 8px; background: var(--panel); color: var(--ink); }
+    .due-specific input:focus { outline: 2px solid var(--accent); outline-offset: 2px; }
+    .due-footer { display: flex; justify-content: space-between; align-items: center; gap: var(--space-2); margin-top: var(--space-4); color: var(--muted); font-size: 12px; }
     #help-backdrop { place-items: center; padding: 20px; }
     .command-modal { width: min(560px, calc(100vw - 32px)); overflow: hidden; border: 1px solid var(--line-strong); border-radius: 12px; background: var(--panel); box-shadow: 0 24px 60px rgba(35, 36, 31, .18); }
     .command-search { width: 100%; padding: 16px 18px; border: 0; border-bottom: 1px solid var(--line); outline: 0; background: transparent; color: var(--ink); font-size: 16px; }
@@ -632,7 +646,7 @@
               </div>
               <details class="detail-shortcuts">
                 <summary tabindex="-1">Detail shortcuts</summary>
-                <div class="detail-shortcuts-items"><span><kbd>T</kbd> Title</span><span><kbd>N</kbd> Notes</span><span><kbd>S</kbd> Subtasks</span><span><kbd>C</kbd> Complete</span><span><kbd>Alt</kbd> + key while typing</span><span><kbd>Ctrl Enter</kbd> Save &amp; return</span></div>
+                <div class="detail-shortcuts-items"><span><kbd>T</kbd> Title</span><span><kbd>N</kbd> Notes</span><span><kbd>D</kbd> Due date</span><span><kbd>S</kbd> Add subtask</span><span><kbd>Shift S</kbd> Browse subtasks</span><span><kbd>C</kbd> Complete</span><span><kbd>Alt</kbd> + key while typing</span><span><kbd>Ctrl Enter</kbd> Save &amp; return</span></div>
               </details>
               <div class="detail-link-row"><button class="text-action" id="open-todoist" tabindex="-1">Open in Todoist ↗</button><span class="detail-link-hint">Paste a screenshot with Ctrl+V to attach it</span></div>
             </div>
@@ -668,6 +682,24 @@
 
   <div class="toast" id="toast" role="status"></div>
 
+  <div class="modal-backdrop" id="due-backdrop">
+    <div class="due-modal" role="dialog" aria-modal="true" aria-labelledby="due-title" aria-describedby="due-task-name">
+      <h2 id="due-title">Due date</h2>
+      <p class="due-task-name" id="due-task-name"></p>
+      <div class="due-choices">
+        <button type="button" tabindex="-1" data-due-choice="today">Today <kbd>T</kbd></button>
+        <button type="button" tabindex="-1" data-due-choice="tomorrow">Tomorrow <kbd>Y</kbd></button>
+        <button type="button" tabindex="-1" data-due-choice="specific">Specific date <kbd>D</kbd></button>
+        <button type="button" tabindex="-1" data-due-choice="clear">Clear date <kbd>C</kbd></button>
+      </div>
+      <form class="due-specific" id="due-specific-form" hidden>
+        <label for="due-specific-input">Choose a date</label>
+        <div class="due-specific-row"><input id="due-specific-input" type="date" required max="9999-12-31"><button class="primary-button" type="submit" tabindex="-1">Apply <kbd>↵</kbd></button></div>
+      </form>
+      <div class="due-footer"><span><kbd>↑↓</kbd> choose · <kbd>↵</kbd> apply</span><button class="text-action" type="button" tabindex="-1" id="due-cancel">Cancel <kbd>Esc</kbd></button></div>
+    </div>
+  </div>
+
   <div class="modal-backdrop" id="command-backdrop">
     <div class="command-modal" role="dialog" aria-modal="true" aria-label="Command palette">
       <input class="command-search" id="command-search" placeholder="Type a command…" autocomplete="off">
@@ -699,6 +731,8 @@
         </div>
         <div class="help-group"><h3>Tasks</h3>
           <div class="help-row"><span>New task</span><kbd>N</kbd></div>
+          <div class="help-row"><span>Change due date</span><kbd>D</kbd></div>
+          <div class="help-row"><span>Add subtask</span><kbd>S</kbd></div>
           <div class="help-row"><span>Complete task</span><kbd>Space</kbd></div>
           <div class="help-row"><span>Delete task</span><kbd>Delete</kbd></div>
           <div class="help-row"><span>Move to Today</span><kbd>T</kbd></div>
@@ -709,10 +743,10 @@
           <h3>Details</h3>
           <div class="help-row"><span>Edit title</span><kbd>T</kbd></div>
           <div class="help-row"><span>Edit notes</span><kbd>N</kbd></div>
-          <div class="help-row"><span>First subtask</span><kbd>S</kbd></div>
+          <div class="help-row"><span>First subtask</span><kbd>Shift S</kbd></div>
           <div class="help-row"><span>Browse / open subtasks</span><span><kbd>↑↓</kbd> <kbd>↵</kbd></span></div>
           <div class="help-row"><span>Complete task</span><kbd>C</kbd></div>
-          <div class="help-row"><span>Shortcut while editing</span><span><kbd>Alt</kbd> <kbd>T N S C</kbd></span></div>
+          <div class="help-row"><span>Shortcut while editing</span><span><kbd>Alt</kbd> <kbd>T N D S C</kbd></span></div>
         </div>
       </div>
     </div>
@@ -902,6 +936,7 @@
       orderLockToken: null,
       orderLockReadOnly: false,
       deleteTargetId: null,
+      dueTargetId: null,
       query: "",
       commandMode: "all",
       commandIndex: 0,
@@ -919,6 +954,8 @@
         { title: "Go to workspace: Work", description: "Switch to the Work workspace", action: "workspace:Work" },
         { title: "Reorder selected task in its project", description: "Open the complete project list and clear search", action: "task:reorder-view" },
         { title: "Move selected task to Today", description: "Set the selected task's due date to today", action: "task:today" },
+        { title: "Change selected task due date", description: "Today, tomorrow, a specific date, or no date · D", action: "task:date" },
+        { title: "Add a subtask", description: "Create a child of the selected task · S", action: "task:subtask" },
         { title: "Move selected task to Tomorrow", description: "Set the selected task's due date to tomorrow", action: "task:tomorrow" },
         { title: "Increase priority", description: "Make the selected task more important", action: "task:priority-up" },
         { title: "Decrease priority", description: "Make the selected task less important", action: "task:priority-down" },
@@ -953,6 +990,9 @@
     const deleteCopy = document.getElementById("delete-copy");
     const deleteCancel = document.getElementById("delete-cancel");
     const deleteConfirm = document.getElementById("delete-confirm");
+    const dueBackdrop = document.getElementById("due-backdrop");
+    const dueSpecificForm = document.getElementById("due-specific-form");
+    const dueSpecificInput = document.getElementById("due-specific-input");
     const quickCapture = document.getElementById("quick-capture");
     const captureInput = document.getElementById("capture-input");
     const capturePreview = document.getElementById("capture-preview");
@@ -2491,7 +2531,7 @@
       state.detailEditing = true;
       render();
       // Focus the pane, not the editor: single-letter detail keys must stay
-      // live on entry, and Alt+T/N/S/C reach every section while editing.
+      // live on entry, and Alt+T/N/D/S/C reach sections/actions while editing.
       document.getElementById("detail-pane").focus({ preventScroll: true });
     }
 
@@ -2521,7 +2561,15 @@
         first.focus();
         return;
       }
-      showToast("No subtasks yet · Alt+→ nests the selected task");
+      focusSubtaskComposer();
+    }
+
+    function focusSubtaskComposer() {
+      if (!currentTask()) { showToast("Select a task first"); return; }
+      if (!state.detailEditing) enterDetail();
+      const input = document.getElementById("subtask-create-input");
+      input.focus();
+      input.scrollIntoView({ block: "nearest" });
     }
 
     function openSubtask(taskId) {
@@ -3170,8 +3218,45 @@
       showToast(canEditTaskOrder() ? "Project ready to reorder · Alt+↑↓ moves the selected task" : "This project spans workspaces · reorder is unavailable here");
     }
 
-    async function setTaskDue(label, dueString) {
-      const taskId = currentTask()?.id;
+    function openDueChooser() {
+      const task = currentTask();
+      if (!task) { showToast("Select a task first"); return; }
+      state.dueTargetId = task.id;
+      document.getElementById("due-task-name").textContent = `${task.title} · ${task.due}`;
+      dueSpecificInput.value = task.dueDateKey ?? dueDateKeyForRelativeLabel("Today", new Date(), state.todoistTimeZone);
+      dueSpecificForm.hidden = true;
+      commandBackdrop.classList.remove("visible");
+      helpBackdrop.classList.remove("visible");
+      dueBackdrop.classList.add("visible");
+      dueBackdrop.querySelector("[data-due-choice='today']").focus();
+    }
+
+    function closeDueChooser() {
+      state.dueTargetId = null;
+      dueBackdrop.classList.remove("visible");
+      focusCurrentTaskContext();
+    }
+
+    async function applyDueChoice(choice) {
+      if (choice === "specific") {
+        dueSpecificForm.hidden = false;
+        dueSpecificInput.focus();
+        return;
+      }
+      const taskId = state.dueTargetId;
+      if (!taskId) return;
+      const date = dueSpecificInput.value;
+      if (choice === "date" && !dueSpecificInput.reportValidity()) return;
+      closeDueChooser();
+      if (!tasks.some(task => task.id === taskId)) { showToast("Task no longer available"); return; }
+      const label = choice === "today" ? "Today" : choice === "tomorrow" ? "Tomorrow" : choice === "clear" ? "No date" : date;
+      const dueString = choice === "today" ? "today" : choice === "tomorrow" ? "tomorrow" : choice === "clear" ? "no date" : date;
+      await setTaskDue(label, dueString, taskId);
+      // List rerenders replace the focused row; never steal focus from a new editor.
+      if (document.activeElement === document.body) focusCurrentTaskContext();
+    }
+
+    async function setTaskDue(label, dueString, taskId = currentTask()?.id) {
       if (!taskId) return;
       return withTaskOrderLock(() => setTaskDueWithOrderLock(taskId, label, dueString));
     }
@@ -3653,6 +3738,8 @@
       }
       if (action.startsWith("workspace:")) { switchWorkspace(action.slice(10)); return; }
       if (action === "task:today") { setTaskDue("Today", "today"); return; }
+      if (action === "task:date") { openDueChooser(); return; }
+      if (action === "task:subtask") { focusSubtaskComposer(); return; }
       if (action === "task:tomorrow") { setTaskDue("Tomorrow", "tomorrow"); return; }
       if (action === "task:clear") { setTaskDue("No date", "no date"); return; }
       if (action === "task:priority-up") { changePriority(1); return; }
@@ -3931,6 +4018,13 @@
     document.getElementById("help-button").addEventListener("click", openHelp);
     document.getElementById("commands-button").addEventListener("click", () => openCommands());
     window.addEventListener("resize", fitNotesEditor);
+    dueBackdrop.addEventListener("click", event => {
+      const choice = event.target.closest("[data-due-choice]");
+      if (choice) void applyDueChoice(choice.dataset.dueChoice);
+      else if (event.target === dueBackdrop) closeDueChooser();
+    });
+    document.getElementById("due-cancel").addEventListener("click", closeDueChooser);
+    dueSpecificForm.addEventListener("submit", event => { event.preventDefault(); void applyDueChoice("date"); });
     document.getElementById("delete-cancel").addEventListener("click", closeDeleteConfirmation);
     document.getElementById("delete-confirm").addEventListener("click", deleteSelectedTask);
     deleteBackdrop.addEventListener("click", event => { if (event.target === deleteBackdrop) closeDeleteConfirmation(); });
@@ -3972,6 +4066,28 @@
         }
         return;
       }
+      if (dueBackdrop.classList.contains("visible")) {
+        if (event.key === "Escape") { event.preventDefault(); closeDueChooser(); return; }
+        if (event.key === "Tab") {
+          event.preventDefault();
+          const controls = [...dueBackdrop.querySelectorAll("button, input")].filter(element => element.getClientRects().length);
+          const index = controls.indexOf(document.activeElement);
+          controls[(index + (event.shiftKey ? -1 : 1) + controls.length) % controls.length].focus();
+          return;
+        }
+        if (!typing && !event.altKey && !event.ctrlKey && !event.metaKey) {
+          const choices = [...dueBackdrop.querySelectorAll("[data-due-choice]")];
+          if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+            event.preventDefault();
+            const index = Math.max(0, choices.indexOf(document.activeElement));
+            choices[(index + (event.key === "ArrowDown" ? 1 : -1) + choices.length) % choices.length].focus();
+          } else {
+            const choice = { t: "today", y: "tomorrow", d: "specific", c: "clear" }[event.key.toLowerCase()];
+            if (choice) { event.preventDefault(); void applyDueChoice(choice); }
+          }
+        }
+        return;
+      }
       if (state.captureOpen || commandBackdrop.classList.contains("visible") || helpBackdrop.classList.contains("visible")) {
         if (event.key === "Escape") {
           event.preventDefault();
@@ -4005,9 +4121,10 @@
       }
       if (event.altKey && !event.ctrlKey && !event.metaKey && state.detailEditing) {
         const altKey = event.key.toLowerCase();
+        if (altKey === "d") { event.preventDefault(); openDueChooser(); return; }
         if (altKey === "t") { event.preventDefault(); focusDetailTitle(); return; }
         if (altKey === "n") { event.preventDefault(); focusDetailNotes(); return; }
-        if (altKey === "s") { event.preventDefault(); focusFirstSubtask(); return; }
+        if (altKey === "s") { event.preventDefault(); if (event.shiftKey) focusFirstSubtask(); else focusSubtaskComposer(); return; }
         if (altKey === "c") { event.preventDefault(); toggleComplete(state.selectedId); return; }
       }
       if (typing) {
@@ -4039,7 +4156,13 @@
       if (event.key.toLowerCase() === "t") { event.preventDefault(); runCommand(event.shiftKey ? "task:tomorrow" : "task:today"); return; }
       if (event.key.toLowerCase() === "c" && state.detailEditing) { event.preventDefault(); toggleComplete(state.selectedId); return; }
       if (event.key.toLowerCase() === "c") { event.preventDefault(); runCommand("task:clear"); return; }
-      if (event.key.toLowerCase() === "s" && state.detailEditing) { event.preventDefault(); focusFirstSubtask(); return; }
+      if (event.key.toLowerCase() === "d" && !event.ctrlKey && !event.metaKey && !event.altKey) { event.preventDefault(); openDueChooser(); return; }
+      if (event.key.toLowerCase() === "s" && !event.ctrlKey && !event.metaKey && !event.altKey) {
+        event.preventDefault();
+        if (event.shiftKey) { if (currentTask()) { if (!state.detailEditing) enterDetail(); focusFirstSubtask(); } }
+        else focusSubtaskComposer();
+        return;
+      }
       if (event.key.toLowerCase() === "e") { event.preventDefault(); enterDetail(); return; }
       if (event.key.toLowerCase() === "o") { event.preventDefault(); runCommand("task:open"); return; }
       if (event.key === "M") { event.preventDefault(); enterMoveMode(); return; }

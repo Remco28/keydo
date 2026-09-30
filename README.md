@@ -68,6 +68,7 @@ The browser suite requires installed Chrome/Chromium (or `KEYDO_TEST_BROWSER` po
 - Task details keep plain/empty notes in one column. Formatted notes show a preview automatically; **Show/Hide preview** provides an override. Attachments remain visible even when text preview was hidden.
 - Notes grow with their content up to a bounded editor height. Detail shortcuts are collapsed by default, and header controls open help and commands.
 - The layout reflows on narrow screens without changing the desktop-first keyboard model.
+- **D** opens a quick due-date chooser in the list or details. **S** focuses Add subtask, and **Shift+S** browses existing children. While editing a title or notes, use **Alt+D / Alt+S**.
 
 ## Documentation
 

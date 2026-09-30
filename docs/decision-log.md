@@ -90,7 +90,7 @@ This log records product and technical decisions as they are made. Proposed deci
 ## D-015: Tab-free, context-sensitive keyboard interface
 
 - **Status:** Accepted
-- **Decision:** Tab is not a navigation key in Keydo — it belongs to the browser. Every section (list, detail room, move mode, capture composer) gets direct keys instead: `T`itle, `N`otes, `S`ubtasks, `C`omplete in detail; arrows walk the subtask list. Action buttons stay clickable but untabbable; the delete dialog keeps its tab trap as the exception. Keys may change meaning per context (`T` is Today in the list, Title in detail); hint lines and the palette teach the active map.
+- **Decision:** Tab is not a navigation key in Keydo — it belongs to the browser. Every section (list, detail room, move mode, capture composer) gets direct keys instead: `T`itle, `N`otes, `D`ue date, `S` to add a subtask, `C`omplete in detail; `Shift+S` starts browsing children and arrows walk the subtask list. Ordinary action buttons stay clickable but untabbable; date and delete dialogs contain Tab focus as exceptions. Keys may change meaning per context (`T` is Today in the list, Title in detail); hint lines and the palette teach the active map.
 - **Rationale:** Reaching rename via five shift-tabs proved the layout served the mouse first. Direct keys keep hands on home row and eyes on the task.
 
 ## Open decisions

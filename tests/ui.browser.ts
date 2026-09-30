@@ -144,16 +144,85 @@ try {
     assert.match(await page.locator("#description-editor").inputValue(), /Browser test notes/);
   });
 
-  await check("subtasks remain reachable with direct keyboard navigation", async () => {
-    await page.locator("#subtask-create-input").fill("Browser child task");
-    await page.locator("#subtask-create-button").click();
-    await page.locator("#subtask-list [data-subtask]").waitFor();
+  await check("due-date chooser works from details and the list", async () => {
     await page.locator("#detail-pane").focus();
+    const originalDate = await page.locator("#detail-due-date").inputValue();
+    await page.keyboard.press("d");
+    assert.equal(await page.locator("#due-backdrop").isVisible(), true);
+    assert.match(await page.locator("#due-task-name").innerText(), /Browser polish check/);
+    await page.screenshot({ path: join(artifacts, "desktop-due-chooser.png"), fullPage: true });
+    await page.keyboard.press("Shift+Tab");
+    assert.equal(await page.locator("#due-cancel").evaluate(element => document.activeElement === element), true);
+    await page.keyboard.press("Tab");
+    assert.equal(await page.locator("[data-due-choice='today']").evaluate(element => document.activeElement === element), true);
+    await page.keyboard.press("Escape");
+    assert.equal(await page.locator("#detail-due-date").inputValue(), originalDate);
+    assert.equal(await page.locator("#detail-pane").evaluate(element => document.activeElement === element), true);
+    await page.keyboard.press("Escape");
+    await page.keyboard.press("r");
+    await page.keyboard.press("d");
+    await page.keyboard.press("ArrowDown");
+    assert.equal(await page.locator("[data-due-choice='tomorrow']").evaluate(element => document.activeElement === element), true);
+    await page.keyboard.press("Enter");
+    await page.locator("#due-backdrop").waitFor({ state: "hidden" });
+    await page.keyboard.press("Enter");
+    const tomorrow = await page.evaluate(() => {
+      const date = new Date(); date.setDate(date.getDate() + 1);
+      return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+    });
+    assert.equal(await page.locator("#detail-due-date").inputValue(), tomorrow);
+    await page.locator("#description-editor").focus();
+    await page.keyboard.press("Alt+d");
+    assert.equal(await page.locator("#due-backdrop").isVisible(), true);
+    await page.keyboard.press("d");
+    assert.equal(await page.locator("#due-specific-input").evaluate(element => document.activeElement === element), true);
+    await page.locator("#due-specific-input").fill("");
+    await page.locator("#due-specific-form button").click();
+    assert.equal(await page.locator("#due-backdrop").isVisible(), true);
+    assert.equal(await page.locator("#detail-due-date").inputValue(), tomorrow);
+    await page.locator("#due-specific-input").fill("2030-12-20");
+    await page.screenshot({ path: join(artifacts, "desktop-specific-date.png"), fullPage: true });
+    await page.keyboard.press("Enter");
+    await page.waitForFunction(() => (document.querySelector("#detail-due-date") as HTMLInputElement).value === "2030-12-20");
+    await page.locator("#detail-pane").focus();
+    await page.keyboard.press("d");
+    await page.keyboard.press("c");
+    await page.waitForFunction(() => (document.querySelector("#detail-due-date") as HTMLInputElement).value === "");
+    await page.keyboard.press("d");
+    await page.keyboard.press("t");
+    await page.waitForFunction(() => (document.querySelector("#detail-due-date") as HTMLInputElement).value !== "");
+    assert.equal(await page.locator("#detail-due-date").inputValue(), originalDate);
+    const notes = await page.locator("#description-editor").inputValue();
+    await page.locator("#description-editor").fill("");
+    await page.keyboard.type("ds");
+    assert.equal(await page.locator("#description-editor").inputValue(), "ds");
+    assert.equal(await page.locator("#due-backdrop").isVisible(), false);
+    assert.equal(await page.locator("#description-editor").evaluate(element => document.activeElement === element), true);
+    await page.locator("#description-editor").fill(notes);
+    await page.locator("#detail-pane").focus();
+  });
+
+  await check("S adds subtasks and Shift+S browses existing children", async () => {
     await page.keyboard.press("s");
+    assert.equal(await page.locator("#subtask-create-input").evaluate(element => document.activeElement === element), true);
+    await page.locator("#subtask-create-input").fill("Browser child task");
+    await page.keyboard.press("Enter");
+    await page.locator("#subtask-list [data-subtask]").waitFor();
+    assert.equal(await page.locator("#subtask-create-input").inputValue(), "");
+    await page.locator("#description-editor").focus();
+    await page.keyboard.press("Alt+s");
+    assert.equal(await page.locator("#subtask-create-input").evaluate(element => document.activeElement === element), true);
+    await page.locator("#detail-pane").focus();
+    await page.keyboard.press("Shift+s");
     assert.equal(await page.locator("#subtask-list [data-subtask]").evaluate(element => document.activeElement === element), true);
     await page.keyboard.press("Enter");
     assert.equal(await page.locator("#detail-title-input").inputValue(), "Browser child task");
     assert.equal(await page.locator(".preview-column").isVisible(), false);
+    await page.keyboard.press("Escape");
+    await page.keyboard.press("s");
+    assert.equal(await page.locator("#detail-pane").isVisible(), true);
+    assert.equal(await page.locator("#subtask-create-input").evaluate(element => document.activeElement === element), true);
+    await page.keyboard.press("Escape");
     await page.keyboard.press("Escape");
   });
 
@@ -253,6 +322,15 @@ try {
 
   await check("narrow list, selection, detail, and capture do not overflow", async () => {
     await page.setViewportSize({ width: 390, height: 844 });
+    await page.locator(".task-row.selected").focus();
+    await page.keyboard.press("d");
+    assert.equal(await page.locator("#due-backdrop").isVisible(), true);
+    await noOverflow(page);
+    await page.screenshot({ path: join(artifacts, "narrow-due-chooser.png"), fullPage: true });
+    await page.keyboard.press("d");
+    await noOverflow(page);
+    await page.screenshot({ path: join(artifacts, "narrow-specific-date.png"), fullPage: true });
+    await page.locator("#due-cancel").click();
     await noOverflow(page);
     await page.screenshot({ path: join(artifacts, "narrow-list.png"), fullPage: true });
     await page.locator("#bulk-button").click();

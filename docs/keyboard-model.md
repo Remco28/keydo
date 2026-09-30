@@ -9,7 +9,8 @@ command palette (`Ctrl+K`) are the source of truth when in doubt.
 
 - Every important action has a direct keyboard path — no Tab chains.
 - Tab is not a navigation key. It belongs to the browser (inputs, text
-  areas); action buttons are reachable by key or by mouse, never by tabbing.
+  areas); ordinary action buttons are reachable by key or by mouse. Date and
+  deletion dialogs contain Tab focus so it cannot escape behind the popup.
 - Single-letter shortcuts never fire while typing in an input or editor.
 - The interface always shows the selected item, current view, and pending
   state; transient feedback appears in the bottom status strip.
@@ -29,6 +30,9 @@ command palette (`Ctrl+K`) are the source of truth when in doubt.
 | `Delete` | Delete with confirmation |
 | `T` / `Shift+T` | Move to Today / Tomorrow |
 | `C` | Clear due date |
+| `D` | Open the due-date chooser for the active task |
+| `S` | Open details and focus Add subtask |
+| `Shift+S` | Open details and focus the first existing subtask (or Add if empty) |
 | `+` / `-` | Increase / decrease priority |
 | `R` | Open the selected task's complete project list and clear search before reordering |
 | `Alt+→` / `Alt+←` | In an unfiltered project view, indent under previous sibling / outdent one level |
@@ -60,11 +64,13 @@ an editor, the same section keys work with `Alt` held.
 | --- | --- |
 | `T` | Edit the task title |
 | `N` | Edit notes |
-| `S` | Jump to the first subtask |
+| `D` | Open the due-date chooser |
+| `S` | Focus Add subtask; type a title and press Enter |
+| `Shift+S` | Jump to the first subtask (or Add if empty) |
 | `↑` / `↓` on a subtask | Walk the subtask list |
 | `Enter` on a subtask | Drill into that subtask |
 | `C` | Complete or reopen the task |
-| `Alt+T` / `Alt+N` / `Alt+S` / `Alt+C` | Same section keys, usable while editing |
+| `Alt+T` / `Alt+N` / `Alt+D` / `Alt+S` / `Alt+C` | Same keys, usable while editing; `Alt+Shift+S` browses subtasks |
 | `Ctrl+Enter` | Save title/notes |
 | `Esc` | Return to the list |
 
@@ -72,11 +78,33 @@ Subtasks are full tasks: each level carries its own notes, photos, and
 children. Drilling in keeps the editing context; `Esc` always returns to
 the list selection.
 
+After adding a subtask, the composer clears and keeps focus so another child
+can be added immediately. `Esc` leaves the input; a second `Esc` returns to
+the list.
+
 The compact **Detail shortcuts** disclosure contains the section-key map.
 Plain/empty notes use one column; formatted notes show a rendered preview.
 **Show/Hide preview** overrides that presentation until the task is reopened.
 Attachments keep the preview visible. `Ctrl+Enter` saves and restores focus to
 the task list.
+
+## Due-date chooser
+
+`D` works in both the list and details; `Alt+D` opens it while editing a
+title or notes. It affects the task named in the popup, not bulk selection.
+
+| Binding | Action |
+| --- | --- |
+| `↑` / `↓`, then `Enter` | Choose and apply an option |
+| `T` | Today |
+| `Y` | Tomorrow |
+| `D` | Specific date; choose/type the date, then `Enter` or Apply |
+| `C` | Clear date |
+| `Esc` / Cancel / backdrop click | Close without changes and restore context focus |
+
+Today/Tomorrow use the existing account-timezone-aware date mutation path.
+The specific-date input is validated before applying. Existing `T`,
+`Shift+T`, and `C` list shortcuts remain available.
 
 ## Capture composer
 
