@@ -77,6 +77,51 @@ try {
     await page.locator(".task-row.selected").focus();
   });
 
+  await check("switching views selects the first task", async () => {
+    await page.locator(".task-row").nth(1).click();
+    assert.match(await page.locator(".task-row.selected").innerText(), /Write the project update/);
+    await page.locator("[data-view='priority']").click();
+    assert.equal(await page.locator(".task-row").first().getAttribute("aria-current"), "true");
+    assert.match(await page.locator(".task-row").first().innerText(), /Review the launch plan/);
+    assert.equal(await page.evaluate(() => window.scrollY), 0);
+    await page.locator("[data-view='today']").click();
+    assert.equal(await page.locator(".task-row").first().getAttribute("aria-current"), "true");
+  });
+
+  await check("up from the first task returns the scrolled page to the top", async () => {
+    await page.setViewportSize({ width: 1100, height: 360 });
+    await page.locator(".task-row").first().click();
+    await page.evaluate(() => window.scrollTo(0, document.querySelector("#task-list").getBoundingClientRect().top + window.scrollY));
+    const scrolledAway = await page.evaluate(() => ({ scrollY: window.scrollY, searchBottom: document.querySelector("#search-input").getBoundingClientRect().bottom, pageHeight: document.documentElement.scrollHeight, viewHeight: window.innerHeight }));
+    assert.ok(scrolledAway.scrollY > 40 && scrolledAway.searchBottom < 0, JSON.stringify(scrolledAway));
+    await page.keyboard.press("ArrowUp");
+    assert.equal(await page.evaluate(() => window.scrollY), 0);
+    assert.ok(await page.evaluate(() => document.querySelector("#search-input").getBoundingClientRect().top >= 0));
+    assert.equal(await page.locator(".task-row").first().getAttribute("aria-current"), "true");
+    assert.equal(await page.locator("#task-list").evaluate(element => getComputedStyle(element).overflowY), "visible");
+    await page.setViewportSize({ width: 1440, height: 960 });
+  });
+
+  await check("page down from the last task reveals the footer", async () => {
+    await page.setViewportSize({ width: 1100, height: 360 });
+    await page.locator(".task-row").last().click();
+    await page.evaluate(() => window.scrollTo(0, 0));
+    const footerCutOff = () => page.evaluate(() => {
+      const footer = document.querySelector(".pane-footer") as HTMLElement;
+      return footer.getBoundingClientRect().bottom > window.innerHeight + 1;
+    });
+    assert.equal(await footerCutOff(), true);
+    await page.keyboard.press("PageDown");
+    assert.equal(await footerCutOff(), false);
+    assert.equal(await page.locator(".task-row").last().getAttribute("aria-current"), "true");
+    assert.ok(await page.evaluate(() => {
+      const footer = document.querySelector(".pane-footer") as HTMLElement;
+      return footer.getBoundingClientRect().top < window.innerHeight && footer.getBoundingClientRect().bottom > 0;
+    }));
+    await page.locator(".task-row").first().click();
+    await page.setViewportSize({ width: 1440, height: 960 });
+  });
+
   await check("readable task typography and quiet default selection", async () => {
     assert.equal(await page.locator(".task-title").first().evaluate(element => getComputedStyle(element).fontSize), "15px");
     assert.equal(await page.locator(".select-box").first().isVisible(), false);

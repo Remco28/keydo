@@ -21,7 +21,7 @@ Todoist provides a capable task model, but many useful operations require openin
 - **Fast by default:** The shortest interaction should be the normal path, not a special power-user path.
 - **Visible context:** The selected task, its description, and its attachments should be visible without opening a modal.
 - **Safe destructive actions:** Deletion should be distinguishable from moving, archiving, and completing.
-- **Desktop scope first:** The primary target is a desktop browser; mobile is not an initial design constraint.
+- **Desktop scope first:** Keydo is a keyboard workspace for a desktop browser. Phone use is out of scope, not a later design target.
 
 ## Current status
 
@@ -75,7 +75,7 @@ Partial recovery stays available in **Completed** as **Retry reopening unfinishe
 - Teal marks the active keyboard task and primary actions; bulk-selected tasks use a separate treatment. Selection checkboxes appear only when selecting, via **Select tasks** or the existing Shift shortcuts.
 - Task details keep plain/empty notes in one column. Formatted notes show a preview automatically; **Show/Hide preview** provides an override. Attachments remain visible even when text preview was hidden.
 - Notes grow with their content up to a bounded editor height. Detail shortcuts are collapsed by default, and header controls open help and commands.
-- The layout reflows on narrow screens without changing the desktop-first keyboard model.
+- A narrow window may reflow so the desktop layout does not overflow. That is not a phone interface.
 - **D** opens a quick due-date chooser in the list or details. **S** focuses Add subtask, and **Shift+S** browses existing children. While editing a title or notes, use **Alt+D / Alt+S**.
 
 ## Documentation

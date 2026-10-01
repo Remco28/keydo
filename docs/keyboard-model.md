@@ -21,8 +21,8 @@ command palette (`Ctrl+K`) are the source of truth when in doubt.
 
 | Binding | Action |
 | --- | --- |
-| `↑` / `↓` | Select previous / next task |
-| `PageUp` / `PageDown` | Move selection by a page |
+| `↑` / `↓` | Select previous / next task. At the first task, `↑` returns the page to the top |
+| `PageUp` / `PageDown` | Move selection by a page. At the last task, `PageDown` reveals the footer |
 | `Space` | Complete or reopen the selected task |
 | `Shift+Space` | Toggle bulk selection on the selected task |
 | `Shift+↑` / `Shift+↓` | Extend bulk selection |
@@ -50,7 +50,7 @@ command palette (`Ctrl+K`) are the source of truth when in doubt.
 The active keyboard task is marked separately from bulk-selected tasks. The
 **Select tasks** control reveals selection checkboxes for mouse use; Shift
 shortcuts reveal them automatically. **Cancel selection**, **Clear selection**,
-or `Esc` dismiss selection mode, and changing views resets it.
+or `Esc` dismiss selection mode, and changing views resets it. A view change always selects that view's first task and returns the page to the top, even when the previous task also appears there.
 
 Reopening a parent completed through Keydo also restores the subtasks that
 were unfinished when that parent was completed; already-finished children

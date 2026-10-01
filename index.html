@@ -1100,6 +1100,11 @@
       } finally {
         state.completedLoading = false;
         if (state.view === "completed") render();
+        if (state.viewLanding) {
+          state.viewLanding = false;
+          window.scrollTo(0, 0);
+          focusSelectedTask(false);
+        }
       }
     }
 
@@ -1882,7 +1887,21 @@
       }
       state.detailEditing = false;
       render();
-      focusSelectedTask();
+      const atFirst = currentIndex === 0 && nextIndex === 0;
+      const endedOnLast = nextIndex === filtered.length - 1;
+      const footer = document.querySelector(".pane-footer");
+      const footerCutOff = Boolean(footer && footer.getBoundingClientRect().bottom > window.innerHeight + 1);
+      // The first row can sit in view while the heading remains scrolled away.
+      // A downward move that ends on the last task can leave the footer cut off.
+      if (delta < 0 && !extend && atFirst && window.scrollY > 0) {
+        window.scrollTo(0, 0);
+        focusSelectedTask(false);
+      } else if (delta > 0 && !extend && endedOnLast && footerCutOff) {
+        footer.scrollIntoView({ block: "end", inline: "nearest" });
+        focusSelectedTask(false);
+      } else {
+        focusSelectedTask();
+      }
     }
 
     function canEditTaskOrder() {
@@ -3190,13 +3209,20 @@
       state.projectId = view === "project" ? projectId : state.projectId;
       state.selected.clear();
       state.bulkSelecting = false;
+      state.selectedId = null;
       resetSelectionRange(null);
       state.moveFromId = null;
       state.moveTargetId = null;
       state.query = "";
       searchInput.value = "";
       state.detailEditing = false;
+      state.detailReturnId = null;
+      state.viewLanding = view === "completed" && state.liveTodoist;
       render();
+      if (!state.viewLanding) {
+        window.scrollTo(0, 0);
+        focusSelectedTask(false);
+      }
       if (view === "completed") void loadRecentCompleted();
     }
 

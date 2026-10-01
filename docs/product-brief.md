@@ -95,7 +95,7 @@ The product should not assume paid-plan-only capabilities such as deadlines, tas
 ## Non-goals for the first version
 
 - Replacing Todoist's task data model
-- A mobile-first touch experience
+- Phone use and a touch-first layout
 - Collaboration and assignment workflows
 - AI-assisted task management
 - A complete clone of every Todoist feature

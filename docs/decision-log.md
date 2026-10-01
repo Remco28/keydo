@@ -11,8 +11,8 @@ This log records product and technical decisions as they are made. Proposed deci
 ## D-002: Target desktop-first keyboard interaction
 
 - **Status:** Accepted
-- **Decision:** Design first for desktop use and keyboard operation.
-- **Rationale:** The primary problem is making Todoist actions faster on a desktop. Mobile interaction is not an initial design constraint.
+- **Decision:** Design for a desktop browser and keyboard operation. Phone use is out of scope.
+- **Rationale:** The product is a keyboard workspace. A phone is a poor fit, and the interface is not designed around touch or a small screen.
 
 ## D-003: Keep Todoist as the system of record
 
