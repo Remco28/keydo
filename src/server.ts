@@ -146,6 +146,18 @@ function errorResponse(message: string, status: number) {
   return Response.json({ error: message }, { status });
 }
 
+function isCredentialFreeHttpsUrl(value: URL): boolean {
+  return value.protocol === "https:" && value.port === "" && value.username === "" && value.password === "";
+}
+
+// Todoist file URLs redirect once to a signed CloudFront image. The client may
+// request only files.todoist.com; the signed CDN hop is chosen by that response.
+function isTodoistImageCdnUrl(value: URL): boolean {
+  return isCredentialFreeHttpsUrl(value)
+    && value.hostname.endsWith(".cloudfront.net")
+    && value.hostname.length > ".cloudfront.net".length;
+}
+
 async function readBoundedBody(response: Response, maxBytes: number): Promise<Uint8Array | null> {
   const declaredLength = Number(response.headers.get("content-length"));
   if (Number.isFinite(declaredLength) && declaredLength > maxBytes) {
@@ -777,21 +789,33 @@ export function createServer(options: KeydoServerOptions = {}) {
         } catch {
           return errorResponse("A valid file URL is required", 400);
         }
-        if (upstreamUrl.protocol !== "https:"
-          || upstreamUrl.hostname !== "files.todoist.com"
-          || upstreamUrl.port !== ""
-          || upstreamUrl.username !== ""
-          || upstreamUrl.password !== "") {
+        if (!isCredentialFreeHttpsUrl(upstreamUrl) || upstreamUrl.hostname !== "files.todoist.com") {
           return errorResponse("Only Todoist-hosted files can be proxied", 400);
         }
 
         const fetcher = options.fetcher ?? fetch;
         try {
-          const upstreamResponse = await fetcher(upstreamUrl.toString(), {
+          let upstreamResponse = await fetcher(upstreamUrl.toString(), {
             headers: { Authorization: `Bearer ${token}` },
             signal: AbortSignal.timeout(30_000),
-            redirect: "error"
+            redirect: "manual"
           });
+          if ([301, 302, 303, 307, 308].includes(upstreamResponse.status)) {
+            const location = upstreamResponse.headers.get("location");
+            try { await upstreamResponse.body?.cancel(); } catch {}
+            let redirected: URL;
+            try {
+              redirected = new URL(location ?? "", upstreamUrl);
+            } catch {
+              return errorResponse("Todoist file request failed", 502);
+            }
+            if (!isTodoistImageCdnUrl(redirected)) return errorResponse("Todoist file request failed", 502);
+            // The signed CDN URL is the credential. Do not forward the Todoist token.
+            upstreamResponse = await fetcher(redirected.toString(), {
+              signal: AbortSignal.timeout(30_000),
+              redirect: "error"
+            });
+          }
           if (!upstreamResponse.ok) {
             try { await upstreamResponse.body?.cancel(); } catch {}
             return errorResponse("Todoist file request failed", 502);

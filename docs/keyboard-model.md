@@ -91,8 +91,8 @@ the list.
 The compact **Detail shortcuts** disclosure contains the section-key map.
 Plain/empty notes use one column; formatted notes show a rendered preview.
 **Show/Hide preview** overrides that presentation until the task is reopened.
-Attachments keep the preview visible. `Ctrl+Enter` saves and restores focus to
-the task list.
+Attachments keep the preview visible, including every image comment on the
+task. `Ctrl+Enter` saves and restores focus to the task list.
 
 ## Due-date chooser
 

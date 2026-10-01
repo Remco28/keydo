@@ -53,6 +53,30 @@ try {
     await noOverflow(page);
   });
 
+  await check("header removes placeholder identity and presents quiet grouped task counts", async () => {
+    assert.equal(await page.locator(".user-chip, .avatar").count(), 0);
+    assert.doesNotMatch(await page.locator(".topbar").innerText(), /Remco/);
+    const date = await page.locator("#view-eyebrow").innerText();
+    assert.doesNotMatch(date, /workspace|Task browser/i);
+    assert.match(await page.locator("#view-eyebrow").getAttribute("datetime") || "", /^\d{4}-\d{2}-\d{2}$/);
+    const metrics = () => page.locator("#view-subtitle .summary-metric").evaluateAll(elements => elements.map(element => [element.querySelector("strong")?.textContent, element.querySelector("span")?.textContent]));
+    assert.deepEqual(await metrics(), [["4", "tasks"], ["2", "high priority"], ["1", "overdue"]]);
+    for (const view of ["upcoming", "priority", "completed"]) {
+      await page.locator(`[data-view='${view}']`).click();
+      assert.equal(await page.locator("#view-eyebrow").innerText(), date);
+      assert.equal(await page.locator("#view-subtitle .summary-metric").count(), 1);
+    }
+    assert.match(await page.locator("#view-subtitle").innerText(), /Space\s+to reopen/);
+    await page.locator("[data-view='today']").click();
+    await page.locator("#search-input").fill("Pick up prescription");
+    assert.deepEqual(await metrics(), [["1", "task"], ["0", "high priority"], ["0", "overdue"]]);
+    await page.locator("#search-input").fill("no-task-matches-this-header-check");
+    assert.deepEqual(await metrics(), [["0", "tasks"], ["0", "high priority"], ["0", "overdue"]]);
+    await page.locator("#search-input").fill("");
+    assert.deepEqual(await metrics(), [["4", "tasks"], ["2", "high priority"], ["1", "overdue"]]);
+    await page.locator(".task-row.selected").focus();
+  });
+
   await check("readable task typography and quiet default selection", async () => {
     assert.equal(await page.locator(".task-title").first().evaluate(element => getComputedStyle(element).fontSize), "15px");
     assert.equal(await page.locator(".select-box").first().isVisible(), false);

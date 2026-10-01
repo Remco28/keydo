@@ -1582,24 +1582,47 @@ describe("Keydo server", () => {
     }
   });
 
-  test("does not follow redirects from Todoist file URLs", async () => {
-    let requestCount = 0;
-    let redirectMode: RequestRedirect | undefined;
+  test("follows one signed Todoist image redirect without forwarding the account token", async () => {
+    const requests: Array<{ url: string; authorization?: string; redirect?: RequestRedirect }> = [];
     const server = createServer({
       port: 0,
       todoistToken: "server-only-token",
-      fetcher: async (_input, init) => {
-        requestCount += 1;
-        redirectMode = init?.redirect;
-        if (redirectMode === "error") throw new TypeError("redirect disallowed");
-        return Response.redirect("https://example.invalid/private", 302);
+      fetcher: async (input, init) => {
+        const requestUrl = String(input);
+        const headers = init?.headers as Record<string, string> | undefined;
+        requests.push({ url: requestUrl, authorization: headers?.Authorization, redirect: init?.redirect });
+        if (requests.length === 1) {
+          return new Response("redirect", { status: 302, headers: { Location: "https://d1ysz50cxb9zwl.cloudfront.net/signed/file.png?Expires=1&Signature=abc&Key-Pair-Id=key" } });
+        }
+        return new Response(new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]), { headers: { "Content-Type": "image/png" } });
       }
     });
     try {
-      const fileUrl = "https://files.todoist.com/abc/file.png";
-      const response = await fetch(new URL(`/api/todoist/files?url=${encodeURIComponent(fileUrl)}`, server.url));
+      const response = await fetch(new URL(`/api/todoist/files?url=${encodeURIComponent("https://files.todoist.com/abc/file.png")}`, server.url));
+      expect(response.status).toBe(200);
+      expect(response.headers.get("content-type")).toBe("image/png");
+      expect(requests).toEqual([
+        { url: "https://files.todoist.com/abc/file.png", authorization: "Bearer server-only-token", redirect: "manual" },
+        { url: "https://d1ysz50cxb9zwl.cloudfront.net/signed/file.png?Expires=1&Signature=abc&Key-Pair-Id=key", authorization: undefined, redirect: "error" }
+      ]);
+    } finally {
+      server.stop(true);
+    }
+  });
+
+  test("does not follow Todoist file redirects outside the image CDN", async () => {
+    let requestCount = 0;
+    const server = createServer({
+      port: 0,
+      todoistToken: "server-only-token",
+      fetcher: async () => {
+        requestCount += 1;
+        return Response.redirect("https://app.todoist.com/private", 302);
+      }
+    });
+    try {
+      const response = await fetch(new URL(`/api/todoist/files?url=${encodeURIComponent("https://files.todoist.com/abc/file.png")}`, server.url));
       expect(response.status).toBe(502);
-      expect(redirectMode).toBe("error");
       expect(requestCount).toBe(1);
     } finally {
       server.stop(true);

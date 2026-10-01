@@ -90,7 +90,7 @@
       height: 44px;
     }
 
-    .topbar-actions, .brand-meta, .sync-state, .shortcut-hint, .user-chip, .button-row, .detail-actions, .tag-row, .task-meta, .selection-summary, .command-hints, .view-switcher {
+    .topbar-actions, .sync-state, .shortcut-hint, .button-row, .detail-actions, .tag-row, .task-meta, .selection-summary, .command-hints, .view-switcher {
       display: flex;
       align-items: center;
     }
@@ -98,8 +98,6 @@
     .topbar-actions { gap: var(--space-6); }
     .header-tool { display: inline-flex; align-items: center; gap: var(--space-2); padding: var(--space-2) 0; border: 0; background: transparent; color: var(--muted-strong); font-size: 12px; }
     .header-tool:hover { color: var(--accent); }
-
-    .brand-meta { gap: 8px; }
 
     .sync-state { gap: var(--space-2); color: var(--green); font-size: 12px; }
 
@@ -133,26 +131,6 @@
       text-align: center;
     }
 
-    .user-chip {
-      gap: 8px;
-      padding-left: var(--space-6);
-      border-left: 1px solid var(--line);
-      color: var(--muted-strong);
-      font-size: 12px;
-    }
-
-    .avatar {
-      display: grid;
-      width: 28px;
-      height: 28px;
-      place-items: center;
-      border-radius: 999px;
-      background: #ded8ca;
-      color: #655b4b;
-      font-size: 11px;
-      font-weight: 800;
-    }
-
     .primary-button, .quiet-button, .icon-button, .bulk-button {
       border: 1px solid var(--line-strong);
       border-radius: 8px;
@@ -182,10 +160,14 @@
       margin-bottom: var(--space-6);
     }
 
-    .eyebrow { margin-bottom: var(--space-2); color: var(--muted-strong); font-size: 12px; font-weight: 450; }
+    .eyebrow { display: block; margin-bottom: var(--space-2); color: var(--muted); font-size: 12px; font-weight: 450; }
     h1, h2, h3, p { margin: 0; }
     h1 { font-size: 32px; font-weight: 600; letter-spacing: -0.04em; line-height: 1.2; }
-    .header-date { margin-top: var(--space-2); color: var(--muted); font-size: 13px; }
+    .view-summary { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--space-2) 0; margin-top: var(--space-3); color: var(--muted); font-size: 12px; }
+    .summary-metric { display: inline-flex; align-items: baseline; gap: 5px; white-space: nowrap; }
+    .summary-metric + .summary-metric { margin-left: 14px; padding-left: 14px; border-left: 1px solid var(--line); }
+    .summary-metric strong { color: var(--muted-strong); font-weight: 550; font-variant-numeric: tabular-nums; }
+    .summary-hint { margin-left: var(--space-4); white-space: nowrap; }
     .view-switcher { flex: none; gap: var(--space-1); border-bottom: 1px solid var(--line); }
     .view-switcher button { min-height: 40px; padding: var(--space-2) var(--space-3); border: 0; border-bottom: 2px solid transparent; background: transparent; color: var(--muted-strong); font-size: 13px; }
     .view-switcher button:hover { color: var(--accent); }
@@ -423,7 +405,7 @@
     .attachment-meta { margin-top: 3px; color: var(--muted); font-size: 11px; }
     .preview-media .attachment-card { display: block; padding: 0; overflow: hidden; }
     .preview-media .attachment-thumb { width: 100%; height: auto; min-height: 0; aspect-ratio: auto; border-radius: 0; }
-    .preview-media .attachment-thumb img { display: block; width: 100%; height: auto; max-height: 70vh; object-fit: contain; }
+    .preview-media .attachment-thumb img { display: block; width: 100%; height: auto; max-height: min(380px, 42vh); object-fit: contain; }
     .preview-media .attachment-copy { padding: 10px 11px 0; }
     .preview-media .attachment-view { margin: 8px 11px 10px; padding: 0 3px 0 0; }
     .preview-media .attachment-view + .attachment-view { margin-left: 8px; }
@@ -536,7 +518,7 @@
     @media (max-width: 680px) {
       .topbar { padding: var(--space-3) var(--space-4); }
       .brand-logo { height: 38px; }
-      .brand-meta, .shortcut-hint, .user-chip { display: none; }
+      .shortcut-hint { display: none; }
       .sync-state { max-width: 160px; }
       .content { padding: var(--space-4) var(--space-3) 160px; }
       .view-header { display: flex; }
@@ -576,7 +558,6 @@
       <div class="topbar-actions">
         <div class="sync-state" id="sync-state"><span class="sync-dot"></span><span>Synced</span></div>
         <div class="shortcut-hint"><button class="header-tool" id="help-button" type="button" tabindex="-1">Shortcuts <kbd>?</kbd></button><button class="header-tool" id="commands-button" type="button" tabindex="-1">Commands <kbd>Ctrl K</kbd></button></div>
-        <div class="user-chip"><span class="avatar">R</span><span>Remco</span></div>
       </div>
     </header>
 
@@ -584,9 +565,9 @@
       <div class="mobile-warning">Best with a keyboard. Tap controls to browse.</div>
       <div class="view-header">
         <div>
-          <div class="eyebrow" id="view-eyebrow">Personal workspace · Task browser</div>
+          <time class="eyebrow" id="view-eyebrow"></time>
           <h1 id="view-title">Today</h1>
-          <div class="header-date" id="view-subtitle">4 tasks · 1 high priority · 1 overdue</div>
+          <div class="view-summary" id="view-subtitle" role="group" aria-label="Task summary"></div>
         </div>
         <nav class="view-switcher" aria-label="Task views">
           <button tabindex="-1" class="active" data-view="today">Today</button>
@@ -760,7 +741,7 @@
     import { createTaskActionGate } from "/src/task-action-gate.js";
     import { OrderLockUnavailableError, withCrossTabOrderLock, withLocalOrderLock } from "/src/cross-tab-lock.js";
     import { createSyncCoordinator } from "/src/sync-coordinator.js";
-    import { applyTaskNoteDeltas, isSupportedRasterImageType, noteAttachmentsByItem, taskNoteDeltasNeedFullSync } from "/src/task-attachments.js";
+    import { addTaskImageAttachment, applyTaskNoteDeltas, isSupportedRasterImageType, noteImageAttachmentsByItem, removeTaskImageAttachment, taskNoteDeltasNeedFullSync } from "/src/task-attachments.js";
     import { renderMarkdown } from "/src/markdown.js";
     import { hasSyncToken, isPerformedSyncFailure, readOrderSyncToken, readSyncToken, requiresFullSyncAfterCompletionChange, requiresSyncCatchup } from "/src/sync-token.js";
     import { backgroundSyncAction, createCoalescedSyncRunner } from "/src/sync-runtime.js";
@@ -1043,7 +1024,7 @@
       const projectsById = new Map(projects.map(project => [project.id, project]));
       const inboxProject = projects.find(project => project.name?.toLowerCase() === "inbox");
       const notes = payload.notes ?? [];
-      const attachmentsByItem = noteAttachmentsByItem(notes);
+      const attachmentsByItem = noteImageAttachmentsByItem(notes);
       const mapped = (payload.items ?? [])
         .filter(item => item && !item.is_deleted)
         .map(item => {
@@ -1074,7 +1055,8 @@
             description: item.description ?? "",
             childOrder: typeof item.child_order === "number" ? item.child_order : null,
             subtasks: [],
-            attachment: attachmentsByItem.get(item.id) ?? null
+            attachments: attachmentsByItem.get(item.id) ?? [],
+            attachment: null
           };
         });
       return orderTaskTree(mapped);
@@ -1137,7 +1119,8 @@
         const localAttachment = previous.attachment?.data && !previous.attachment.commentId ? previous.attachment : null;
         const localUpdates = { ...(previous.keydoSendingUpdates || {}), ...(previous.keydoPendingUpdates || {}) };
         Object.assign(previous, retainOmittedTaskFields(mapped, previous, sourceItems.get(mapped.id) ?? {}), {
-          attachment: mapped.attachment ?? localAttachment,
+          attachments: mapped.attachments,
+          attachment: localAttachment,
         });
         if (Object.hasOwn(localUpdates, "content")) previous.title = localUpdates.content;
         if (Object.hasOwn(localUpdates, "description")) previous.description = localUpdates.description;
@@ -1251,13 +1234,15 @@
           description: item.description ?? "",
           childOrder: typeof item.child_order === "number" ? item.child_order : null,
           subtasks: [],
+          attachments: [],
           attachment: null
         };
         const previous = taskById.get(item.id);
         if (previous) {
           const localUpdates = { ...(previous.keydoSendingUpdates || {}), ...(previous.keydoPendingUpdates || {}) };
           Object.assign(previous, retainOmittedTaskFields(mapped, previous, item), {
-            attachment: previous.attachment,
+            attachments: previous.attachments ?? [],
+            attachment: previous.attachment?.data && !previous.attachment.commentId ? previous.attachment : null,
             subtasks: previous.subtasks ?? []
           });
           if (Object.hasOwn(localUpdates, "content")) previous.title = localUpdates.content;
@@ -1747,9 +1732,16 @@
         ? duplicateProjectName ? `${selectedProject.name} · ${selectedProject.id}` : state.project
         : state.view.charAt(0).toUpperCase() + state.view.slice(1);
       document.getElementById("view-title").textContent = viewTitle;
-      const todayLabel = new Date().toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric", year: "numeric" });
-      document.getElementById("view-eyebrow").textContent = `${state.workspace} workspace · ${state.view === "today" ? todayLabel : "Task browser"}`;
-      document.getElementById("view-subtitle").textContent = state.view === "today" ? `${filtered.length} tasks · ${filtered.filter(task => task.priority >= 3 && !task.completed).length} high priority · ${filtered.filter(task => task.dueClass === "overdue" && !task.completed).length} overdue` : state.view === "completed" ? `${filtered.length} recent completed tasks · Space to reopen` : `${filtered.length} tasks in this view`;
+      const today = new Date();
+      const date = document.getElementById("view-eyebrow");
+      date.textContent = today.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric", year: "numeric" });
+      date.setAttribute("datetime", [today.getFullYear(), String(today.getMonth() + 1).padStart(2, "0"), String(today.getDate()).padStart(2, "0")].join("-"));
+      const taskLabel = filtered.length === 1 ? "task" : "tasks";
+      const summary = state.view === "today"
+        ? [[filtered.length, taskLabel], [filtered.filter(task => task.priority >= 3 && !task.completed).length, "high priority"], [filtered.filter(task => task.dueClass === "overdue" && !task.completed).length, "overdue"]]
+        : [[filtered.length, state.view === "completed" ? "recently completed" : taskLabel]];
+      document.getElementById("view-subtitle").innerHTML = summary.map(([count, label]) => `<span class="summary-metric"><strong>${count}</strong><span>${label}</span></span>`).join("")
+        + (state.view === "completed" ? `<span class="summary-hint"><kbd>Space</kbd> to reopen</span>` : "");
       document.getElementById("list-label").textContent = state.query.trim() ? `Search · ${filtered.length}` : viewTitle;
       document.getElementById("reorder-view").hidden = state.view === "completed" || !tasks.some(task => task.id === state.selectedId);
       document.querySelectorAll(".nav-item, .view-switcher button").forEach(button => {
@@ -1775,14 +1767,15 @@
       if (!task) return;
       const richDescription = /(\*\*|__|`|^[-*] |^#+ |^(?:---+|___+)$|(?:^|[^!])\[[^\]]+\]\()/m.test(task.description);
       // Attachments stay visible even if the user had hidden the text preview.
-      const showPreview = Boolean(task.attachment) || (state.notesPreviewOverride ?? richDescription);
+      const images = taskImages(task);
+      const showPreview = images.length > 0 || (state.notesPreviewOverride ?? richDescription);
       document.querySelector(".detail-columns").classList.toggle("preview-visible", showPreview);
       document.getElementById("notes-preview").hidden = !showPreview;
       const toggle = document.getElementById("toggle-notes-width");
       toggle.textContent = showPreview ? "Hide preview" : "Show preview";
       toggle.setAttribute("aria-expanded", String(showPreview));
-      toggle.hidden = Boolean(task.attachment);
-      document.getElementById("preview-mode").textContent = task.attachment || richDescription ? "Rendered live" : "Plain text";
+      toggle.hidden = images.length > 0;
+      document.getElementById("preview-mode").textContent = images.length || richDescription ? "Rendered live" : "Plain text";
       fitNotesEditor();
     }
 
@@ -1816,8 +1809,11 @@
       updateNotesPresentation();
       document.getElementById("complete-detail").textContent = task.completed ? "Reopen task" : "Complete task";
       const previewMedia = document.getElementById("preview-media");
-      const attachmentSrc = attachmentSrcFor(task);
-      previewMedia.innerHTML = task.attachment ? `<div class="attachment-card"><div class="attachment-thumb">${attachmentSrc ? `<img src="${escapeAttr(attachmentSrc)}" alt="Pasted screenshot">` : "IMG"}</div><div class="attachment-copy"><div class="attachment-name">${escapeHtml(task.attachment.name)}</div><div class="attachment-meta">${escapeHtml(task.attachment.type)} · ${task.attachment.commentId ? "synced to Todoist" : "stored locally"}</div></div><button class="attachment-view" tabindex="-1" data-view-attachment>View larger</button><button class="attachment-view" tabindex="-1" data-remove-attachment>Remove</button></div>` : "";
+      previewMedia.innerHTML = taskImages(task).map(image => {
+        const src = attachmentSrcFor(image);
+        const key = image.commentId || "local";
+        return `<div class="attachment-card"><div class="attachment-thumb">${src ? `<img src="${escapeAttr(src)}" alt="Pasted screenshot">` : "IMG"}</div><div class="attachment-copy"><div class="attachment-name">${escapeHtml(image.name)}</div><div class="attachment-meta">${escapeHtml(image.type)} · ${image.commentId ? "synced to Todoist" : "stored locally"}</div></div><button class="attachment-view" tabindex="-1" data-view-attachment="${escapeAttr(key)}">View larger</button><button class="attachment-view" tabindex="-1" data-remove-attachment="${escapeAttr(key)}">Remove</button></div>`;
+      }).join("");
 
       const childTasks = tasks.filter(item => item.parentId === task.id);
       const subtasks = childTasks.length ? childTasks : task.subtasks || [];
@@ -2814,7 +2810,7 @@
         throw new Error("Attachment upload failed");
       }
       const result = await response.json();
-      setTaskAttachment(tasks, taskId, { name: result.attachment.name, type: result.attachment.type, url: result.attachment.url, commentId: result.attachment.commentId, postedAt: result.comment?.posted_at });
+      addTaskImageAttachment(tasks, taskId, { name: result.attachment.name, type: result.attachment.type, data: pending.dataUrl, url: result.attachment.url, commentId: result.attachment.commentId, postedAt: result.comment?.posted_at });
     }
 
     async function createSmartTask() {
@@ -3053,7 +3049,7 @@
           } catch {
             if (!await refreshFromSync({ full: true })) state.orderSyncUncertain = true;
             render();
-            showToast(task.attachment?.commentId
+            showToast(taskImages(task).some(image => image.commentId)
               ? "Task captured with screenshot · saved to Todoist"
               : "Task saved · screenshot kept locally");
           }
@@ -3777,39 +3773,46 @@
       if (action === "help") openHelp();
     }
 
-    function attachmentSrcFor(task) {
-      if (!task?.attachment) return "";
-      if (typeof task.attachment.data === "string" && task.attachment.data.startsWith("data:image/")) return task.attachment.data;
+    function taskImages(task) {
+      if (!task) return [];
+      const synced = Array.isArray(task.attachments) ? task.attachments : [];
+      const pending = task.attachment?.data && !task.attachment.commentId ? [task.attachment] : [];
+      const legacy = task.attachment?.commentId && !synced.some(image => image.commentId === task.attachment.commentId) ? [task.attachment] : [];
+      return [...synced, ...legacy, ...pending];
+    }
+
+    function attachmentSrcFor(image) {
+      if (!image) return "";
+      if (typeof image.data === "string" && image.data.startsWith("data:image/")) return image.data;
       // Todoist file URLs require authorization, which a bare <img> cannot
       // send, so remote images load through the same-origin proxy instead.
-      if (typeof task.attachment.url === "string" && task.attachment.url.startsWith("https://")) return `/api/todoist/files?url=${encodeURIComponent(task.attachment.url)}`;
+      if (typeof image.url === "string" && image.url.startsWith("https://")) return `/api/todoist/files?url=${encodeURIComponent(image.url)}`;
       return "";
     }
 
-    async function removeAttachment() {
+    async function removeAttachment(commentId) {
       const task = currentTask();
-      if (!task?.attachment) return;
+      const images = taskImages(task);
+      const image = images.find(item => (item.commentId || "local") === commentId);
+      if (!task || !image) return;
       const taskId = task.id;
-      const releaseAction = state.liveTodoist ? taskActionGate.acquire([task.id]) : () => {};
+      const releaseAction = state.liveTodoist && image.commentId ? taskActionGate.acquire([task.id]) : () => {};
       if (!releaseAction) {
         showToast("Wait for the current task change to finish");
         return;
       }
-      const previous = task.attachment;
-      task.attachment = null;
+      removeTaskImageAttachment(tasks, taskId, commentId);
       render();
-      if (!previous.commentId || !state.liveTodoist) {
+      if (!image.commentId || !state.liveTodoist) {
         showToast("Attachment removed locally");
         releaseAction();
         return;
       }
       try {
-        const response = await withLockedTodoistWrite(() => syncCoordinator.withMutation(() => todoistFetch(`/api/todoist/comments/${encodeURIComponent(previous.commentId)}`, { method: "DELETE" }, true)));
+        const response = await withLockedTodoistWrite(() => syncCoordinator.withMutation(() => todoistFetch(`/api/todoist/comments/${encodeURIComponent(image.commentId)}`, { method: "DELETE" }, true)));
         if (!response.ok) throw new Error("Attachment removal failed");
-        setTaskAttachment(tasks, taskId, null);
+        removeTaskImageAttachment(tasks, taskId, image.commentId);
         render();
-        // Deleting the newest image note can expose an older surviving note,
-        // which an incremental Sync will not include because it did not change.
         const refreshed = await refreshFromSync({ full: true });
         if (!refreshed) state.orderSyncUncertain = true;
         showToast(refreshed ? "Attachment removed from Todoist" : "Attachment removed · sync refresh unavailable");
@@ -3817,7 +3820,7 @@
         const refreshed = await refreshFromSync({ full: true });
         if (!refreshed) {
           state.orderSyncUncertain = true;
-          setTaskAttachment(tasks, taskId, previous);
+          addTaskImageAttachment(tasks, taskId, image);
         }
         render();
         showToast(refreshed ? "Attachment state reloaded from Todoist" : "Removal uncertain · attachment restored locally");
@@ -3884,6 +3887,7 @@
           showToast("Wait for the current task change to finish");
           return;
         }
+        const knownCommentIds = new Set(taskImages(tasks.find(item => item.id === taskId)).map(image => image.commentId).filter(Boolean));
         const localAttachment = { name: file.name || "pasted-screenshot.png", type: file.type, data: reader.result };
         setTaskAttachment(tasks, taskId, localAttachment);
         render();
@@ -3900,7 +3904,7 @@
             throw new Error(typeof detail?.error === "string" ? detail.error : "Attachment upload failed");
           }
           const result = await response.json();
-          setTaskAttachment(tasks, taskId, { name: result.attachment.name, type: result.attachment.type, data: reader.result, url: result.attachment.url, commentId: result.attachment.commentId, postedAt: result.comment?.posted_at });
+          addTaskImageAttachment(tasks, taskId, { name: result.attachment.name, type: result.attachment.type, data: reader.result, url: result.attachment.url, commentId: result.attachment.commentId, postedAt: result.comment?.posted_at });
           render();
           showToast("Screenshot saved to Todoist");
         } catch (error) {
@@ -3908,9 +3912,10 @@
           const reconciled = await refreshFromSync({ full: true });
           if (!reconciled) state.orderSyncUncertain = true;
           const currentTask = tasks.find(item => item.id === taskId);
-          if (!currentTask?.attachment?.commentId) setTaskAttachment(tasks, taskId, localAttachment);
+          const saved = taskImages(currentTask).some(image => image.commentId && !knownCommentIds.has(image.commentId));
+          if (currentTask && !saved) setTaskAttachment(tasks, taskId, localAttachment);
           render();
-          showToast(currentTask?.attachment?.commentId
+          showToast(saved
             ? "Screenshot saved to Todoist"
             : error instanceof Error ? error.message : "Upload failed · kept locally");
         } finally {
@@ -4019,8 +4024,14 @@
     });
     document.getElementById("preview-media").addEventListener("click", event => {
       const task = currentTask();
-      if (event.target.closest("[data-view-attachment]")) { const src = attachmentSrcFor(task); if (src) window.open(src, "_blank", "noopener"); }
-      if (event.target.closest("[data-remove-attachment]") && task) removeAttachment();
+      const view = event.target.closest("[data-view-attachment]");
+      const remove = event.target.closest("[data-remove-attachment]");
+      if (view) {
+        const image = taskImages(task).find(item => (item.commentId || "local") === view.dataset.viewAttachment);
+        const src = attachmentSrcFor(image);
+        if (src) window.open(src, "_blank", "noopener");
+      }
+      if (remove && task) removeAttachment(remove.dataset.removeAttachment);
     });
     document.getElementById("capture-button").addEventListener("click", () => openQuickCapture());
     document.getElementById("capture-cancel").addEventListener("click", closeQuickCapture);
