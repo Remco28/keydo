@@ -91,12 +91,12 @@ try {
   await check("up from the first task returns the scrolled page to the top", async () => {
     await page.setViewportSize({ width: 1100, height: 360 });
     await page.locator(".task-row").first().click();
-    await page.evaluate(() => window.scrollTo(0, document.querySelector("#task-list").getBoundingClientRect().top + window.scrollY));
-    const scrolledAway = await page.evaluate(() => ({ scrollY: window.scrollY, searchBottom: document.querySelector("#search-input").getBoundingClientRect().bottom, pageHeight: document.documentElement.scrollHeight, viewHeight: window.innerHeight }));
+    await page.evaluate(() => window.scrollTo(0, document.querySelector("#task-list")!.getBoundingClientRect().top + window.scrollY));
+    const scrolledAway = await page.evaluate(() => ({ scrollY: window.scrollY, searchBottom: document.querySelector("#search-input")!.getBoundingClientRect().bottom, pageHeight: document.documentElement.scrollHeight, viewHeight: window.innerHeight }));
     assert.ok(scrolledAway.scrollY > 40 && scrolledAway.searchBottom < 0, JSON.stringify(scrolledAway));
     await page.keyboard.press("ArrowUp");
     assert.equal(await page.evaluate(() => window.scrollY), 0);
-    assert.ok(await page.evaluate(() => document.querySelector("#search-input").getBoundingClientRect().top >= 0));
+    assert.ok(await page.evaluate(() => document.querySelector("#search-input")!.getBoundingClientRect().top >= 0));
     assert.equal(await page.locator(".task-row").first().getAttribute("aria-current"), "true");
     assert.equal(await page.locator("#task-list").evaluate(element => getComputedStyle(element).overflowY), "visible");
     await page.setViewportSize({ width: 1440, height: 960 });
