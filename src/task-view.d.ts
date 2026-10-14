@@ -73,6 +73,17 @@ export function orderTasksByDayOrder<T extends {
   dueDateKey?: string | null;
   priority?: number;
 }>(items: T[]): T[];
+export type TaskSortKey = "default" | "due" | "priority" | "title" | "project" | "added";
+export const TASK_SORT_KEYS: TaskSortKey[];
+export function sortVisibleTasks<T extends {
+  id: string;
+  parentId?: string | null;
+  dueDateKey?: string | null;
+  priority?: number;
+  title?: string;
+  project?: string | null;
+  addedAt?: string | null;
+}>(items: T[], sortKey?: string, reverse?: boolean): T[];
 export function dueDateKeyForRelativeLabel(label: string, now?: Date, timeZone?: string): string | null;
 export function todoistDueDateKey(due: { date?: string | null } | null | undefined, timeZone?: string): string | null;
 export function dueStateForDateKey(dateKey: string | null | undefined, recurring?: boolean, now?: Date, timeZone?: string): { due: string; dueClass: string };

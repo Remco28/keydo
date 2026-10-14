@@ -174,6 +174,9 @@
     .view-switcher button.active { border-bottom-color: var(--accent); color: var(--accent); font-weight: 600; }
     .view-switcher .view-jump { margin-left: var(--space-2); color: var(--muted); }
     .view-switcher .view-jump kbd { min-width: 17px; margin-left: var(--space-1); font-size: 10px; }
+    .view-switcher .view-sort { color: var(--muted); }
+    .view-switcher .view-sort.sorted { color: var(--accent); }
+    .view-switcher .view-sort kbd { min-width: 17px; margin-left: var(--space-1); font-size: 10px; }
 
     .workspace-grid {
       display: grid;
@@ -473,6 +476,8 @@
     .due-choices button { display: flex; justify-content: space-between; align-items: center; min-height: 44px; padding: var(--space-2) var(--space-3); border: 1px solid transparent; border-radius: 8px; background: transparent; color: var(--ink); text-align: left; }
     .due-choices button:hover { background: var(--panel-soft); }
     .due-choices button:focus { outline: 2px solid var(--accent); outline-offset: -2px; background: var(--accent-soft); }
+    .sort-choices button[aria-checked="true"] { color: var(--accent); font-weight: 600; }
+    .sort-choices .sort-direction { margin-left: auto; padding-right: var(--space-3); color: var(--muted); font-size: 12px; font-weight: 400; }
     .due-specific { margin-top: var(--space-4); }
     .due-specific[hidden] { display: none; }
     .due-specific label { display: block; margin-bottom: var(--space-2); color: var(--muted-strong); font-size: 12px; }
@@ -575,6 +580,7 @@
           <button tabindex="-1" data-view="priority">Priority</button>
           <button tabindex="-1" data-view="completed">Completed</button>
           <button tabindex="-1" class="view-jump" id="view-jump" type="button" title="Jump to any view or project">Jump <kbd>G</kbd></button>
+          <button tabindex="-1" class="view-sort" id="view-sort" type="button" title="Sort this view" aria-haspopup="dialog"><span id="view-sort-label">Sort</span> <kbd>B</kbd></button>
         </nav>
       </div>
 
@@ -673,6 +679,23 @@
     </div>
   </div>
 
+  <div class="modal-backdrop" id="sort-backdrop">
+    <div class="due-modal" role="dialog" aria-modal="true" aria-labelledby="sort-title" aria-describedby="sort-view-name">
+      <h2 id="sort-title">Sort by</h2>
+      <p class="due-task-name" id="sort-view-name"></p>
+      <div class="due-choices sort-choices" role="menu">
+        <button type="button" tabindex="-1" role="menuitemradio" data-sort-choice="due">Due date <kbd>D</kbd></button>
+        <button type="button" tabindex="-1" role="menuitemradio" data-sort-choice="priority">Priority <kbd>P</kbd></button>
+        <button type="button" tabindex="-1" role="menuitemradio" data-sort-choice="title">Title <kbd>T</kbd></button>
+        <button type="button" tabindex="-1" role="menuitemradio" data-sort-choice="project">Project <kbd>J</kbd></button>
+        <button type="button" tabindex="-1" role="menuitemradio" data-sort-choice="added">Date added <kbd>A</kbd></button>
+        <button type="button" tabindex="-1" role="menuitemradio" data-sort-choice="default">Keydo order <kbd>M</kbd></button>
+        <button type="button" tabindex="-1" role="menuitem" data-sort-choice="reverse">Reverse direction <kbd>R</kbd></button>
+      </div>
+      <div class="due-footer"><span><kbd>↑↓</kbd> choose · <kbd>↵</kbd> apply · same key again reverses</span><button class="text-action" type="button" tabindex="-1" id="sort-cancel">Cancel <kbd>Esc</kbd></button></div>
+    </div>
+  </div>
+
   <div class="modal-backdrop" id="command-backdrop">
     <div class="command-modal" role="dialog" aria-modal="true" aria-label="Command palette">
       <input class="command-search" id="command-search" placeholder="Type a command…" autocomplete="off">
@@ -694,6 +717,7 @@
           <div class="help-row"><span>Search</span><kbd>/</kbd></div>
           <div class="help-row"><span>Commands</span><span><kbd>Ctrl</kbd> <kbd>K</kbd></span></div>
           <h3>Arrange</h3>
+          <div class="help-row"><span>Sort this view</span><kbd>B</kbd></div>
           <div class="help-row"><span>Open complete project list</span><kbd>R</kbd></div>
           <div class="help-row"><span>Reorder in project</span><span><kbd>Alt</kbd> <kbd>↑↓</kbd></span></div>
           <div class="help-row"><span>Nest / outdent in project</span><span><kbd>Alt</kbd> <kbd>→←</kbd></span></div>
@@ -737,7 +761,7 @@
     {"imports":{"fractional-indexing":"/src/fractional-indexing.js"}}
   </script>
   <script type="module">
-    import { canNestTask, isCurrentTaskSelection, isCurrentTaskTarget, isCompleteProjectOrderView, isTaskInProject, filterTasksByWorkspaceAndQuery, includeTaskDescendants, makeSiblingReorder, orderTaskTree, orderTasksByDayOrder, dueDateKeyForRelativeLabel, todoistDueDateKey, dueStateForDateKey, refreshTaskDueStates, projectVisibleTree, reconcileTaskSelection, removeTaskSelectionIds, retainExistingTaskIds, sameTaskSiblingGroup, selectedTaskRoots, selectionIndexAfterMove, setTaskAncestorCompletion, setTaskSubtreeCompletion, swapSiblingTaskOrder, taskDeletionClosure, taskRootsForDeletedProjects, taskRootsForDeletedSections, taskParentOverridesForDelta, taskDepth, taskOutdentDestination, taskParentIdsWithChildren, taskRangeIds, taskSubtreeIds, taskSubtreeIdsByRoot, validTaskNestTargets } from "/src/task-view.js";
+    import { canNestTask, isCurrentTaskSelection, isCurrentTaskTarget, isCompleteProjectOrderView, isTaskInProject, filterTasksByWorkspaceAndQuery, includeTaskDescendants, makeSiblingReorder, orderTaskTree, orderTasksByDayOrder, dueDateKeyForRelativeLabel, todoistDueDateKey, dueStateForDateKey, refreshTaskDueStates, projectVisibleTree, reconcileTaskSelection, removeTaskSelectionIds, retainExistingTaskIds, sameTaskSiblingGroup, selectedTaskRoots, selectionIndexAfterMove, sortVisibleTasks, setTaskAncestorCompletion, setTaskSubtreeCompletion, swapSiblingTaskOrder, taskDeletionClosure, taskRootsForDeletedProjects, taskRootsForDeletedSections, taskParentOverridesForDelta, taskDepth, taskOutdentDestination, taskParentIdsWithChildren, taskRangeIds, taskSubtreeIds, taskSubtreeIdsByRoot, validTaskNestTargets } from "/src/task-view.js";
     import { createTaskActionGate } from "/src/task-action-gate.js";
     import { OrderLockUnavailableError, withCrossTabOrderLock, withLocalOrderLock } from "/src/cross-tab-lock.js";
     import { createSyncCoordinator } from "/src/sync-coordinator.js";
@@ -911,6 +935,7 @@
       orderLockReadOnly: false,
       deleteTargetId: null,
       dueTargetId: null,
+      sortByView: loadSortPreferences(),
       query: "",
       commandMode: "all",
       commandIndex: 0,
@@ -926,6 +951,14 @@
         { title: "Go to project: Reading", description: "Browse the Reading project", action: "project:Reading" },
         { title: "Go to workspace: Personal", description: "Switch to the Personal workspace", action: "workspace:Personal" },
         { title: "Go to workspace: Work", description: "Switch to the Work workspace", action: "workspace:Work" },
+        { title: "Sort this view", description: "Due date, priority, title, project, date added, or Keydo order · B", action: "sort:choose" },
+        { title: "Sort by due date", description: "Soonest first; tasks without a date last", action: "sort:due" },
+        { title: "Sort by priority", description: "P1 first, then by due date", action: "sort:priority" },
+        { title: "Sort by title", description: "Alphabetical, A to Z", action: "sort:title" },
+        { title: "Sort by project", description: "Group tasks by project name", action: "sort:project" },
+        { title: "Sort by date added", description: "Newest tasks first", action: "sort:added" },
+        { title: "Sort in Keydo order", description: "This view's built-in order", action: "sort:default" },
+        { title: "Reverse sort direction", description: "Flip the current sort for this view", action: "sort:reverse" },
         { title: "Reorder selected task in its project", description: "Open the complete project list and clear search", action: "task:reorder-view" },
         { title: "Move selected task to Today", description: "Set the selected task's due date to today", action: "task:today" },
         { title: "Change selected task due date", description: "Today, tomorrow, a specific date, or no date · D", action: "task:date" },
@@ -967,6 +1000,7 @@
     const dueBackdrop = document.getElementById("due-backdrop");
     const dueSpecificForm = document.getElementById("due-specific-form");
     const dueSpecificInput = document.getElementById("due-specific-input");
+    const sortBackdrop = document.getElementById("sort-backdrop");
     const quickCapture = document.getElementById("quick-capture");
     const captureInput = document.getElementById("capture-input");
     const capturePreview = document.getElementById("capture-preview");
@@ -1049,6 +1083,7 @@
             dueClass: dueState.dueClass,
             recurring: Boolean(item.due?.is_recurring),
             dayOrder: typeof item.day_order === "number" ? item.day_order : null,
+            addedAt: item.added_at ?? null,
             priority: item.priority ?? 1,
             completed: Boolean(item.checked),
             workspace: "Personal",
@@ -1087,6 +1122,7 @@
             priority: item.priority ?? 1,
             completed: true,
             completedAt: item.completed_at ?? "",
+            addedAt: item.added_at ?? null,
             pendingReopen: Boolean(item.keydo_reopen_pending),
             workspace: "Personal",
             description: item.description ?? "",
@@ -1233,6 +1269,7 @@
           dueClass: dueState.dueClass,
           recurring: Boolean(item.due?.is_recurring),
           dayOrder: typeof item.day_order === "number" ? item.day_order : null,
+          addedAt: item.added_at ?? null,
           priority: item.priority ?? 1,
           completed: Boolean(item.checked),
           workspace: "Personal",
@@ -1660,7 +1697,8 @@
       const query = state.query.trim().toLowerCase();
       if (state.view === "completed") {
         const completed = state.liveTodoist ? state.recentCompleted : tasks.filter(task => task.completed);
-        return filterTasksByWorkspaceAndQuery(completed, state.workspace, query);
+        const sort = currentSort();
+        return sortVisibleTasks(filterTasksByWorkspaceAndQuery(completed, state.workspace, query), sort.key, sort.reverse);
       }
       const workspaceTasks = filterTasksByWorkspaceAndQuery(tasks, state.workspace, query);
       if (query) return workspaceTasks;
@@ -1675,7 +1713,8 @@
       if (state.view === "today" || state.view === "upcoming") {
         filtered = orderTasksByDayOrder(filtered);
       }
-      return filtered;
+      const sort = currentSort();
+      return sortVisibleTasks(filtered, sort.key, sort.reverse);
     }
 
     function priorityLabel(priority) {
@@ -1748,6 +1787,10 @@
       document.getElementById("view-subtitle").innerHTML = summary.map(([count, label]) => `<span class="summary-metric"><strong>${count}</strong><span>${label}</span></span>`).join("")
         + (state.view === "completed" ? `<span class="summary-hint"><kbd>Space</kbd> to reopen</span>` : "");
       document.getElementById("list-label").textContent = state.query.trim() ? `Search · ${filtered.length}` : viewTitle;
+      const sortButton = document.getElementById("view-sort");
+      document.getElementById("view-sort-label").textContent = isCustomSort() ? `Sort: ${sortDescription()}` : "Sort";
+      sortButton.classList.toggle("sorted", isCustomSort());
+      sortButton.title = `Sort this view · ${sortDescription()}`;
       document.getElementById("reorder-view").hidden = state.view === "completed" || !tasks.some(task => task.id === state.selectedId);
       document.querySelectorAll(".nav-item, .view-switcher button").forEach(button => {
         const isProjectButton = Boolean(button.dataset.project);
@@ -2233,6 +2276,7 @@
     }
 
     async function moveHierarchy(direction, retried = false, requestedTaskId = state.selectedId) {
+      if (sortBlocksStructuralMove()) return;
       return withTaskOrderLock(() => moveHierarchyWithLock(direction, retried, requestedTaskId));
     }
 
@@ -2929,7 +2973,7 @@
       const pendingAttachment = state.captureAttachment;
       state.captureAttachment = null;
       const projectState = state.projectsById.get(project.id ?? state.inboxProjectId);
-      const task = { id: `task-local-${randomUuid()}`, title: parsed.title, project: project.name, projectId: project.id ?? state.inboxProjectId ?? null, projectOrderKey: projectState?.orderKey ?? null, projectOrderParentId: projectState?.parentId ?? null, parentId: null, sectionId: null, due: parsed.due, dueDateKey: dueDateKeyForRelativeLabel(parsed.due, new Date(), state.todoistTimeZone), dueClass: "", priority: parsed.priority, completed: false, workspace: state.workspace, description: "", subtasks: [], attachment: null };
+      const task = { id: `task-local-${randomUuid()}`, title: parsed.title, project: project.name, projectId: project.id ?? state.inboxProjectId ?? null, projectOrderKey: projectState?.orderKey ?? null, projectOrderParentId: projectState?.parentId ?? null, parentId: null, sectionId: null, due: parsed.due, dueDateKey: dueDateKeyForRelativeLabel(parsed.due, new Date(), state.todoistTimeZone), dueClass: "", priority: parsed.priority, completed: false, workspace: state.workspace, description: "", subtasks: [], attachment: null, addedAt: new Date().toISOString() };
       state.captureSaving = true;
       document.getElementById("capture-save").disabled = true;
       document.getElementById("capture-save").textContent = "Saving…";
@@ -3251,7 +3295,92 @@
       resetSelectionRange(task.id);
       render();
       focusSelectedTask();
-      showToast(canEditTaskOrder() ? "Project ready to reorder · Alt+↑↓ moves the selected task" : "This project spans workspaces · reorder is unavailable here");
+      showToast(!canEditTaskOrder() ? "This project spans workspaces · reorder is unavailable here" : isCustomSort() ? "Project is sorted · press B then M for Keydo order to reorder" : "Project ready to reorder · Alt+↑↓ moves the selected task");
+    }
+
+    const SORT_STORAGE_KEY = "keydo.viewSort.v1";
+    const SORT_DEFAULTS = { upcoming: "due", priority: "priority" };
+    const SORT_LABELS = { default: "Keydo order", due: "Due date", priority: "Priority", title: "Title", project: "Project", added: "Date added" };
+    const SORT_DIRECTIONS = {
+      default: ["built-in", "reversed"],
+      due: ["soonest first", "latest first"],
+      priority: ["P1 first", "P4 first"],
+      title: ["A–Z", "Z–A"],
+      project: ["A–Z", "Z–A"],
+      added: ["newest first", "oldest first"]
+    };
+
+    function loadSortPreferences() {
+      try {
+        const stored = JSON.parse(window.localStorage.getItem(SORT_STORAGE_KEY) ?? "{}");
+        if (!stored || typeof stored !== "object" || Array.isArray(stored)) return {};
+        return Object.fromEntries(Object.entries(stored).filter(([, sort]) => sort && SORT_LABELS[sort.key] && typeof sort.reverse === "boolean"));
+      } catch {
+        return {};
+      }
+    }
+
+    function saveSortPreferences() {
+      try {
+        window.localStorage.setItem(SORT_STORAGE_KEY, JSON.stringify(state.sortByView));
+      } catch {
+        // Sorting still works for this visit; it just will not be remembered.
+      }
+    }
+
+    // Each view remembers its own sort; all project views share one.
+    function currentSort(view = state.view) {
+      return state.sortByView[view] ?? { key: SORT_DEFAULTS[view] ?? "default", reverse: false };
+    }
+
+    function isCustomSort(view = state.view) {
+      const sort = currentSort(view);
+      return sort.key !== "default" || sort.reverse;
+    }
+
+    function sortDescription(sort = currentSort()) {
+      return `${SORT_LABELS[sort.key]} · ${SORT_DIRECTIONS[sort.key][sort.reverse ? 1 : 0]}`;
+    }
+
+    function openSortChooser() {
+      const sort = currentSort();
+      document.getElementById("sort-view-name").textContent = `Sorting ${document.getElementById("view-title").textContent}`;
+      sortBackdrop.querySelectorAll("[data-sort-choice]").forEach(button => {
+        const active = button.dataset.sortChoice === sort.key;
+        if (button.getAttribute("role") === "menuitemradio") button.setAttribute("aria-checked", String(active));
+        button.querySelector(".sort-direction")?.remove();
+        if (active) button.querySelector("kbd").insertAdjacentHTML("beforebegin", `<span class="sort-direction">${escapeHtml(SORT_DIRECTIONS[sort.key][sort.reverse ? 1 : 0])}</span>`);
+      });
+      commandBackdrop.classList.remove("visible");
+      helpBackdrop.classList.remove("visible");
+      sortBackdrop.classList.add("visible");
+      (sortBackdrop.querySelector(`[data-sort-choice="${sort.key}"]`) ?? sortBackdrop.querySelector("[data-sort-choice]")).focus();
+    }
+
+    function closeSortChooser() {
+      sortBackdrop.classList.remove("visible");
+      focusCurrentTaskContext();
+    }
+
+    // Choosing the active key again, or "reverse", flips direction; a new key starts in its natural direction.
+    function applySortChoice(choice) {
+      const sort = currentSort();
+      const next = choice === "reverse" || choice === sort.key
+        ? { key: sort.key, reverse: !sort.reverse }
+        : { key: choice, reverse: false };
+      if (!SORT_LABELS[next.key]) return;
+      state.sortByView = { ...state.sortByView, [state.view]: next };
+      saveSortPreferences();
+      if (sortBackdrop.classList.contains("visible")) sortBackdrop.classList.remove("visible");
+      render();
+      focusSelectedTask(false);
+      showToast(`Sorted by ${sortDescription(next).replace(" · ", ", ")}`);
+    }
+
+    function sortBlocksStructuralMove() {
+      if (state.view !== "project" || !isCustomSort()) return false;
+      showToast("This list is sorted · press B then M for Keydo order to rearrange");
+      return true;
     }
 
     function openDueChooser() {
@@ -3633,6 +3762,7 @@
     }
 
     async function enterMoveMode() {
+      if (sortBlocksStructuralMove()) return;
       const requestedTaskId = state.selectedId;
       if (!canEditTaskOrder()) {
         showToast("Press R to open this task's complete project list, then retry");
@@ -3779,6 +3909,8 @@
       if (action.startsWith("workspace:")) { switchWorkspace(action.slice(10)); return; }
       if (action === "task:today") { setTaskDue("Today", "today"); return; }
       if (action === "task:date") { openDueChooser(); return; }
+      if (action === "sort:choose") { openSortChooser(); return; }
+      if (action.startsWith("sort:")) { applySortChoice(action.slice(5)); return; }
       if (action === "task:subtask") { focusSubtaskComposer(); return; }
       if (action === "task:tomorrow") { setTaskDue("Tomorrow", "tomorrow"); return; }
       if (action === "task:clear") { setTaskDue("No date", "no date"); return; }
@@ -4079,6 +4211,13 @@
       else if (event.target === dueBackdrop) closeDueChooser();
     });
     document.getElementById("due-cancel").addEventListener("click", closeDueChooser);
+    sortBackdrop.addEventListener("click", event => {
+      const choice = event.target.closest("[data-sort-choice]");
+      if (choice) applySortChoice(choice.dataset.sortChoice);
+      else if (event.target === sortBackdrop) closeSortChooser();
+    });
+    document.getElementById("sort-cancel").addEventListener("click", closeSortChooser);
+    document.getElementById("view-sort").addEventListener("click", openSortChooser);
     dueSpecificForm.addEventListener("submit", event => { event.preventDefault(); void applyDueChoice("date"); });
     document.getElementById("delete-cancel").addEventListener("click", closeDeleteConfirmation);
     document.getElementById("delete-confirm").addEventListener("click", deleteSelectedTask);
@@ -4143,6 +4282,26 @@
         }
         return;
       }
+      if (sortBackdrop.classList.contains("visible")) {
+        if (event.key === "Escape") { event.preventDefault(); closeSortChooser(); return; }
+        if (event.key === "Tab") { event.preventDefault(); return; }
+        if (!event.altKey && !event.ctrlKey && !event.metaKey) {
+          const choices = [...sortBackdrop.querySelectorAll("[data-sort-choice]")];
+          if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+            event.preventDefault();
+            const index = Math.max(0, choices.indexOf(document.activeElement));
+            choices[(index + (event.key === "ArrowDown" ? 1 : -1) + choices.length) % choices.length].focus();
+          } else if (event.key === "Enter") {
+            event.preventDefault();
+            const choice = document.activeElement?.closest?.("[data-sort-choice]");
+            if (choice) applySortChoice(choice.dataset.sortChoice);
+          } else {
+            const choice = { d: "due", p: "priority", t: "title", j: "project", a: "added", m: "default", r: "reverse" }[event.key.toLowerCase()];
+            if (choice) { event.preventDefault(); applySortChoice(choice); }
+          }
+        }
+        return;
+      }
       if (state.captureOpen || commandBackdrop.classList.contains("visible") || helpBackdrop.classList.contains("visible")) {
         if (event.key === "Escape") {
           event.preventDefault();
@@ -4203,6 +4362,7 @@
       }
       if (event.key === "?" && !commandBackdrop.classList.contains("visible")) { event.preventDefault(); openHelp(); return; }
       if (event.key.toLowerCase() === "g") { event.preventDefault(); openCommands("goto"); return; }
+      if (event.key.toLowerCase() === "b" && !state.detailEditing && !event.ctrlKey && !event.metaKey && !event.altKey) { event.preventDefault(); openSortChooser(); return; }
       if (event.key.toLowerCase() === "r" && !state.detailEditing) { event.preventDefault(); openProjectForReorder(); return; }
       if (event.key === "/") { event.preventDefault(); searchInput.focus(); return; }
       if (event.key.toLowerCase() === "n" && state.detailEditing) { event.preventDefault(); focusDetailNotes(); return; }
@@ -4278,7 +4438,8 @@
       if (state.captureOpen) capturePasteImage(file);
       else if (!commandBackdrop.classList.contains("visible")
         && !helpBackdrop.classList.contains("visible")
-        && !deleteBackdrop.classList.contains("visible")) attachImage(file);
+        && !deleteBackdrop.classList.contains("visible")
+        && !sortBackdrop.classList.contains("visible")) attachImage(file);
     });
 
     loadRuntimeState();

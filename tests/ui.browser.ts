@@ -464,6 +464,43 @@ try {
     await page.keyboard.press("Escape");
   });
 
+  await check("B sorts each view and the view remembers it", async () => {
+    await page.keyboard.press("Escape");
+    await page.keyboard.press("Escape");
+    await page.locator("[data-view='priority']").click();
+    assert.equal(await page.locator("#view-sort-label").innerText(), "Sort: Priority · P1 first");
+    const rootTitles = () => page.locator(".task-row.depth-0 .task-title").allInnerTexts();
+    const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: "base" });
+    await page.keyboard.press("b");
+    assert.equal(await page.locator("#sort-backdrop").isVisible(), true);
+    assert.equal(await page.locator("[data-sort-choice='priority']").getAttribute("aria-checked"), "true");
+    await page.screenshot({ path: join(artifacts, "desktop-sort-chooser.png"), fullPage: true });
+    await page.keyboard.press("t");
+    await page.locator("#sort-backdrop").waitFor({ state: "hidden" });
+    const ascending = await rootTitles();
+    assert.ok(ascending.length > 1, "priority view needs several tasks");
+    assert.deepEqual(ascending, [...ascending].sort(collator.compare));
+    assert.equal(await page.locator("#view-sort-label").innerText(), "Sort: Title · A–Z");
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await page.screenshot({ path: join(artifacts, "desktop-sorted-view.png") });
+    await page.keyboard.press("b");
+    await page.keyboard.press("t");
+    assert.deepEqual(await rootTitles(), [...ascending].reverse());
+    await page.locator("[data-view='today']").click();
+    assert.equal(await page.locator("#view-sort-label").innerText(), "Sort");
+    await page.locator("[data-view='priority']").click();
+    assert.equal(await page.locator("#view-sort-label").innerText(), "Sort: Title · Z–A");
+    assert.deepEqual(JSON.parse(await page.evaluate(() => localStorage.getItem("keydo.viewSort.v1") ?? "{}")).priority, { key: "title", reverse: true });
+    await page.keyboard.press("b");
+    await page.keyboard.press("ArrowUp");
+    await page.keyboard.press("Escape");
+    assert.equal(await page.locator("#sort-backdrop").isVisible(), false);
+    assert.equal(await page.locator("#view-sort-label").innerText(), "Sort: Title · Z–A");
+    await page.keyboard.press("b");
+    await page.keyboard.press("p");
+    assert.equal(await page.locator("#view-sort-label").innerText(), "Sort: Priority · P1 first");
+  });
+
   await check("DOM IDs and runtime are clean", async () => {
     const duplicates = await page.evaluate(() => {
       const ids = [...document.querySelectorAll("[id]")].map(element => element.id);

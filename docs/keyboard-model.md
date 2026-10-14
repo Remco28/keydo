@@ -40,6 +40,7 @@ command palette (`Ctrl+K`) are the source of truth when in doubt.
 | `M` | Move selected task to a project |
 | `Shift+M` | In an unfiltered project view, move mode: pick any parent with `↑↓`, `Enter` drops, `Esc` cancels |
 | `G` | Go to view / project / workspace |
+| `B` | Sort the current view (see Sort chooser) |
 | `/` | Search across all tasks (ignores the current view filter) |
 | `N` | Capture composer (`Enter` uses Todoist Smart Add in live mode; pasted screenshots and demo mode use structured creation) |
 | `Ctrl+K` | Command palette |
@@ -111,6 +112,30 @@ title or notes. It affects the task named in the popup, not bulk selection.
 Today/Tomorrow use the existing account-timezone-aware date mutation path.
 The specific-date input is validated before applying. Existing `T`,
 `Shift+T`, and `C` list shortcuts remain available.
+
+## Sort chooser
+
+`B` in the list, the **Sort** button in the view header, or `Ctrl+K` → "Sort…"
+opens it. Each view remembers its own sort (all project views share one); the
+header shows the active sort when it differs from Keydo order. Sorting is
+display-only and never changes order in Todoist. Subtasks stay under their
+parent. Search results are not sorted.
+
+| Binding | Action |
+| --- | --- |
+| `D` | Due date (soonest first; undated tasks last in either direction) |
+| `P` | Priority (P1 first; ties by due date) |
+| `T` | Title (A–Z, numbers in natural order) |
+| `J` | Project name |
+| `A` | Date added (newest first) |
+| `M` | Keydo order — the view's built-in order |
+| `R`, or the active key again | Reverse direction |
+| `↑` / `↓`, then `Enter` | Choose and apply |
+| `Esc` / Cancel / backdrop click | Close without changes |
+
+Defaults: Priority sorts by priority, Upcoming by due date, other views use
+Keydo order. In a sorted project view, `Alt+Arrow` and `Shift+M` refuse with a
+hint to switch back to Keydo order (`B`, then `M`).
 
 ## Capture composer
 

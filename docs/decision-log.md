@@ -93,6 +93,12 @@ This log records product and technical decisions as they are made. Proposed deci
 - **Decision:** Tab is not a navigation key in Keydo — it belongs to the browser. Every section (list, detail room, move mode, capture composer) gets direct keys instead: `T`itle, `N`otes, `D`ue date, `S` to add a subtask, `C`omplete in detail; `Shift+S` starts browsing children and arrows walk the subtask list. Ordinary action buttons stay clickable but untabbable; date and delete dialogs contain Tab focus as exceptions. Keys may change meaning per context (`T` is Today in the list, Title in detail); hint lines and the palette teach the active map.
 - **Rationale:** Reaching rename via five shift-tabs proved the layout served the mouse first. Direct keys keep hands on home row and eyes on the task.
 
+## D-016: Sorting is a per-view display choice
+
+- **Status:** Accepted
+- **Decision:** `B` opens a sort chooser for the current view: due date, priority, title, project, date added, or Keydo order (the view's built-in order), and either direction. Each view remembers its own sort in the browser; all project views share one. Sorting never writes order back to Todoist. Subtasks stay under their parent and are sorted among their siblings. Priority defaults to priority, Upcoming to due date, everything else to Keydo order. Search results keep their existing order. In a project view, structural moves (`Alt+Arrow`, `Shift+M`) only work in Keydo order, because the moves are relative to Todoist's order, not the order on screen.
+- **Rationale:** Views list everything in a category, but the useful order depends on the moment. Keeping sort local respects D-003 (Todoist is authoritative) and D-014 (structural moves stay explicit).
+
 ## Open decisions
 
 - Browser-only application versus packaged desktop application

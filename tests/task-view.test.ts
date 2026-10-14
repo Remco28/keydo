@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { canNestTask, isCurrentTaskSelection, isCurrentTaskTarget, isCompleteProjectOrderView, isTaskInProject, isUnfilteredProjectView, filterTasksByWorkspaceAndQuery, retainExistingTaskIds, selectionIndexAfterMove, makeSiblingReorder, orderTaskTree, orderTasksByDayOrder, dueDateKeyForRelativeLabel, todoistDueDateKey, dueStateForDateKey, refreshTaskDueStates, projectVisibleTree, reconcileTaskSelection, removeTaskSelectionIds, sameTaskSiblingGroup, selectedTaskRoots, setTaskAncestorCompletion, setTaskSubtreeCompletion, swapSiblingTaskOrder, taskDeletionClosure, taskRootsForDeletedProjects, taskRootsForDeletedSections, taskParentOverridesForDelta, taskDepth, taskOutdentDestination, taskParentIdsWithChildren, taskRangeIds, taskSubtreeIds, taskSubtreeIdsByRoot, validTaskNestTargets } from "../src/task-view.js";
+import { canNestTask, isCurrentTaskSelection, isCurrentTaskTarget, isCompleteProjectOrderView, isTaskInProject, isUnfilteredProjectView, filterTasksByWorkspaceAndQuery, retainExistingTaskIds, selectionIndexAfterMove, sortVisibleTasks, makeSiblingReorder, orderTaskTree, orderTasksByDayOrder, dueDateKeyForRelativeLabel, todoistDueDateKey, dueStateForDateKey, refreshTaskDueStates, projectVisibleTree, reconcileTaskSelection, removeTaskSelectionIds, sameTaskSiblingGroup, selectedTaskRoots, setTaskAncestorCompletion, setTaskSubtreeCompletion, swapSiblingTaskOrder, taskDeletionClosure, taskRootsForDeletedProjects, taskRootsForDeletedSections, taskParentOverridesForDelta, taskDepth, taskOutdentDestination, taskParentIdsWithChildren, taskRangeIds, taskSubtreeIds, taskSubtreeIdsByRoot, validTaskNestTargets } from "../src/task-view.js";
 
 const hierarchy = [
   { id: "parent", parentId: null },
@@ -736,5 +736,53 @@ describe("task view hierarchy", () => {
 
     tasks.find(task => task.id === "task-0")!.completed = true;
     expect(selectedTaskRoots(tasks, selected, true)).toEqual(["task-1"]);
+  });
+});
+
+describe("view sorting", () => {
+  const tasks = [
+    { id: "a", title: "write report", dueDateKey: "2026-10-20", priority: 1, project: "Work", addedAt: "2026-10-01T00:00:00Z" },
+    { id: "a1", parentId: "a", title: "outline", dueDateKey: null, priority: 4, project: "Work", addedAt: "2026-10-05T00:00:00Z" },
+    { id: "a2", parentId: "a", title: "draft", dueDateKey: "2026-10-18", priority: 2, project: "Work", addedAt: "2026-10-04T00:00:00Z" },
+    { id: "b", title: "Buy milk", dueDateKey: null, priority: 4, project: "Home", addedAt: "2026-10-03T00:00:00Z" },
+    { id: "c", title: "call dentist", dueDateKey: "2026-10-15", priority: 4, project: "Home", addedAt: null },
+    { id: "d", title: "Item 10", dueDateKey: "2026-10-15", priority: 2, project: "Errands", addedAt: "2026-10-02T00:00:00Z" },
+    { id: "e", title: "Item 9", dueDateKey: "2026-10-15", priority: 3 }
+  ];
+  const ids = (items: Array<{ id: string }>) => items.map(task => task.id);
+
+  test("default order returns the list untouched", () => {
+    expect(sortVisibleTasks(tasks)).toBe(tasks);
+    expect(sortVisibleTasks(tasks, "default")).toBe(tasks);
+    expect(sortVisibleTasks(tasks, "bogus")).toBe(tasks);
+  });
+
+  test("due date puts undated tasks last and keeps same-day ties in view order", () => {
+    expect(ids(sortVisibleTasks(tasks, "due"))).toEqual(["c", "d", "e", "a", "a2", "a1", "b"]);
+    expect(ids(sortVisibleTasks(tasks, "due", true))).toEqual(["a", "a2", "a1", "c", "d", "e", "b"]);
+  });
+
+  test("priority puts P1 first and breaks ties by due date", () => {
+    expect(ids(sortVisibleTasks(tasks, "priority"))).toEqual(["c", "b", "e", "d", "a", "a1", "a2"]);
+    expect(ids(sortVisibleTasks(tasks, "priority", true))).toEqual(["a", "a2", "a1", "d", "e", "c", "b"]);
+  });
+
+  test("title sorts naturally and ignores case", () => {
+    expect(ids(sortVisibleTasks(tasks, "title"))).toEqual(["b", "c", "e", "d", "a", "a2", "a1"]);
+  });
+
+  test("project and date added sort the top level", () => {
+    expect(ids(sortVisibleTasks(tasks, "project"))).toEqual(["d", "b", "c", "a", "a1", "a2", "e"]);
+    expect(ids(sortVisibleTasks(tasks, "added"))).toEqual(["b", "d", "a", "a1", "a2", "c", "e"]);
+    expect(ids(sortVisibleTasks(tasks, "added", true))).toEqual(["a", "a2", "a1", "d", "b", "c", "e"]);
+  });
+
+  test("reversing Keydo order flips siblings but keeps subtasks under their parent", () => {
+    expect(ids(sortVisibleTasks(tasks, "default", true))).toEqual(["e", "d", "c", "b", "a", "a2", "a1"]);
+  });
+
+  test("a subtask whose parent is not shown sorts as a top-level task", () => {
+    const orphaned = [{ id: "x", parentId: "hidden", title: "b" }, { id: "y", title: "a" }];
+    expect(ids(sortVisibleTasks(orphaned, "title"))).toEqual(["y", "x"]);
   });
 });

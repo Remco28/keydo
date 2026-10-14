@@ -405,6 +405,84 @@ export function orderTasksByDayOrder(items) {
   return ordered;
 }
 
+export const TASK_SORT_KEYS = ["default", "due", "priority", "title", "project", "added"];
+
+const titleCollator = new Intl.Collator(undefined, { numeric: true, sensitivity: "base" });
+
+function compareOptional(a, b, compare) {
+  if (a == null || a === "") return b == null || b === "" ? 0 : 1;
+  if (b == null || b === "") return -1;
+  return compare(a, b);
+}
+
+function compareStrings(a, b) {
+  return a === b ? 0 : a < b ? -1 : 1;
+}
+
+function comparePriority(a, b) {
+  const aPriority = Number.isFinite(a.priority) ? a.priority : 1;
+  const bPriority = Number.isFinite(b.priority) ? b.priority : 1;
+  return bPriority - aPriority;
+}
+
+function compareDue(a, b) {
+  return compareOptional(typeof a.dueDateKey === "string" ? a.dueDateKey : null, typeof b.dueDateKey === "string" ? b.dueDateKey : null, compareStrings);
+}
+
+// Display-only ordering for a view. It never writes order back to Todoist.
+// Siblings are sorted among themselves so subtasks stay under their parent;
+// tasks without a date (or other missing value) stay last in either direction.
+// Ties fall back to the order the list arrived in, which is the view's default.
+export function sortVisibleTasks(items, sortKey = "default", reverse = false) {
+  if (!TASK_SORT_KEYS.includes(sortKey) || (sortKey === "default" && !reverse)) return items;
+  const originalIndex = new Map(items.map((task, index) => [task.id, index]));
+  const taskById = new Map(items.map(task => [task.id, task]));
+  const children = new Map();
+  const roots = [];
+  for (const task of items) {
+    if (task.parentId == null || !taskById.has(task.parentId)) {
+      roots.push(task);
+      continue;
+    }
+    if (!children.has(task.parentId)) children.set(task.parentId, []);
+    children.get(task.parentId).push(task);
+  }
+
+  const direction = reverse ? -1 : 1;
+  function primary(a, b) {
+    if (sortKey === "due") return compareOptional(typeof a.dueDateKey === "string" ? a.dueDateKey : null, typeof b.dueDateKey === "string" ? b.dueDateKey : null, (x, y) => direction * compareStrings(x, y));
+    if (sortKey === "priority") return direction * comparePriority(a, b);
+    if (sortKey === "title") return direction * titleCollator.compare(a.title ?? "", b.title ?? "");
+    if (sortKey === "project") return compareOptional(a.project || null, b.project || null, (x, y) => direction * titleCollator.compare(x, y));
+    if (sortKey === "added") return compareOptional(a.addedAt || null, b.addedAt || null, (x, y) => direction * compareStrings(y, x));
+    return direction * (originalIndex.get(a.id) - originalIndex.get(b.id));
+  }
+  function secondary(a, b) {
+    // Same-day ties keep the view's own order (Todoist day order in Today/Upcoming).
+    if (sortKey === "priority") return compareDue(a, b);
+    return 0;
+  }
+  function sortSiblings(group) {
+    return group.sort((a, b) => primary(a, b) || secondary(a, b) || originalIndex.get(a.id) - originalIndex.get(b.id));
+  }
+
+  const ordered = [];
+  const visited = new Set();
+  const pending = [...sortSiblings(roots)].reverse();
+  while (pending.length) {
+    const task = pending.pop();
+    if (visited.has(task.id)) continue;
+    visited.add(task.id);
+    ordered.push(task);
+    const descendants = sortSiblings(children.get(task.id) ?? []);
+    for (let index = descendants.length - 1; index >= 0; index -= 1) pending.push(descendants[index]);
+  }
+  for (const task of items) {
+    if (!visited.has(task.id)) ordered.push(task);
+  }
+  return ordered;
+}
+
 export function dueDateKeyForRelativeLabel(label, now = new Date(), timeZone) {
   if (label !== "Today" && label !== "Tomorrow") return null;
   const today = localIsoDate(now, timeZone);
