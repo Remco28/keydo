@@ -53,6 +53,20 @@ The active keyboard task is marked separately from bulk-selected tasks. The
 shortcuts reveal them automatically. **Cancel selection**, **Clear selection**,
 or `Esc` dismiss selection mode, and changing views resets it. A view change always selects that view's first task and returns the page to the top, even when the previous task also appears there.
 
+## Where you land after an action
+
+The view only changes when you change it (sidebar, `G`, `R`, `/`). Actions
+never switch views (D-017).
+
+| After | You land on |
+| --- | --- |
+| Completing, rescheduling (`T`, `Shift+T`, `C`, `D`), moving (`M`) or deleting a task that then leaves the view | The task that took its place: the next one down, or the one above if it was last |
+| A task changed in Todoist that leaves the view | Same as above |
+| `C` (complete) in details | The list, on the task that took its place. From a drilled-in subtask: the parent's details |
+| `C` (reopen) in details | Stay in details |
+| Capture (`N`, `Enter`) | The same view. The new task is selected if it belongs in the view; otherwise the cursor stays put and the status strip says where it went |
+| Opening or reloading Keydo | The last view you used (Today if its project is gone) |
+
 Reopening a parent completed through Keydo also restores the subtasks that
 were unfinished when that parent was completed; already-finished children
 stay finished. If Todoist only restores part of the subtree, **Completed**
@@ -76,7 +90,7 @@ an editor, the same section keys work with `Alt` held.
 | `Shift+S` | Jump to the first subtask (or Add if empty) |
 | `↑` / `↓` on a subtask | Walk the subtask list |
 | `Enter` on a subtask | Drill into that subtask |
-| `C` | Complete or reopen the task |
+| `C` | Complete (returns to the list, or to the parent from a drilled-in subtask) or reopen (stays) |
 | `Alt+T` / `Alt+N` / `Alt+D` / `Alt+S` / `Alt+C` | Same keys, usable while editing; `Alt+Shift+S` browses subtasks |
 | `Ctrl+Enter` | Save title/notes |
 | `Esc` | Return to the list |
@@ -143,7 +157,7 @@ hint to switch back to Keydo order (`B`, then `M`).
 | --- | --- |
 | `N` | Open the composer |
 | Type + optional image paste | Title with natural input (`Call Alex tomorrow #Launch p1`), screenshot chip with remove |
-| `Enter` | Create task and upload the screenshot as a comment |
+| `Enter` | Create task and upload the screenshot as a comment. You stay in the current view |
 | `Esc` | Cancel |
 
 ## Command palette

@@ -99,6 +99,16 @@ This log records product and technical decisions as they are made. Proposed deci
 - **Decision:** `B` opens a sort chooser for the current view: due date, priority, title, project, date added, or Keydo order (the view's built-in order), and either direction. Each view remembers its own sort in the browser; all project views share one. Sorting never writes order back to Todoist. Subtasks stay under their parent and are sorted among their siblings. Priority defaults to priority, Upcoming to due date, everything else to Keydo order. Search results keep their existing order. In a project view, structural moves (`Alt+Arrow`, `Shift+M`) only work in Keydo order, because the moves are relative to Todoist's order, not the order on screen.
 - **Rationale:** Views list everything in a category, but the useful order depends on the moment. Keeping sort local respects D-003 (Todoist is authoritative) and D-014 (structural moves stay explicit).
 
+## D-017: Actions keep you where you are
+
+- **Status:** Accepted
+- **Decision:** The view only changes when the user changes it: the sidebar, `G`, `R` (reorder in project), `/` search, or Completed. No other action changes the view. Specifically:
+  - **The cursor keeps its place.** When the selected task leaves the view (completed, rescheduled, moved, deleted, or changed in Todoist), the cursor goes to the task that took its place: the next task down, or the one above if it was last. It never jumps to the top of the list.
+  - **Completing from details returns to the list.** `C` in details completes the task and returns to the list with the next task selected. If you drilled into a subtask, it returns to the parent's details instead. Reopening with `C` stays in details.
+  - **Capture stays in the current view.** Both Smart Add and exact create keep the current view. If the new task belongs in it, it is selected; otherwise the cursor stays where it was and the status strip names where the task went (for example, "Added to Inbox").
+  - **Opening Keydo resumes the last view**, including its project and workspace. If that project no longer exists, it opens Today.
+- **Rationale:** Capture used to jump to the new task's project, which for a user who rarely sets `#project` meant being dropped into Inbox mid-task. Completing or moving a task reset the cursor to the top of the list, so working down a list meant finding your place again after every action. Keeping the view and the place lets a list be processed top to bottom with no navigation.
+
 ## Open decisions
 
 - Browser-only application versus packaged desktop application
