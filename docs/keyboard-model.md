@@ -66,6 +66,10 @@ never switch views (D-017).
 | `C` (reopen) in details | Stay in details |
 | Capture (`N`, `Enter`) | The same view. The new task is selected if it belongs in the view; otherwise the cursor stays put and the status strip says where it went |
 | Opening or reloading Keydo | The last view you used (Today if its project is gone) |
+| The project you are viewing is deleted | Today, with a message in the status strip |
+
+Completed tasks leave every view except Completed as soon as you complete
+them. Capture keeps an active search too.
 
 Reopening a parent completed through Keydo also restores the subtasks that
 were unfinished when that parent was completed; already-finished children

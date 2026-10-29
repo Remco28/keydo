@@ -117,3 +117,37 @@ Keydo is a keyboard-first Todoist client (single page: `index.html`, helpers in
   Upcoming) keeps the cursor on it, wherever it moves.
 - Deleting the project you are viewing mid-session still falls back to Inbox
   (existing `applyTodoistProjects` behaviour).
+
+## Revision 1 (after critic and blind solver)
+
+Taken (both reports are in this folder):
+
+- **Sync reset (both peers, HIGH):** `reconcileTaskSelection` keeps a missing
+  selected id instead of choosing `items[0]`; `renderTaskList` is the only place
+  that picks a replacement. Its unit test changes accordingly.
+- **Completed rows linger in Inbox/project views (solver):** the human decided
+  completed tasks leave every view except Completed (`visibleTasks` adds
+  `!task.completed` for inbox and project). Added to D-017.
+- **Project deleted mid-session (both peers):** the human decided Today with a
+  message. `applyTodoistProjects` and the full-sync branch stop falling back to
+  Inbox. Added to D-017.
+- **Sort preferences lost on reload (solver):** `loadSortPreferences()` runs
+  before `SORT_STORAGE_KEY` is initialised (TDZ, swallowed by its catch). The
+  human approved fixing it here, in its own commit, with a reload test. The
+  last-view storage is read after module constants exist.
+- **Delete:** also remove the second neighbour pick after the server call
+  (index.html ~2243) and keep rollback from overriding a cursor the user moved.
+- **Reverts:** a failure revert moves the cursor back to the reverted task only
+  if the cursor is still on the replacement it was given.
+- **Smart Add in live mode (critic):** add a fake-upstream browser test (as in
+  `tests/completion.browser.ts`) that captures into Inbox from Today and checks
+  the view does not change.
+- **Capture keeps an active search** (`openQuickCapture` cleared it).
+- **Capture toast:** the destination goes in the final toast, since later
+  toasts overwrite earlier ones.
+- **Helpers stay in existing modules** (a new `src/*.js` needs a server route).
+
+Declined:
+
+- Explicit replacement on detail `C` (solver): no longer needed once completed
+  tasks leave Inbox/project views; `leaveDetail` plus the place rule covers it.

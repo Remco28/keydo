@@ -107,6 +107,8 @@ This log records product and technical decisions as they are made. Proposed deci
   - **Completing from details returns to the list.** `C` in details completes the task and returns to the list with the next task selected. If you drilled into a subtask, it returns to the parent's details instead. Reopening with `C` stays in details.
   - **Capture stays in the current view.** Both Smart Add and exact create keep the current view. If the new task belongs in it, it is selected; otherwise the cursor stays where it was and the status strip names where the task went (for example, "Added to Inbox").
   - **Opening Keydo resumes the last view**, including its project and workspace. If that project no longer exists, it opens Today.
+  - **Completed tasks leave every view except Completed** straight away, including Inbox and project views, which used to keep them struck through until the next full sync.
+  - **If the project you are viewing is deleted**, Keydo opens Today and says so in the status strip.
 - **Rationale:** Capture used to jump to the new task's project, which for a user who rarely sets `#project` meant being dropped into Inbox mid-task. Completing or moving a task reset the cursor to the top of the list, so working down a list meant finding your place again after every action. Keeping the view and the place lets a list be processed top to bottom with no navigation.
 
 ## Open decisions
