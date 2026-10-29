@@ -761,7 +761,7 @@
     {"imports":{"fractional-indexing":"/src/fractional-indexing.js"}}
   </script>
   <script type="module">
-    import { canNestTask, isCurrentTaskSelection, isCurrentTaskTarget, isCompleteProjectOrderView, isTaskInProject, filterTasksByWorkspaceAndQuery, includeTaskDescendants, makeSiblingReorder, orderTaskTree, orderTasksByDayOrder, dueDateKeyForRelativeLabel, todoistDueDateKey, dueStateForDateKey, refreshTaskDueStates, projectVisibleTree, reconcileTaskSelection, removeTaskSelectionIds, retainExistingTaskIds, sameTaskSiblingGroup, selectedTaskRoots, selectionIndexAfterMove, sortVisibleTasks, setTaskAncestorCompletion, setTaskSubtreeCompletion, swapSiblingTaskOrder, taskDeletionClosure, taskRootsForDeletedProjects, taskRootsForDeletedSections, taskParentOverridesForDelta, taskDepth, taskOutdentDestination, taskParentIdsWithChildren, taskRangeIds, taskSubtreeIds, taskSubtreeIdsByRoot, validTaskNestTargets } from "/src/task-view.js";
+    import { canNestTask, isCurrentTaskSelection, isCurrentTaskTarget, isCompleteProjectOrderView, isTaskInProject, filterTasksByWorkspaceAndQuery, includeTaskDescendants, makeSiblingReorder, orderTaskTree, orderTasksByDayOrder, dueDateKeyForRelativeLabel, todoistDueDateKey, dueStateForDateKey, refreshTaskDueStates, projectVisibleTree, reconcileTaskSelection, removeTaskSelectionIds, retainExistingTaskIds, sameTaskSiblingGroup, selectedTaskRoots, selectionAfterRemoval, selectionIndexAfterMove, resolveStoredView, sortVisibleTasks, setTaskAncestorCompletion, setTaskSubtreeCompletion, swapSiblingTaskOrder, taskDeletionClosure, taskRootsForDeletedProjects, taskRootsForDeletedSections, taskParentOverridesForDelta, taskDepth, taskOutdentDestination, taskParentIdsWithChildren, taskRangeIds, taskSubtreeIds, taskSubtreeIdsByRoot, validTaskNestTargets } from "/src/task-view.js";
     import { createTaskActionGate } from "/src/task-action-gate.js";
     import { OrderLockUnavailableError, withCrossTabOrderLock, withLocalOrderLock } from "/src/cross-tab-lock.js";
     import { createSyncCoordinator } from "/src/sync-coordinator.js";
@@ -770,7 +770,7 @@
     import { hasSyncToken, isPerformedSyncFailure, readOrderSyncToken, readSyncToken, requiresFullSyncAfterCompletionChange, requiresSyncCatchup } from "/src/sync-token.js";
     import { backgroundSyncAction, createCoalescedSyncRunner } from "/src/sync-runtime.js";
     import { applyProjectTaskMove, applyTaskDueChange, applyTaskHierarchyMove, applyTaskOrderKeys, applyTodoistProjectDelta, applyTodoistSectionDeltas, deletedTodoistProjectIds, discardTaskEdits, isRecurringTaskCompletion, isTaskCompletionStateCurrent, reconcileTodoistProjectSnapshot, restoreMissingTasks, restoreTaskOrderFields, restoreTaskSnapshots, setTaskAttachment, retainOmittedTaskFields, retainPendingCreates, retryablePendingTaskUpdates } from "/src/task-mutations.js";
-    import { appendCreatedTask, canCaptureInWorkspace, isCreateRateLimited, isDefinitiveCreateRejection, isTodoistRateLimited, mergeResolvedCreatedTask, parseCapture, resolveCaptureProject, shouldRestoreCaptureAfterCreateFailure, todoistRetryAfterSeconds } from "/src/task-capture.js";
+    import { appendCreatedTask, canCaptureInWorkspace, captureDestinationLabel, isCreateRateLimited, isDefinitiveCreateRejection, isTodoistRateLimited, mergeResolvedCreatedTask, parseCapture, resolveCaptureProject, shouldRestoreCaptureAfterCreateFailure, todoistRetryAfterSeconds } from "/src/task-capture.js";
     const taskMutationQueues = new Map();
     const taskActionGate = createTaskActionGate();
     const syncCoordinator = createSyncCoordinator();
@@ -895,6 +895,7 @@
 
     // Declared before `state`: its initialiser reads stored sort preferences.
     const SORT_STORAGE_KEY = "keydo.viewSort.v1";
+    const LAST_VIEW_STORAGE_KEY = "keydo.lastView.v1";
     const SORT_DEFAULTS = { upcoming: "due", priority: "priority" };
     const SORT_LABELS = { default: "Keydo order", due: "Due date", priority: "Priority", title: "Title", project: "Project", added: "Date added" };
     const SORT_DIRECTIONS = {
@@ -924,6 +925,9 @@
       notesPreviewOverride: null,
       detailPresentationId: null,
       detailReturnId: null,
+      place: null,
+      placeReplacement: null,
+      storedViewPending: true,
       booting: true,
       captureOpen: false,
       captureSaving: false,
@@ -1186,6 +1190,7 @@
     }
 
     function applyTodoistProjects(projects) {
+      const viewedProjectId = state.view === "project" ? state.projectId : null;
       for (const project of projects ?? []) {
         if (!project || !project.id) continue;
         state.projectId = applyTodoistProjectDelta(state.projectsById, [], state.projectId, project);
@@ -1206,10 +1211,30 @@
         task.projectChildOrder = project?.childOrder ?? null;
         task.projectOrderParentId = project?.parentId ?? null;
       }
-      if (state.view === "project") {
+      if (viewedProjectId && !state.projectsById.has(viewedProjectId)) {
+        leaveDeletedProject();
+      } else if (state.view === "project") {
         state.projectId ??= state.inboxProjectId;
         state.project = state.projectsById.get(state.projectId)?.name ?? "Inbox";
       }
+    }
+
+    // D-017: the project being viewed was deleted (e.g. in Todoist). Open
+    // Today and say so; the caller renders.
+    function leaveDeletedProject() {
+      state.view = "today";
+      state.selectedId = null;
+      state.selected.clear();
+      state.bulkSelecting = false;
+      resetSelectionRange(null);
+      state.moveFromId = null;
+      state.moveTargetId = null;
+      state.query = "";
+      searchInput.value = "";
+      state.detailEditing = false;
+      state.detailReturnId = null;
+      persistLastView();
+      showToast("Project deleted · showing Today");
     }
 
     function replaceTodoistSections(sections) {
@@ -1333,10 +1358,12 @@
 
     function applyTodoistSyncPayload(payload, opts = {}) {
       if (payload.full_sync || !state.liveTodoist) {
+        const viewedProjectId = state.liveTodoist && state.view === "project" ? state.projectId : null;
         const projectSnapshot = reconcileTodoistProjectSnapshot(state.projectsById, state.projectId, payload.projects ?? []);
         state.projectsById = projectSnapshot.projectsById;
         state.projectId = projectSnapshot.selectedProjectId;
         state.project = projectSnapshot.selectedProject;
+        if (viewedProjectId && !state.projectsById.has(viewedProjectId)) leaveDeletedProject();
         replaceTodoistSections(payload.sections);
         state.inboxProjectId = (payload.projects ?? []).find(project => project.name?.toLowerCase() === "inbox")?.id ?? null;
         tasks = reconcileFullTodoistTasks(payload);
@@ -1696,6 +1723,8 @@
         if (state.todoistConfigured !== false) startBackgroundSync();
       } finally {
         state.runtimeStateLoading = false;
+        // Live boot that failed to sync keeps the restore pending for retry.
+        if (state.todoistConfigured === false || state.liveTodoist) restoreStoredView();
         state.booting = false;
         bootOverlay.hidden = true;
       }
@@ -1716,7 +1745,7 @@
       const workspaceTasks = filterTasksByWorkspaceAndQuery(tasks, state.workspace, query);
       if (query) return workspaceTasks;
       const matching = workspaceTasks.filter(task => {
-        const viewMatch = state.view === "today" ? (task.due === "Today" || task.dueClass === "overdue") && !task.completed : state.view === "inbox" ? isTaskInProject(task, state.inboxProjectId, "Inbox") : state.view === "upcoming" ? task.due !== "Today" && task.due !== "No date" && task.dueClass !== "overdue" && !task.completed : state.view === "priority" ? task.priority >= 3 && !task.completed : state.view === "completed" ? task.completed : state.view === "project" ? isTaskInProject(task, state.projectId, state.project) : true;
+        const viewMatch = state.view === "today" ? (task.due === "Today" || task.dueClass === "overdue") && !task.completed : state.view === "inbox" ? isTaskInProject(task, state.inboxProjectId, "Inbox") && !task.completed : state.view === "upcoming" ? task.due !== "Today" && task.due !== "No date" && task.dueClass !== "overdue" && !task.completed : state.view === "priority" ? task.priority >= 3 && !task.completed : state.view === "completed" ? task.completed : state.view === "project" ? isTaskInProject(task, state.projectId, state.project) && !task.completed : true;
         return viewMatch;
       });
       const withChildren = ["today", "upcoming", "priority"].includes(state.view)
@@ -1747,12 +1776,22 @@
       const listTasks = state.view === "completed" ? filtered : tasks;
       const parentById = new Map(listTasks.map(task => [task.id, task]));
       const parentIdsWithChildren = taskParentIdsWithChildren(listTasks);
+      // D-017: a selected task that leaves this list hands the cursor to the
+      // task that took its place. A different list (view, project, search)
+      // starts at the top.
+      const placeKey = [state.workspace, state.view, state.projectId ?? "", state.project ?? "", state.query].join("\u0000");
+      const filteredIds = filtered.map(task => task.id);
       if (!filtered.some(task => task.id === state.selectedId) && !(state.detailEditing && tasks.some(task => task.id === state.selectedId))) {
-        state.selectedId = filtered[0]?.id ?? null;
+        const removedId = state.selectedId;
+        state.selectedId = state.place?.key === placeKey
+          ? selectionAfterRemoval(state.place.ids, removedId, filteredIds)
+          : filteredIds[0] ?? null;
+        state.placeReplacement = removedId && state.selectedId ? { from: removedId, to: state.selectedId } : null;
         state.detailEditing = false;
         state.detailReturnId = null;
         resetSelectionRange(state.selectedId);
       }
+      if (filteredIds.includes(state.selectedId)) state.place = { key: placeKey, ids: filteredIds };
       const emptyState = state.view === "completed" && state.completedLoading
         ? `<div class="empty-state"><strong>Loading completed tasks…</strong></div>`
         : state.view === "completed" && state.completedError
@@ -1883,8 +1922,27 @@
     }
 
     function render() {
+      // Re-rendering replaces the rows, which drops focus to the page. Keep
+      // it on the selected row when it was in the list, but never take it
+      // from an input, the detail room or a dialog.
+      const active = document.activeElement;
+      const listHadFocus = active === document.body || Boolean(active?.closest?.(".task-row"));
       renderTaskList();
       renderDetail();
+      if (listHadFocus && !state.detailEditing && !state.captureOpen && document.activeElement !== queryTaskRow(state.selectedId)) {
+        queryTaskRow(state.selectedId)?.focus({ preventScroll: true });
+      }
+    }
+
+    // After a failed change is reverted, put the cursor back on the task only
+    // if it is still where the place rule moved it; never undo the user's own
+    // navigation.
+    function reclaimSelection(taskId) {
+      const replacement = state.placeReplacement;
+      if (!replacement || replacement.from !== taskId || replacement.to !== state.selectedId) return;
+      state.selectedId = taskId;
+      state.placeReplacement = null;
+      resetSelectionRange(taskId);
     }
 
     function focusSelectedTask(scroll = true) {
@@ -2003,7 +2061,7 @@
       focusSelectedTask();
     }
 
-    async function toggleComplete(taskId) {
+    async function toggleComplete(taskId, options = {}) {
       if (state.liveTodoist && state.view === "completed" && state.recentCompleted.some(item => item.id === taskId)) {
         return reopenRecentCompleted(taskId);
       }
@@ -2013,7 +2071,29 @@
         return;
       }
       const observedCompleted = task.completed;
-      return withTaskOrderLock(() => toggleCompleteWithOrderLock(taskId, observedCompleted));
+      return withTaskOrderLock(() => toggleCompleteWithOrderLock(taskId, observedCompleted, options));
+    }
+
+    // D-017: completing the task shown in details returns to the list on the
+    // task that took its place, or to the parent's details when the user had
+    // drilled into a subtask. Reopening stays put. Navigation waits for the
+    // optimistic change, so a refused completion never moves anything.
+    function completeFromDetail() {
+      const taskId = state.selectedId;
+      const returnId = state.detailReturnId;
+      return toggleComplete(taskId, {
+        onApplied(completed) {
+          if (!completed || !state.detailEditing || state.selectedId !== taskId) return;
+          if (returnId && tasks.some(task => task.id === returnId)) {
+            state.selectedId = returnId;
+            state.detailReturnId = null;
+            render();
+            document.getElementById("detail-pane").focus({ preventScroll: true });
+            return;
+          }
+          leaveDetail();
+        }
+      });
     }
 
     async function reopenRecentCompleted(taskId) {
@@ -2041,7 +2121,7 @@
       }
     }
 
-    async function toggleCompleteWithOrderLock(taskId, observedCompleted) {
+    async function toggleCompleteWithOrderLock(taskId, observedCompleted, { onApplied } = {}) {
       if (state.orderMutationPending) {
         showToast("Wait for the current order change to finish");
         return;
@@ -2082,6 +2162,7 @@
       task.completed = completed;
       if (completed) setTaskSubtreeCompletion(tasks, taskId, true, Boolean(task.recurring));
       render();
+      onApplied?.(completed);
       if (!state.liveTodoist) {
         if (!completed) {
           const snapshot = state.demoCompletionSnapshots.get(taskId);
@@ -2128,6 +2209,7 @@
         // completion/reopen before the connection failed, including changing
         // the task's position in its parent list.
         restoreTaskSnapshots(tasks, [...previousCompletion].map(([id, completed]) => ({ id, completed })));
+        reclaimSelection(taskId);
         render();
         const refreshed = await refreshFromSync({ full: true });
         if (!refreshed) {
@@ -2230,14 +2312,12 @@
           return;
         }
       }
-      const previousIndex = tasks.indexOf(task);
       const previousSelectedId = state.selectedId;
       const removedTasks = tasks.map((item, index) => ({ item, index })).filter(entry => subtreeIds.has(entry.item.id));
       const removedSelection = new Set([...state.selected].filter(id => subtreeIds.has(id)));
       state.deleteTargetId = null;
       deleteBackdrop.classList.remove("visible");
       tasks = tasks.filter(item => !subtreeIds.has(item.id));
-      state.selectedId = tasks[Math.min(previousIndex, tasks.length - 1)]?.id ?? null;
       for (const id of subtreeIds) state.selected.delete(id);
       render();
       focusCurrentTaskContext();
@@ -2253,7 +2333,6 @@
         // Todoist so descendants added or moved outside this tab also settle.
         const confirmedDeletionIds = taskDeletionClosure(tasks, [taskId]);
         tasks = tasks.filter(item => !confirmedDeletionIds.has(item.id));
-        state.selectedId = tasks[Math.min(previousIndex, tasks.length - 1)]?.id ?? null;
         for (const id of confirmedDeletionIds) state.selected.delete(id);
         render();
         focusCurrentTaskContext();
@@ -2271,7 +2350,7 @@
           for (const id of removedSelection) {
             if (taskIds.has(id)) state.selected.add(id);
           }
-          if (taskIds.has(previousSelectedId)) state.selectedId = previousSelectedId;
+          if (taskIds.has(previousSelectedId)) reclaimSelection(previousSelectedId);
           render();
           focusCurrentTaskContext();
         } else {
@@ -2279,7 +2358,7 @@
           // Merge by ID so rollback cannot create duplicate tasks.
           tasks = orderTaskTree(restoreMissingTasks(tasks, removedTasks));
           for (const id of removedSelection) state.selected.add(id);
-          state.selectedId = previousSelectedId;
+          reclaimSelection(previousSelectedId);
           render();
           focusCurrentTaskContext();
         }
@@ -2712,8 +2791,6 @@
       state.captureOpen = true;
       state.captureSaving = false;
       state.captureAttachment = null;
-      state.query = "";
-      searchInput.value = "";
       quickCapture.hidden = false;
       captureInput.value = initialText;
       document.getElementById("capture-save").disabled = false;
@@ -2936,17 +3013,20 @@
         const newTasks = result.refreshed ? tasks.filter(task => !beforeIds.has(task.id)) : [];
         const created = tasks.find(task => task.id === result.createdId)
           ?? (newTasks.length === 1 ? newTasks[0] : null);
-        if (created) {
-          state.view = "project";
-          state.project = created.project;
-          state.projectId = created.projectId;
+        // D-017: capture keeps the current view (see createQuickTask).
+        const shownHere = Boolean(created) && visibleTasks().some(task => task.id === created.id);
+        if (shownHere) {
           state.selectedId = created.id;
+          state.selected.clear();
+          state.bulkSelecting = false;
           resetSelectionRange(created.id);
         }
         closeQuickCapture();
         render();
-        if (created) focusSelectedTask();
-        showToast(result.refreshed ? "Smart Add saved to Todoist" : "Smart Add saved · task list will refresh on sync");
+        focusSelectedTask();
+        showToast(created && !shownHere
+          ? `Added to ${captureDestinationLabel(created)} · saved to Todoist`
+          : result.refreshed ? "Smart Add saved to Todoist" : "Smart Add saved · task list will refresh on sync");
       } catch (error) {
         if (requestAttempted && !error?.definitelyRejected) {
           if (!await refreshFromSync({ full: true })) state.orderSyncUncertain = true;
@@ -2991,11 +3071,16 @@
       document.getElementById("capture-save").disabled = true;
       document.getElementById("capture-save").textContent = "Saving…";
       tasks.unshift(task);
-      state.view = parsed.due === "Today" ? "today" : "upcoming";
-      state.selectedId = task.id;
-      state.selected.clear();
-      state.bulkSelecting = false;
-      resetSelectionRange(task.id);
+      // D-017: capture keeps the current view. Select the new task only if it
+      // belongs here; otherwise keep the cursor and say where it went.
+      const shownHere = visibleTasks().some(item => item.id === task.id);
+      const captured = shownHere ? "Task captured" : `Added to ${captureDestinationLabel(task)}`;
+      if (shownHere) {
+        state.selectedId = task.id;
+        state.selected.clear();
+        state.bulkSelecting = false;
+        resetSelectionRange(task.id);
+      }
       closeQuickCapture();
       render();
       focusSelectedTask();
@@ -3003,9 +3088,9 @@
         if (pendingAttachment) {
           task.attachment = { name: pendingAttachment.name, type: pendingAttachment.type, data: pendingAttachment.dataUrl };
           render();
-          showToast("Task captured with screenshot · demo mode");
+          showToast(`${captured} with screenshot · demo mode`);
         } else {
-          showToast("Task captured in demo mode");
+          showToast(shownHere ? "Task captured in demo mode" : `${captured} · demo mode`);
         }
         state.captureSaving = false;
         return;
@@ -3117,16 +3202,16 @@
         if (pendingAttachment) {
           task.attachment = { name: pendingAttachment.name, type: pendingAttachment.type, data: pendingAttachment.dataUrl };
           render();
-          showToast("Task captured · uploading screenshot…");
+          showToast(`${captured} · uploading screenshot…`);
           try {
             await uploadCaptureAttachment(task, pendingAttachment);
             render();
-            showToast("Task captured with screenshot · saved to Todoist");
+            showToast(`${captured} with screenshot · saved to Todoist`);
           } catch {
             if (!await refreshFromSync({ full: true })) state.orderSyncUncertain = true;
             render();
             showToast(taskImages(task).some(image => image.commentId)
-              ? "Task captured with screenshot · saved to Todoist"
+              ? `${captured} with screenshot · saved to Todoist`
               : "Task saved · screenshot kept locally");
           }
         }
@@ -3135,7 +3220,7 @@
       task.keydoCreatePromise = creationPromise;
       try {
         await creationPromise;
-        if (!pendingAttachment) showToast("Task captured · saved to Todoist");
+        if (!pendingAttachment) showToast(`${captured} · saved to Todoist`);
       } catch (error) {
         let refreshed = false;
         if (createRequestAttempted && !error?.definitelyRejected) {
@@ -3275,12 +3360,44 @@
       state.detailEditing = false;
       state.detailReturnId = null;
       state.viewLanding = view === "completed" && state.liveTodoist;
+      state.storedViewPending = false;
+      persistLastView();
       render();
       if (!state.viewLanding) {
         window.scrollTo(0, 0);
         focusSelectedTask(false);
       }
       if (view === "completed") void loadRecentCompleted();
+    }
+
+    function persistLastView() {
+      try {
+        window.localStorage.setItem(LAST_VIEW_STORAGE_KEY, JSON.stringify({ view: state.view, project: state.project, projectId: state.projectId, workspace: state.workspace }));
+      } catch {
+        // The view still works for this visit; it just will not be resumed.
+      }
+    }
+
+    // D-017: reopen the last view once the projects it may refer to are
+    // known. Any view the user picks first cancels this.
+    function restoreStoredView() {
+      if (!state.storedViewPending) return;
+      state.storedViewPending = false;
+      let stored = null;
+      try {
+        stored = JSON.parse(window.localStorage.getItem(LAST_VIEW_STORAGE_KEY) ?? "null");
+      } catch {
+        return;
+      }
+      if (!stored) return;
+      const restored = resolveStoredView(stored, {
+        liveTodoist: state.liveTodoist,
+        projectsById: state.projectsById,
+        projectNames: captureProjectNames(),
+        workspaces: ["Personal", "Work"]
+      });
+      state.workspace = restored.workspace;
+      setView(restored.view, restored.project ?? state.project, restored.projectId);
     }
 
     function switchWorkspace(workspace) {
@@ -3303,6 +3420,8 @@
       state.query = "";
       searchInput.value = "";
       state.detailEditing = false;
+      state.storedViewPending = false;
+      persistLastView();
       state.selected.clear();
       state.bulkSelecting = false;
       resetSelectionRange(task.id);
@@ -3476,6 +3595,7 @@
           optimisticTask.dueClass = previousClass;
           optimisticTask.dayOrder = previousDayOrder;
         }
+        reclaimSelection(task.id);
         render();
         const refreshed = await refreshFromSync({ full: true });
         if (!refreshed) state.orderSyncUncertain = true;
@@ -3743,6 +3863,7 @@
       } catch {
         restoreTaskSnapshots(tasks, previousSubtree);
         tasks = orderTaskTree(tasks);
+        reclaimSelection(task.id);
         render();
         const refreshed = await refreshFromSync({ full: true });
         if (!refreshed) state.orderSyncUncertain = true;
@@ -3917,7 +4038,7 @@
       if (action === "task:clear") { setTaskDue("No date", "no date"); return; }
       if (action === "task:priority-up") { changePriority(1); return; }
       if (action === "task:priority-down") { changePriority(-1); return; }
-      if (action === "task:complete") { toggleComplete(state.selectedId); return; }
+      if (action === "task:complete") { if (state.detailEditing) completeFromDetail(); else toggleComplete(state.selectedId); return; }
       if (action === "task:reorder-view") { openProjectForReorder(); return; }
       if (action === "task:delete") { openDeleteConfirmation(); return; }
       if (action === "task:edit") { enterDetail(); return; }
@@ -4150,7 +4271,7 @@
     document.getElementById("bulk-complete").addEventListener("click", () => runBulk("complete"));
     document.getElementById("bulk-today").addEventListener("click", () => runBulk("today"));
     document.getElementById("close-detail").addEventListener("click", leaveDetail);
-    document.getElementById("complete-detail").addEventListener("click", () => toggleComplete(state.selectedId));
+    document.getElementById("complete-detail").addEventListener("click", () => completeFromDetail());
     document.getElementById("detail-due-date").addEventListener("change", event => {
       if (event.target.value) void setTaskDue(event.target.value, event.target.value);
       else void setTaskDue("No date", "no date");
@@ -4340,7 +4461,7 @@
         if (altKey === "t") { event.preventDefault(); focusDetailTitle(); return; }
         if (altKey === "n") { event.preventDefault(); focusDetailNotes(); return; }
         if (altKey === "s") { event.preventDefault(); if (event.shiftKey) focusFirstSubtask(); else focusSubtaskComposer(); return; }
-        if (altKey === "c") { event.preventDefault(); toggleComplete(state.selectedId); return; }
+        if (altKey === "c") { event.preventDefault(); completeFromDetail(); return; }
       }
       if (typing) {
         if (event.ctrlKey && event.key === "Enter" && target.matches("textarea, input")) { event.preventDefault(); saveDescription(); }
@@ -4370,7 +4491,7 @@
       if (event.key.toLowerCase() === "n") { event.preventDefault(); openQuickCapture(); return; }
       if (event.key.toLowerCase() === "t" && !event.shiftKey && state.detailEditing) { event.preventDefault(); focusDetailTitle(); return; }
       if (event.key.toLowerCase() === "t") { event.preventDefault(); runCommand(event.shiftKey ? "task:tomorrow" : "task:today"); return; }
-      if (event.key.toLowerCase() === "c" && state.detailEditing) { event.preventDefault(); toggleComplete(state.selectedId); return; }
+      if (event.key.toLowerCase() === "c" && state.detailEditing) { event.preventDefault(); completeFromDetail(); return; }
       if (event.key.toLowerCase() === "c") { event.preventDefault(); runCommand("task:clear"); return; }
       if (event.key.toLowerCase() === "d" && !event.ctrlKey && !event.metaKey && !event.altKey) { event.preventDefault(); openDueChooser(); return; }
       if (event.key.toLowerCase() === "s" && !event.ctrlKey && !event.metaKey && !event.altKey) {

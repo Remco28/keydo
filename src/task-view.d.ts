@@ -30,6 +30,8 @@ export function isCurrentTaskSelection(items: TaskViewTask[], requestedId: strin
 export function isCurrentTaskTarget(items: TaskViewTask[], requestedId: string | null, targetId: string | null): boolean;
 export function removeTaskSelectionIds(selectedIds: Set<string>, removedIds: Set<string>): Set<string>;
 export function retainExistingTaskIds(items: TaskViewTask[], requestedIds: string[]): string[];
+export function selectionAfterRemoval(previousIds: string[], selectedId: string | null, visibleIds: string[]): string | null;
+
 export function selectionIndexAfterMove(items: TaskViewTask[], selectedId: string | null, delta: number): number;
 
 export function isHiddenByCollapse(
@@ -156,3 +158,10 @@ export function reconcileTaskSelection<T extends TaskViewTask>(
 ): { selectedId: string | null; selectedIds: Set<string>; selectionChanged: boolean };
 
 export function taskRangeIds(items: TaskViewTask[], anchorId: string, endId: string): string[];
+
+export type RestoredView = { view: string; project: string | null; projectId: string | null; workspace: string };
+
+export function resolveStoredView(
+  stored: unknown,
+  options: { liveTodoist: boolean; projectsById: Map<string, { name: string }>; projectNames: string[]; workspaces: string[] }
+): RestoredView;

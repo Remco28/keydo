@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { canNestTask, isCurrentTaskSelection, isCurrentTaskTarget, isCompleteProjectOrderView, isTaskInProject, isUnfilteredProjectView, filterTasksByWorkspaceAndQuery, retainExistingTaskIds, selectionIndexAfterMove, sortVisibleTasks, makeSiblingReorder, orderTaskTree, orderTasksByDayOrder, dueDateKeyForRelativeLabel, todoistDueDateKey, dueStateForDateKey, refreshTaskDueStates, projectVisibleTree, reconcileTaskSelection, removeTaskSelectionIds, sameTaskSiblingGroup, selectedTaskRoots, setTaskAncestorCompletion, setTaskSubtreeCompletion, swapSiblingTaskOrder, taskDeletionClosure, taskRootsForDeletedProjects, taskRootsForDeletedSections, taskParentOverridesForDelta, taskDepth, taskOutdentDestination, taskParentIdsWithChildren, taskRangeIds, taskSubtreeIds, taskSubtreeIdsByRoot, validTaskNestTargets } from "../src/task-view.js";
+import { canNestTask, isCurrentTaskSelection, isCurrentTaskTarget, isCompleteProjectOrderView, isTaskInProject, isUnfilteredProjectView, filterTasksByWorkspaceAndQuery, retainExistingTaskIds, selectionIndexAfterMove, sortVisibleTasks, makeSiblingReorder, orderTaskTree, orderTasksByDayOrder, dueDateKeyForRelativeLabel, todoistDueDateKey, dueStateForDateKey, refreshTaskDueStates, projectVisibleTree, reconcileTaskSelection, removeTaskSelectionIds, resolveStoredView, selectionAfterRemoval, sameTaskSiblingGroup, selectedTaskRoots, setTaskAncestorCompletion, setTaskSubtreeCompletion, swapSiblingTaskOrder, taskDeletionClosure, taskRootsForDeletedProjects, taskRootsForDeletedSections, taskParentOverridesForDelta, taskDepth, taskOutdentDestination, taskParentIdsWithChildren, taskRangeIds, taskSubtreeIds, taskSubtreeIdsByRoot, validTaskNestTargets } from "../src/task-view.js";
 
 const hierarchy = [
   { id: "parent", parentId: null },
@@ -73,9 +73,39 @@ describe("task view hierarchy", () => {
     expect(isCurrentTaskTarget([{ id: "other" }], "requested", "requested")).toBe(false);
   });
 
-  test("reconciles selection after sync removes tasks", () => {
+  test("keeps a removed selection for the list to replace after sync", () => {
     const result = reconcileTaskSelection([{ id: "remaining" }], "deleted", new Set(["deleted", "remaining"]));
-    expect(result).toEqual({ selectedId: "remaining", selectedIds: new Set(["remaining"]), selectionChanged: true });
+    expect(result).toEqual({ selectedId: "deleted", selectedIds: new Set(["remaining"]), selectionChanged: true });
+    expect(reconcileTaskSelection([{ id: "remaining" }], null, new Set()).selectionChanged).toBe(false);
+  });
+
+  test("hands the cursor to the task that took a removed task's place", () => {
+    const before = ["a", "b", "c", "d"];
+    expect(selectionAfterRemoval(before, "b", ["a", "c", "d"])).toBe("c");
+    expect(selectionAfterRemoval(before, "d", ["a", "b", "c"])).toBe("c");
+    expect(selectionAfterRemoval(before, "b", ["a", "d"])).toBe("d");
+    expect(selectionAfterRemoval(["parent", "child-1", "child-2", "next"], "parent", ["next"])).toBe("next");
+    expect(selectionAfterRemoval(before, "b", ["new", "a", "c"])).toBe("c");
+    expect(selectionAfterRemoval(before, "b", ["new"])).toBe("new");
+    expect(selectionAfterRemoval(before, "missing", ["c", "d"])).toBe("c");
+    expect(selectionAfterRemoval(before, null, ["c", "d"])).toBe("c");
+    expect(selectionAfterRemoval(before, "b", [])).toBeNull();
+  });
+
+  test("resolves the stored last view, falling back to Today", () => {
+    const projectsById = new Map([["p1", { name: "Launch" }]]);
+    const live = { liveTodoist: true, projectsById, projectNames: [], workspaces: ["Personal", "Work"] };
+    const demo = { liveTodoist: false, projectsById: new Map(), projectNames: ["Launch"], workspaces: ["Personal", "Work"] };
+    const today = { view: "today", project: null, projectId: null, workspace: "Personal" };
+    expect(resolveStoredView({ view: "inbox", workspace: "Personal" }, live)).toEqual({ view: "inbox", project: null, projectId: null, workspace: "Personal" });
+    expect(resolveStoredView({ view: "project", projectId: "p1", project: "Old name" }, live)).toEqual({ view: "project", project: "Launch", projectId: "p1", workspace: "Personal" });
+    expect(resolveStoredView({ view: "project", projectId: "gone", project: "Launch" }, live)).toEqual(today);
+    expect(resolveStoredView({ view: "upcoming", workspace: "Work" }, live).workspace).toBe("Personal");
+    expect(resolveStoredView({ view: "project", project: "Launch", workspace: "Work" }, demo)).toEqual({ view: "project", project: "Launch", projectId: null, workspace: "Work" });
+    expect(resolveStoredView({ view: "project", project: "Gone" }, demo)).toEqual(today);
+    expect(resolveStoredView({ view: "bogus" }, live)).toEqual(today);
+    expect(resolveStoredView(null, live)).toEqual(today);
+    expect(resolveStoredView([], live)).toEqual(today);
   });
 
   test("keeps a valid current selection across sync", () => {

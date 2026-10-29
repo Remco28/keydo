@@ -50,6 +50,23 @@ export function retainExistingTaskIds(items, requestedIds) {
   return requestedIds.filter(id => existingIds.has(id));
 }
 
+// D-017: when the selected task leaves the list, select the task that took
+// its place in the previous order: the next one still shown, else the nearest
+// one above. Walking the old order skips a removed parent's whole subtree.
+export function selectionAfterRemoval(previousIds, selectedId, visibleIds) {
+  const visible = new Set(visibleIds);
+  const index = selectedId == null ? -1 : previousIds.indexOf(selectedId);
+  if (index >= 0) {
+    for (let next = index + 1; next < previousIds.length; next += 1) {
+      if (visible.has(previousIds[next])) return previousIds[next];
+    }
+    for (let previous = index - 1; previous >= 0; previous -= 1) {
+      if (visible.has(previousIds[previous])) return previousIds[previous];
+    }
+  }
+  return visibleIds[0] ?? null;
+}
+
 export function selectionIndexAfterMove(items, selectedId, delta) {
   if (!items.length) return -1;
   const selectedIndex = items.findIndex(task => task.id === selectedId);
@@ -779,12 +796,14 @@ export function selectedTaskRoots(items, selectedIds, activeOnly = false, preser
   return roots;
 }
 
+// A removed selection keeps its id so the list render can choose the task
+// that took its place (selectionAfterRemoval) rather than the first task.
 export function reconcileTaskSelection(items, selectedId, selectedIds) {
   const taskIds = new Set(items.map(task => task.id));
   return {
-    selectedId: taskIds.has(selectedId) ? selectedId : items[0]?.id ?? null,
+    selectedId: selectedId ?? null,
     selectedIds: new Set([...selectedIds].filter(id => taskIds.has(id))),
-    selectionChanged: !taskIds.has(selectedId)
+    selectionChanged: selectedId != null && !taskIds.has(selectedId)
   };
 }
 
@@ -793,4 +812,24 @@ export function taskRangeIds(items, anchorId, endId) {
   const endIndex = items.findIndex(task => task.id === endId);
   if (anchorIndex < 0 || endIndex < 0) return [];
   return items.slice(Math.min(anchorIndex, endIndex), Math.max(anchorIndex, endIndex) + 1).map(task => task.id);
+}
+
+const RESTORABLE_VIEWS = new Set(["today", "inbox", "upcoming", "priority", "completed", "project"]);
+
+// D-017: reopen the last view. A project view needs its project to still
+// exist (by id with live Todoist, by name in demo data); otherwise Today.
+// Live data only has the Personal workspace.
+export function resolveStoredView(stored, { liveTodoist, projectsById, projectNames, workspaces }) {
+  const valid = stored && typeof stored === "object" && RESTORABLE_VIEWS.has(stored.view);
+  const workspace = valid && !liveTodoist && workspaces.includes(stored.workspace) ? stored.workspace : "Personal";
+  const today = { view: "today", project: null, projectId: null, workspace };
+  if (!valid) return today;
+  if (stored.view !== "project") return { view: stored.view, project: null, projectId: null, workspace };
+  if (liveTodoist) {
+    const project = typeof stored.projectId === "string" ? projectsById.get(stored.projectId) : null;
+    return project ? { view: "project", project: project.name, projectId: stored.projectId, workspace } : today;
+  }
+  return typeof stored.project === "string" && projectNames.includes(stored.project)
+    ? { view: "project", project: stored.project, projectId: null, workspace }
+    : today;
 }

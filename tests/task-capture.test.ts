@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { appendCreatedTask, canCaptureInWorkspace, isCreateRateLimited, isDefinitiveCreateRejection, isTodoistRateLimited, mergeResolvedCreatedTask, parseCapture, resolveCaptureProject, shouldRestoreCaptureAfterCreateFailure, todoistRetryAfterSeconds } from "../src/task-capture.js";
+import { appendCreatedTask, canCaptureInWorkspace, captureDestinationLabel, isCreateRateLimited, isDefinitiveCreateRejection, isTodoistRateLimited, mergeResolvedCreatedTask, parseCapture, resolveCaptureProject, shouldRestoreCaptureAfterCreateFailure, todoistRetryAfterSeconds } from "../src/task-capture.js";
 import { orderTaskTree } from "../src/task-view.js";
 
 describe("quick capture project resolution", () => {
@@ -106,5 +106,13 @@ describe("quick capture create failure classification", () => {
     expect(todoistRetryAfterSeconds({ details: [{ uuid: "order-command", result: { http_code: 429, error_extra: { retry_after: 6 } } }] })).toBe(6);
     expect(todoistRetryAfterSeconds({ status: 400, details: { error_extra: { retry_after: 6 } } })).toBeNull();
     expect(todoistRetryAfterSeconds({ status: 429, details: { error_extra: { retry_after: 0 } } })).toBeNull();
+  });
+});
+
+describe("quick capture destination", () => {
+  test("names the project, and the due date when there is one", () => {
+    expect(captureDestinationLabel({ project: "Inbox", due: "No date" })).toBe("Inbox");
+    expect(captureDestinationLabel({ project: "Inbox", due: "Tomorrow" })).toBe("Inbox, due Tomorrow");
+    expect(captureDestinationLabel({ project: "", due: null })).toBe("Inbox");
   });
 });

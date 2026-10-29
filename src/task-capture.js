@@ -107,3 +107,10 @@ export function todoistRetryAfterSeconds(payload) {
   const value = detail?.error_extra?.retry_after;
   return Number.isFinite(value) && value > 0 ? Math.ceil(value) : null;
 }
+
+// D-017: a captured task that does not belong in the current view is not
+// shown, so the status strip names where it went, e.g. "Inbox, due Tomorrow".
+export function captureDestinationLabel(task) {
+  const project = task.project || "Inbox";
+  return task.due && task.due !== "No date" ? `${project}, due ${task.due}` : project;
+}

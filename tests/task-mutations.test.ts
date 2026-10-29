@@ -420,6 +420,14 @@ describe("hierarchy order mutation", () => {
     ]);
     expect(initial.selectedProject).toBe("Inbox");
     expect(initial.selectedProjectId).toBe("inbox-id");
+
+    // A project restored at boot has no previous map but keeps its own name.
+    const restored = reconcileTodoistProjectSnapshot(new Map(), "project-2", [
+      { id: "project-2", name: "Other project" },
+      { id: "inbox-id", name: "Inbox" }
+    ]);
+    expect(restored.selectedProjectId).toBe("project-2");
+    expect(restored.selectedProject).toBe("Other project");
   });
 
   test("cancels a completion toggle when sync changed the state the user saw", () => {

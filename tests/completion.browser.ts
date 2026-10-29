@@ -107,10 +107,13 @@ try {
         await page.reload(); // The previous client-side state is deliberately gone.
         await page.locator("#boot-overlay").waitFor({ state: "hidden" });
       }
-      if (scenario !== "project") await page.locator("[data-view='completed']").click();
-      else {
-        await page.locator("#detail-pane").focus(); await page.keyboard.press("Escape");
+      if (scenario === "project") {
+        // D-017: completing from details returns to the list, and the
+        // completed task leaves the project view straight away.
+        await page.locator("#detail-pane").waitFor({ state: "hidden" });
+        assert.equal(await page.locator(".task-row").filter({ hasText: "Recovery parent" }).count(), 0);
       }
+      await page.locator("[data-view='completed']").click();
       const parent = page.locator(".task-row").filter({ hasText: "Recovery parent" });
       await parent.waitFor();
       if (partialFailure) fixture.failReopen("child-2");
@@ -130,7 +133,7 @@ try {
         assert.equal((await retry).status(), 200);
         assert.deepEqual(fixture.closed, ["root"], "Retry must never complete an already-active parent");
       }
-      if (scenario !== "project") await parent.waitFor({ state: "hidden" });
+      await parent.waitFor({ state: "hidden" });
       await page.locator("[data-view='today']").click();
       await parent.click(); await page.keyboard.press("Enter");
       await page.locator("#detail-pane").waitFor({ state: "visible" });

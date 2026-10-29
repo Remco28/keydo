@@ -328,17 +328,15 @@ export function reconcileTodoistProjectSnapshot(previousProjectsById, selectedPr
       childOrder: typeof project.child_order === "number" ? project.child_order : null,
       parentId: project.parent_id ?? null
     }]));
-  const previousSelectionExists = selectedProjectId && previousProjectsById.has(selectedProjectId);
-  const selectedProject = previousSelectionExists
-    ? projectsById.get(selectedProjectId)?.name ?? null
-    : [...projectsById.values()].find(project => project.name.toLowerCase() === "inbox")?.name ?? null;
+  // Name the project from the id that is kept, so a project restored at boot
+  // (empty previous map) is not labelled "Inbox".
   const selectedId = selectedProjectId && projectsById.has(selectedProjectId)
     ? selectedProjectId
     : [...projectsById.values()].find(project => project.name.toLowerCase() === "inbox")?.id ?? null;
   return {
     projectsById,
     selectedProjectId: selectedId,
-    selectedProject: selectedProject ?? "Inbox"
+    selectedProject: projectsById.get(selectedId)?.name ?? "Inbox"
   };
 }
 

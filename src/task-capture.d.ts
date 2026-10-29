@@ -27,3 +27,4 @@ export function shouldRestoreCaptureAfterCreateFailure(result: {
 export function isTodoistRateLimited(responseStatus: number, payload: unknown): boolean;
 
 export function todoistRetryAfterSeconds(payload: unknown): number | null;
+export function captureDestinationLabel(task: { project?: string | null; due?: string | null }): string;
