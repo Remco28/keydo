@@ -7,6 +7,7 @@
     "dev": "bun --hot src/server.ts",
     "start": "bun src/server.ts",
     "start:tailscale": "bash scripts/start-tailscale.sh",
+    "start:tailscale-https": "bash scripts/start-tailscale.sh --https",
     "test": "bun test",
     "test:browser": "bun tests/ui.browser.ts && bun tests/completion.browser.ts && bun tests/navigation.browser.ts",
     "typecheck": "bunx tsc --noEmit && bun scripts/check-inline-identifiers.js"

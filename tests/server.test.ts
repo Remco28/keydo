@@ -27,7 +27,7 @@ describe("Keydo server", () => {
   test("serves only the approved brand assets with correct types", async () => {
     const server = createServer({ port: 0, todoistToken: "" });
     try {
-      for (const [path, type] of [["/assets/keydo-logo.png", "image/png"], ["/assets/favicon.png", "image/png"], ["/favicon.ico", "image/x-icon"]]) {
+      for (const [path, type] of [["/assets/keydo-logo.png", "image/png"], ["/assets/favicon.png", "image/png"], ["/favicon.ico", "image/x-icon"], ["/assets/app-icon-192.png", "image/png"], ["/assets/app-icon-512.png", "image/png"]]) {
         const response = await fetch(new URL(path, server.url));
         expect(response.status).toBe(200);
         expect(response.headers.get("Content-Type")).toBe(type);
@@ -41,6 +41,23 @@ describe("Keydo server", () => {
       }
       for (const path of ["/assets/missing.png", "/assets/completion-recovery.sqlite", "/keydo_logo_check.png"]) {
         expect((await fetch(new URL(path, server.url))).status).toBe(404);
+      }
+    } finally { server.stop(true); }
+  });
+
+  test("serves an installable web app manifest whose icons exist", async () => {
+    const server = createServer({ port: 0, todoistToken: "" });
+    try {
+      const response = await fetch(new URL("/manifest.webmanifest", server.url));
+      expect(response.status).toBe(200);
+      expect(response.headers.get("Content-Type")).toBe("application/manifest+json");
+      const manifest = await response.json() as { name: string; start_url: string; display: string; icons: { src: string; sizes: string }[] };
+      expect(manifest.name).toBe("Keydo");
+      expect(manifest.start_url).toBe("/");
+      expect(manifest.display).toBe("standalone");
+      expect(manifest.icons.map(icon => icon.sizes).sort()).toEqual(["192x192", "512x512"]);
+      for (const icon of manifest.icons) {
+        expect((await fetch(new URL(icon.src, server.url))).status).toBe(200);
       }
     } finally { server.stop(true); }
   });

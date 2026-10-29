@@ -33,7 +33,7 @@ The primary workflow does not require a terminal or a native screen-capture impl
 - Use OAuth redirects and authenticated API requests through a backend
 - Display local task state and Markdown previews
 
-A native desktop shell can be added later for global shortcuts, background sync, system notifications, or a more integrated window experience. It should not be required for the first screenshot-paste workflow.
+Keydo becomes a desktop app by being installable: a web app manifest and icons, served over Tailnet-only HTTPS through Tailscale Serve, so Chrome can install it as its own window (D-018). A native shell (global shortcuts, tray, notifications) is not planned.
 
 ## State model
 

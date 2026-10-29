@@ -53,6 +53,17 @@ try {
     await noOverflow(page);
   });
 
+  await check("Chrome reports Keydo as installable as a desktop app", async () => {
+    const session = await page.context().newCDPSession(page);
+    const { installabilityErrors } = await session.send("Page.getInstallabilityErrors");
+    // Playwright pages are incognito, which Chrome never installs from; any other reason is ours.
+    assert.deepEqual(installabilityErrors.filter(error => error.errorId !== "in-incognito"), []);
+    const { url, errors: manifestErrors } = await session.send("Page.getAppManifest");
+    assert.equal(url, new URL("/manifest.webmanifest", server.url).href);
+    assert.deepEqual(manifestErrors, []);
+    await session.detach();
+  });
+
   await check("header removes placeholder identity and presents quiet grouped task counts", async () => {
     assert.equal(await page.locator(".user-chip, .avatar").count(), 0);
     assert.doesNotMatch(await page.locator(".topbar").innerText(), /Remco/);

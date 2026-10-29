@@ -24,4 +24,16 @@ else
   tailscale_allowed_hosts="$tailscale_ip,$tailscale_dns_name"
 fi
 export KEYDO_TAILSCALE_HOSTS="$tailscale_allowed_hosts"
+
+# --https: Tailscale Serve terminates HTTPS on the tailnet and proxies to Keydo on
+# loopback, so the browser gets a secure origin (needed to install Keydo as an app).
+# One-time setup: tailscale serve --bg --https=7710 http://127.0.0.1:7710
+if [[ "${1:-}" == "--https" ]]; then
+  if [[ -z "$tailscale_dns_name" ]]; then
+    printf 'HTTPS mode needs the Tailscale DNS name, which is unavailable.\n' >&2
+    exit 1
+  fi
+  export HOST=127.0.0.1
+  export KEYDO_TRUST_TAILSCALE_SERVE=true
+fi
 exec bun src/server.ts

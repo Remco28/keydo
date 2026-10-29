@@ -111,9 +111,14 @@ This log records product and technical decisions as they are made. Proposed deci
   - **If the project you are viewing is deleted**, Keydo opens Today and says so in the status strip.
 - **Rationale:** Capture used to jump to the new task's project, which for a user who rarely sets `#project` meant being dropped into Inbox mid-task. Completing or moving a task reset the cursor to the top of the list, so working down a list meant finding your place again after every action. Keeping the view and the place lets a list be processed top to bottom with no navigation.
 
+## D-018: Desktop app through browser install, not a native shell
+
+- **Status:** Accepted
+- **Decision:** Keydo stays a web application, made installable: a web app manifest and icons, served over HTTPS through a Tailnet-only Tailscale Serve entry. Chrome installs it as its own window with its own dock icon. Keydo does not get a native shell (Electron, Tauri) and is not rewritten.
+- **Rationale:** The pain was finding Keydo among browser tabs, especially on GNOME, which groups every browser window under one icon. An installed app fixes that with no change to how Keydo works. A native shell would add a global capture hotkey, a tray icon and notifications, at the cost of packaging and a second runtime; none of those are wanted now. A Chrome shortcut window over plain HTTP was rejected as a poor experience.
+
 ## Open decisions
 
-- Browser-only application versus packaged desktop application
 - Backend hosting and OAuth credential storage
 - Whether project deletion is required or whether archive/move is sufficient
 - Exact priority and date commands

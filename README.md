@@ -39,11 +39,21 @@ bun run dev
 
 Bun loads `.env` automatically. Keep the real `.env` file local; it is ignored by Git. `TODOIST_ACCESS_TOKEN` is sufficient for the current local Sync slice. The `TODOIST_CLIENT_*` and redirect/scope variables are reserved for the OAuth slice.
 
-The app is available at `http://127.0.0.1:7710` by default. To bind it to this machine's current Tailscale IPv4 address, run `bun run start:tailscale` and open `http://<tailscale-hostname>:7710` from a device on the Tailnet.
+The app is available at `http://127.0.0.1:7710` by default.
 
-For this machine, the current Tailnet URL is `http://frank-hp-elitedesk-800-g5-desktop-mini.taild9032.ts.net:7710`. The `start:tailscale` script discovers the current Tailscale IPv4 address automatically, so it follows the node if its address changes.
+### On the Tailnet, installed as a desktop app
 
-For HTTPS through Tailscale Serve, keep Keydo bound to loopback, set `KEYDO_ALLOWED_HOSTS` to the node's MagicDNS hostname, set `KEYDO_TRUST_TAILSCALE_SERVE=true`, and run `tailscale serve --bg 7710`. Keydo trusts Tailscale's forwarded host and HTTPS scheme only when the proxy connects from loopback, and refuses to start proxy-trust mode on a non-loopback bind. Direct HTTP access via the node's Tailscale IP uses `bun run start:tailscale` and is reachable only through the Tailnet.
+This machine runs Keydo as the `keydo` user service in HTTPS mode, at `https://frank-hp-elitedesk-800-g5-desktop-mini.taild9032.ts.net:7710`. Tailscale Serve terminates HTTPS on the Tailnet and proxies to Keydo on loopback. HTTPS is what lets Chrome install Keydo as its own window, with its own dock icon and Alt+Tab entry.
+
+To set it up on a machine:
+
+1. Run Keydo with `bun run start:tailscale-https`. It binds to loopback, allows the node's MagicDNS name, and trusts Tailscale Serve's forwarded headers (only from loopback).
+2. Once, add the Serve entry: `tailscale serve --bg --https=7710 http://127.0.0.1:7710`. Use `sudo` if Tailscale refuses because other Serve entries share folders. Always name the port: plain `tailscale serve --bg 7710` takes over port 443, which on this machine is public through Funnel.
+3. Open the HTTPS URL in Chrome, then menu → *Cast, save and share* → *Install Keydo*. Pin it to the dock.
+
+Serve is Tailnet-only unless Funnel is turned on for that port; never enable Funnel for Keydo. Browser settings such as the last view and sort are stored per address, so they start fresh the first time Keydo opens at a new URL.
+
+For plain HTTP on the node's Tailscale IP instead, run `bun run start:tailscale` and open `http://<tailscale-hostname>:7710`. The launcher discovers the current Tailscale IPv4 address automatically, so it follows the node if its address changes. Chrome will not install Keydo from a plain HTTP address.
 
 The server accepts requests only for its configured bind hostname, loopback aliases, and any extra names in the comma-separated `KEYDO_ALLOWED_HOSTS` setting. The Tailscale launcher adds the node's Tailscale IPv4 address and MagicDNS name to the server's allowed hosts. If you bind the server to a custom hostname, add that name to `KEYDO_ALLOWED_HOSTS`.
 

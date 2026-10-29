@@ -21,7 +21,11 @@ const indexFile = Bun.file(new URL("../index.html", import.meta.url));
 const brandAssets = new Map([
   ["/assets/keydo-logo.png", { file: Bun.file(new URL("../assets/keydo-logo.png", import.meta.url)), type: "image/png" }],
   ["/assets/favicon.png", { file: Bun.file(new URL("../assets/favicon.png", import.meta.url)), type: "image/png" }],
-  ["/favicon.ico", { file: Bun.file(new URL("../assets/favicon.ico", import.meta.url)), type: "image/x-icon" }]
+  ["/favicon.ico", { file: Bun.file(new URL("../assets/favicon.ico", import.meta.url)), type: "image/x-icon" }],
+  // Web app manifest and icons let Chrome install Keydo as its own desktop window.
+  ["/manifest.webmanifest", { file: Bun.file(new URL("../assets/manifest.webmanifest", import.meta.url)), type: "application/manifest+json" }],
+  ["/assets/app-icon-192.png", { file: Bun.file(new URL("../assets/app-icon-192.png", import.meta.url)), type: "image/png" }],
+  ["/assets/app-icon-512.png", { file: Bun.file(new URL("../assets/app-icon-512.png", import.meta.url)), type: "image/png" }]
 ]);
 const taskViewFile = Bun.file(new URL("./task-view.js", import.meta.url));
 const taskActionGateFile = Bun.file(new URL("./task-action-gate.js", import.meta.url));
