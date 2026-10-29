@@ -4,5 +4,7 @@ node_modules/
 .env
 .env.*
 !.env.example
-human_feedback/**/*.zip
+# Local working notes: human test rounds and review-loop records
+human_feedback/
+review-loop/
 data/

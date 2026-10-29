@@ -39,7 +39,7 @@ describe("Keydo server", () => {
         expect(await head.text()).toBe("");
         expect((await fetch(new URL(path, server.url), { method: "POST" })).status).toBe(405);
       }
-      for (const path of ["/assets/missing.png", "/assets/completion-recovery.sqlite", "/keydo_logo_check.png"]) {
+      for (const path of ["/assets/missing.png", "/assets/completion-recovery.sqlite", "/keydo_logo_check.png", "/assets/brand/keydo-logo-check.png"]) {
         expect((await fetch(new URL(path, server.url))).status).toBe(404);
       }
     } finally { server.stop(true); }

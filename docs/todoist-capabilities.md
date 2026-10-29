@@ -1,8 +1,8 @@
-# Todoist Capability Assessment
+# Todoist Notes
 
-Assessment date: 2026-09-23
+Assessed: 2026-09-23
 
-This document records the Todoist capabilities relevant to Keydo's initial design. The product should verify current account limits and permissions before implementation because Todoist can change plan availability and API behavior.
+The Todoist capabilities, plan limits and APIs Keydo is designed around. Todoist changes plans and API behavior from time to time, so check the sources below before relying on a limit.
 
 ## Supported baseline capabilities
 
@@ -53,7 +53,7 @@ This document records the Todoist capabilities relevant to Keydo's initial desig
 | Markdown description preview | Supported by data model | Rendering is performed by Keydo |
 | Quick search | Supported | Use local search and/or the task filter API |
 | Image paste and upload | Supported | Upload the file, then attach it to a task comment |
-| Command-based actions | Supported | Keydo maps commands to API operations |
+| Command palette actions | Supported | Keydo maps commands to API operations |
 
 ## Free-plan considerations
 
@@ -87,15 +87,15 @@ Features that may require a paid plan include:
 - Project insights
 - Full reporting history
 
-Keydo should therefore use due dates, priorities, sections, subtasks, descriptions, comments, and uploads as foundational features.
+Keydo therefore builds on due dates, priorities, sections, subtasks, descriptions, comments, and uploads as foundational features.
 
 ## API shape
 
-Keydo should use both parts of Todoist's API:
+Keydo uses both parts of Todoist's API:
 
 ### Sync
 
-Use Sync as the primary state-transport layer for a desktop application. It supports:
+Sync is the primary state transport. It supports:
 
 - Full initial synchronization
 - Incremental synchronization through a sync token
@@ -105,7 +105,7 @@ Use Sync as the primary state-transport layer for a desktop application. It supp
 
 ### REST
 
-Use REST for operations where it is the clearer or only available interface, including:
+REST covers operations where it is the clearer or only available interface, including:
 
 - Quick Add
 - Task filter queries
@@ -117,7 +117,7 @@ Use REST for operations where it is the clearer or only available interface, inc
 
 ## Attachment details
 
-Todoist attachments are represented on comments rather than as a general-purpose arbitrary field on a task. A likely Keydo flow is:
+Todoist attachments live on comments rather than on the task itself. Keydo's flow is:
 
 1. Receive a pasted image from the browser.
 2. Upload the image through the Todoist upload API.
@@ -125,7 +125,6 @@ Todoist attachments are represented on comments rather than as a general-purpose
 4. Store the returned attachment metadata in the local synchronized state.
 5. Display the image in the task detail pane.
 
-The application should show a fallback file link if an image cannot be rendered.
 
 ## Security and account boundaries
 

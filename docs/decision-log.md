@@ -22,7 +22,7 @@ This log records product and technical decisions as they are made. Proposed deci
 
 ## D-004: Use Todoist Sync for local state
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Decision:** Use Todoist Sync as the primary local state-transport mechanism, with REST for specialized operations.
 - **Rationale:** Sync supports incremental updates, batching, and a local-first experience. REST remains necessary for Quick Add, uploads, specialized search, and history.
 
@@ -40,8 +40,8 @@ This log records product and technical decisions as they are made. Proposed deci
 
 ## D-007: Use commands as the primary extension model
 
-- **Status:** Proposed
-- **Decision:** Provide a command input and command palette rather than relying only on fixed shortcuts.
+- **Status:** Accepted
+- **Decision:** Provide a command palette rather than relying only on fixed shortcuts. Implemented as the `Ctrl+K` palette; there is no separate typed command input.
 - **Rationale:** Commands can expose advanced operations without overwhelming the initial keyboard model and provide a discoverable path for less frequent actions.
 
 ## D-008: Target the Todoist free plan
@@ -53,7 +53,7 @@ This log records product and technical decisions as they are made. Proposed deci
 ## D-009: Use Tailnet-only access without Keydo login
 
 - **Status:** Accepted
-- **Decision:** Keydo is initially a single-user, Tailscale-gated application reached through the TeamRemco launchpad. It does not require a separate username, password, or bearer token.
+- **Decision:** Keydo is initially a single-user, Tailscale-gated application reached through a Tailscale link. It does not require a separate username, password, or bearer token.
 - **Rationale:** The user is the sole Tailnet user and does not want to manage application credentials. Todoist OAuth remains the separate account authorization and must be handled securely.
 
 ## D-010: Use an optimistic interaction model
@@ -119,8 +119,5 @@ This log records product and technical decisions as they are made. Proposed deci
 
 ## Open decisions
 
-- Backend hosting and OAuth credential storage
+- OAuth: application registration and credential storage
 - Whether project deletion is required or whether archive/move is sufficient
-- Exact priority and date commands
-- Exact subtask indentation and ordering semantics
-- Whether the initial interface is a three-pane layout, a list with an overlay, or a command-first single pane

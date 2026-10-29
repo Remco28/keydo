@@ -1,35 +1,35 @@
 # Keydo
 
-Keydo is a desktop-first, keyboard-first task workspace designed around Todoist. It aims to make common task operations fast and direct while preserving Todoist as the system of record.
+Keydo is a keyboard-first desktop workspace for [Todoist](https://www.todoist.com). Move through your tasks with the arrow keys and act on the selected one with a single key: complete, reschedule, reprioritise, move, nest or reorder it. Todoist stays the system of record. Keydo reads and writes your account directly and stores no task content of its own.
 
-## Why Keydo
+![Keydo's Today view, showing four tasks with the second one selected](docs/images/keydo-today.png)
 
-Todoist provides a capable task model, but many useful operations require opening views, dialogs, or editors. Keydo is intended to make the common operations available from a selected task or command input:
+## What it does
 
-- Add and move tasks without navigating through task dialogs
-- Change priority and move tasks to Today or Tomorrow with one action
-- Search and filter the local task set quickly
-- Read and edit notes with an optional Markdown preview in task details
-- Create and manage subtasks with direct keyboard commands
-- Attach screenshots by pasting them from the operating system clipboard
-- Use command-based actions for less frequent operations
+- **One key per action.** `Space` completes, `T` / `Shift+T` move to Today / Tomorrow, `D` picks a date, `+` / `-` change priority, `M` moves to a project, `Delete` deletes. `Ctrl+K` opens a command palette, `G` jumps to any view or project, `/` searches everything, `?` lists every shortcut.
+- **Actions keep your place.** Completing or moving a task leaves you in the same view, on the task that took its place, so a list can be worked top to bottom.
+- **Details without dialogs.** `Enter` opens a task's notes, subtasks and images. Each section has its own key, and notes have a live Markdown preview.
+- **Subtasks and structure.** Add, browse and drill into subtasks. In a project view, `Alt+Arrow` indents, outdents and reorders, and `Shift+M` moves a task under any parent.
+- **Screenshots by paste.** Take a screenshot with your operating system's tool, select a task and press `Ctrl+V`. Keydo uploads it to Todoist as a task comment and shows it at full width in the task's details.
+- **Fast and forgiving.** Changes appear instantly and sync to Todoist in the background. Failures roll back with a message. Reopening a parent also reopens the subtasks that were still open when you completed it.
+- **Smart Add.** `N` captures a task with Todoist's natural-language parsing (`Call Alex tomorrow #Launch p1`).
+- **Sorting.** `B` sorts the current view by due date, priority, title, project or date added. Sorting is a display choice and never changes order in Todoist.
+- **Installable.** Served over HTTPS, Chrome can install Keydo as its own desktop app, with its own window and dock icon.
 
-## Product principles
+The full key map is in the [keyboard model](docs/keyboard-model.md).
 
-- **Keyboard first:** Every important operation has a discoverable keyboard path.
-- **Todoist remains authoritative:** Keydo does not introduce a competing task model.
-- **Fast by default:** The shortest interaction should be the normal path, not a special power-user path.
-- **Visible context:** The selected task, its description, and its attachments should be visible without opening a modal.
-- **Safe destructive actions:** Deletion should be distinguishable from moving, archiving, and completing.
-- **Desktop scope first:** Keydo is a keyboard workspace for a desktop browser. Phone use is out of scope, not a later design target.
+## Status
 
-## Current status
+Keydo is a personal project, built for one person's daily use on a Linux desktop, and shared as is. It works against a real Todoist account every day, but expect rough edges:
 
-The runnable web app includes a polished list and task-detail workspace, exposes health/configuration endpoints, and performs a server-side Todoist Sync when configured. The browser hydrates real Todoist tasks when `TODOIST_ACCESS_TOKEN` is available, refreshes incrementally when the app returns online or becomes visible, and polls every minute while visible. It otherwise remains in demo mode. In live mode, all synced tasks currently appear in the Personal workspace; Work/Personal classification has no agreed rule yet, so the separate Work workspace is demo-only. Task details include a due-date picker. In live mode, Quick Capture uses Todoist Smart Add for natural-language dates and times; Create exact retains the structured path, and pasted screenshots use that path. OAuth and persistent local task storage remain future implementation slices.
+- **One user, no login.** Keydo has no accounts of its own. Anyone who can reach the server can use the Todoist account it is configured with, so keep it on your own machine or a private network such as a Tailscale tailnet. Never expose it to the internet.
+- **Personal API token.** Keydo authenticates to Todoist with a personal API token. OAuth is planned but not built.
+- **Desktop only.** It is designed for a keyboard and a desktop browser. Phone use is out of scope.
+- **Workspaces.** In live mode all tasks appear in the Personal workspace. The Work workspace only exists in demo data.
 
-## Development
+## Getting started
 
-Requires Bun.
+Requires [Bun](https://bun.sh) 1.3 or later.
 
 ```bash
 bun install
@@ -37,67 +37,69 @@ cp .env.example .env
 bun run dev
 ```
 
-Bun loads `.env` automatically. Keep the real `.env` file local; it is ignored by Git. `TODOIST_ACCESS_TOKEN` is sufficient for the current local Sync slice. The `TODOIST_CLIENT_*` and redirect/scope variables are reserved for the OAuth slice.
+Open `http://127.0.0.1:7710`. With no Todoist token set, Keydo runs in **demo mode** with sample tasks. Nothing leaves your machine, so it's a safe way to try the keyboard model.
 
-The app is available at `http://127.0.0.1:7710` by default.
+To use your own tasks, copy your API token from Todoist (Settings → Integrations → Developer) into `TODOIST_ACCESS_TOKEN` in `.env` and restart. Keep `.env` private; Git ignores it. The token stays on the server and is never sent to the browser.
 
-### On the Tailnet, installed as a desktop app
+### Configuration
 
-This machine runs Keydo as the `keydo` user service in HTTPS mode, at `https://frank-hp-elitedesk-800-g5-desktop-mini.taild9032.ts.net:7710`. Tailscale Serve terminates HTTPS on the Tailnet and proxies to Keydo on loopback. HTTPS is what lets Chrome install Keydo as its own window, with its own dock icon and Alt+Tab entry.
+Bun loads `.env` automatically.
 
-To set it up on a machine:
+| Variable | Default | Purpose |
+| --- | --- | --- |
+| `TODOIST_ACCESS_TOKEN` | empty (demo mode) | Your Todoist personal API token |
+| `PORT` | `7710` | Port to listen on |
+| `HOST` | `127.0.0.1` | Address to bind to |
+| `KEYDO_ALLOWED_HOSTS` | empty | Extra host names to accept, comma separated (see below) |
+| `KEYDO_TRUST_TAILSCALE_SERVE` | `false` | Trust Tailscale Serve's forwarded headers; requires a loopback `HOST` |
+| `KEYDO_RECOVERY_DB` | `data/completion-recovery.sqlite` | Where the completion-recovery journal is kept |
+| `TODOIST_API_BASE` | `https://api.todoist.com` | Todoist API base URL |
 
-1. Run Keydo with `bun run start:tailscale-https`. It binds to loopback, allows the node's MagicDNS name, and trusts Tailscale Serve's forwarded headers (only from loopback).
-2. Once, add the Serve entry: `tailscale serve --bg --https=7710 http://127.0.0.1:7710`. Use `sudo` if Tailscale refuses because other Serve entries share folders. Always name the port: plain `tailscale serve --bg 7710` takes over port 443, which on this machine is public through Funnel.
-3. Open the HTTPS URL in Chrome, then menu → *Cast, save and share* → *Install Keydo*. Pin it to the dock.
+The `TODOIST_CLIENT_*`, `TODOIST_REDIRECT_URI` and `TODOIST_SCOPES` entries in `.env.example` are reserved for OAuth and are not used yet.
 
-Serve is Tailnet-only unless Funnel is turned on for that port; never enable Funnel for Keydo. Browser settings such as the last view and sort are stored per address, so they start fresh the first time Keydo opens at a new URL.
+The server only answers requests addressed to its bind address, loopback names, and the names in `KEYDO_ALLOWED_HOSTS`, which protects it from DNS rebinding. If you reach it through another host name, add that name.
 
-For plain HTTP on the node's Tailscale IP instead, run `bun run start:tailscale` and open `http://<tailscale-hostname>:7710`. The launcher discovers the current Tailscale IPv4 address automatically, so it follows the node if its address changes. Chrome will not install Keydo from a plain HTTP address.
+The `data/` directory holds the completion-recovery journal: task IDs and timestamps only, no task content or credentials. Keep it across updates so reopening a completed parent can still restore its subtasks.
 
-The server accepts requests only for its configured bind hostname, loopback aliases, and any extra names in the comma-separated `KEYDO_ALLOWED_HOSTS` setting. The Tailscale launcher adds the node's Tailscale IPv4 address and MagicDNS name to the server's allowed hosts. If you bind the server to a custom hostname, add that name to `KEYDO_ALLOWED_HOSTS`.
+## Run it on a tailnet and install it as an app
 
-The server exposes `GET /api/config`, `POST /api/todoist/sync`, `POST /api/todoist/tasks` for structured task creation, and `POST /api/todoist/tasks/quick` for Todoist Smart Add. Non-GET Todoist API requests require an `Origin` header whose full origin matches the request origin. Task creation and all task mutations—including ordinary task-field updates—plus Sync snapshots, attachment uploads, and comment deletion require the token from `POST /api/todoist/order-lock` in the `X-Keydo-Order-Lock` header. The lock response starts with `locked <token>` and streams until the operation ends; if that stream disconnects, the server rejects later writes from that token and waits for already accepted calls to finish before releasing the lock. The browser-facing Sync endpoint is read-only and accepts only `syncToken` and `resourceTypes`; task writes use dedicated routes. Image attachments upload via `POST /api/todoist/tasks/:id/attachments` (multipart `file`, PNG/JPEG/GIF/WebP only, 5 MB limit), which stores the file through Todoist uploads and links it as a task comment; comments are removed with `DELETE /api/todoist/comments/:id`. Boot sync includes the `notes` resource so saved attachments reappear after reload.
+[Tailscale](https://tailscale.com) makes Keydo reachable from your own devices only, and Tailscale Serve gives it the HTTPS address Chrome needs before it will install a site as an app.
 
-OAuth is Todoist authorization, not a Keydo username/password login. The user would approve Keydo on Todoist, and the server would exchange the authorization code for a refreshable Todoist token. Tailscale remains the access boundary; OAuth is only for obtaining Todoist API access.
+1. Start Keydo with `bun run start:tailscale-https`. It binds to loopback, accepts the machine's Tailscale name, and trusts Tailscale Serve's forwarded headers, but only from loopback.
+2. Once per machine, add a Serve entry for Keydo's port: `tailscale serve --bg --https=7710 http://127.0.0.1:7710`. Tailscale may ask for `sudo` if other Serve entries share folders.
+3. Open `https://<machine>.<tailnet>.ts.net:7710` in Chrome (or another Chromium-based browser), then choose menu → *Cast, save and share* → *Install Keydo*. Pin it to your dock.
 
-Run validation with:
+Always give `--https=<port>` explicitly. Plain `tailscale serve --bg 7710` takes over port 443, which may already be in use, or public if you use Funnel there. Never turn on Funnel for Keydo.
+
+Settings such as the last view and each view's sort are stored in the browser per address, so they start fresh the first time Keydo opens at a new URL.
+
+For plain HTTP on the machine's Tailscale IP instead, run `bun run start:tailscale` and open `http://<machine>.<tailnet>.ts.net:7710`. Chrome won't install Keydo from a plain HTTP address.
+
+To keep Keydo running, run either script from a systemd user service (or your system's equivalent).
+
+## How it works
+
+A small Bun server (`src/server.ts`) holds the Todoist token and talks to Todoist's Sync and REST APIs. The interface is a single page (`index.html`) with logic split into modules under `src/`. The browser applies changes optimistically and syncs incrementally. A shared lock keeps tabs and devices from overlapping writes.
+
+See the [architecture](docs/architecture.md) for the details: sync, ordering, locking, completion recovery and the security boundary.
+
+## Development
 
 ```bash
-bun test
-bun run typecheck
-bun run test:browser
+bun test               # unit tests
+bun run typecheck      # TypeScript, plus a check of the inline page script
+bun run test:browser   # Playwright suites against a demo server
 ```
 
-The browser suite requires installed Chrome/Chromium (or `KEYDO_TEST_BROWSER` pointing to its executable). It exercises keyboard and mouse flows in an isolated demo server and checks completion recovery against an explicitly fake Todoist upstream; it never uses live credentials. Desktop/narrow screenshots are captured in a temporary artifact directory. Set `KEYDO_BROWSER_ARTIFACTS` to choose that directory.
-
-### Completion recovery
-
-Completing an ordinary Todoist parent also completes its subtasks. Native Todoist reopen restores only the requested task and its ancestors. Keydo records the unfinished subtree before completing it, then explicitly restores those unfinished descendants when you reopen the parent. Previously finished subtasks stay finished; recurring parents retain Todoist's normal recurrence behavior. This also covers bulk completion.
-
-The server keeps an account-token/API-scoped undo journal in `data/completion-recovery.sqlite` (override with `KEYDO_RECOVERY_DB`). It contains only task/hierarchy IDs, completion timestamps and recovery progress—not task content or credentials—and survives browser reloads and server restarts. Keep this gitignored data directory when deploying updates. Tests use an isolated in-memory journal or scratch database.
-
-Partial recovery stays available in **Completed** as **Retry reopening unfinished subtasks**, even when the parent is already active. Recovery verifies task identities, hierarchy and completion timestamps before restoring; external edits or unconfirmed completion responses can cancel automatic recovery rather than revive unrelated completed work. Completions predating this journal or made outside Keydo retain native single-task reopen behavior: Keydo does not infer unfinished children from the recent-completions feed.
-
-### Interface
-
-- Warm neutral surfaces, larger task titles, and consistent spacing keep the list readable.
-- Teal marks the active keyboard task and primary actions; bulk-selected tasks use a separate treatment. Selection checkboxes appear only when selecting, via **Select tasks** or the existing Shift shortcuts.
-- Task details keep plain/empty notes in one column. Formatted notes show a preview automatically; **Show/Hide preview** provides an override. Attachments remain visible even when text preview was hidden.
-- Notes grow with their content up to a bounded editor height. Detail shortcuts are collapsed by default, and header controls open help and commands.
-- A narrow window may reflow so the desktop layout does not overflow. That is not a phone interface.
-- **D** opens a quick due-date chooser in the list or details. **S** focuses Add subtask, and **Shift+S** browses existing children. While editing a title or notes, use **Alt+D / Alt+S**.
+The browser suites need Chrome or Chromium; set `KEYDO_TEST_BROWSER` to its executable if it isn't on your `PATH`. They run against an isolated demo server or a fake Todoist upstream and never touch live credentials. Screenshots go to a temporary directory, or to `KEYDO_BROWSER_ARTIFACTS` if set.
 
 ## Documentation
 
-- [Fieldnotes round 1: first startup attempt](human_feedback/round-01-first-real-test/index.html)
-- [Fieldnotes round 2: retry after server refresh](human_feedback/round-02-after-server-restart/index.html)
-- [Fieldnotes round 3: task creation and subtasks](human_feedback/round-03-task-creation-and-subtasks/index.html)
-- [Fieldnotes round 4: save and detail retest](human_feedback/round-04-save-fix-retest/index.html)
-- [Fieldnotes round 5: keyboard flow and completed tasks](human_feedback/round-05-keyboard-and-recovery/index.html)
-- [Fieldnotes round 6: collapse, dates, and Smart Add](human_feedback/round-06-collapse-dates-smart-add/index.html)
-- [Product brief](docs/product-brief.md)
-- [Todoist capability assessment](docs/todoist-capabilities.md)
-- [Keyboard interaction model](docs/keyboard-model.md)
-- [Architecture proposal](docs/architecture.md)
-- [Decision log](docs/decision-log.md)
+- [Keyboard model](docs/keyboard-model.md): every binding, and where the cursor lands after each action
+- [Architecture](docs/architecture.md): how Keydo is built
+- [Decision log](docs/decision-log.md): product and technical decisions, and why
+- [Todoist notes](docs/todoist-capabilities.md): the Todoist features, plan limits and APIs Keydo relies on
+
+## License
+
+[Apache License 2.0](LICENSE). Keydo is not affiliated with or endorsed by Doist, the maker of Todoist.
