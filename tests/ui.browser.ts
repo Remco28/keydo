@@ -491,6 +491,10 @@ try {
     await page.locator("[data-view='priority']").click();
     assert.equal(await page.locator("#view-sort-label").innerText(), "Sort: Title · Z–A");
     assert.deepEqual(JSON.parse(await page.evaluate(() => localStorage.getItem("keydo.viewSort.v1") ?? "{}")).priority, { key: "title", reverse: true });
+    await page.reload();
+    await page.locator("#boot-overlay").waitFor({ state: "hidden" });
+    await page.locator("[data-view='priority']").click();
+    assert.equal(await page.locator("#view-sort-label").innerText(), "Sort: Title · Z–A");
     await page.keyboard.press("b");
     await page.keyboard.press("ArrowUp");
     await page.keyboard.press("Escape");

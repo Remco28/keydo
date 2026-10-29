@@ -893,6 +893,19 @@
     tasks.forEach(task => { task.workspace = "Personal"; });
     tasks[5].workspace = "Work";
 
+    // Declared before `state`: its initialiser reads stored sort preferences.
+    const SORT_STORAGE_KEY = "keydo.viewSort.v1";
+    const SORT_DEFAULTS = { upcoming: "due", priority: "priority" };
+    const SORT_LABELS = { default: "Keydo order", due: "Due date", priority: "Priority", title: "Title", project: "Project", added: "Date added" };
+    const SORT_DIRECTIONS = {
+      default: ["built-in", "reversed"],
+      due: ["soonest first", "latest first"],
+      priority: ["P1 first", "P4 first"],
+      title: ["A–Z", "Z–A"],
+      project: ["A–Z", "Z–A"],
+      added: ["newest first", "oldest first"]
+    };
+
     const state = {
       view: "today",
       workspace: "Personal",
@@ -3297,18 +3310,6 @@
       focusSelectedTask();
       showToast(!canEditTaskOrder() ? "This project spans workspaces · reorder is unavailable here" : isCustomSort() ? "Project is sorted · press B then M for Keydo order to reorder" : "Project ready to reorder · Alt+↑↓ moves the selected task");
     }
-
-    const SORT_STORAGE_KEY = "keydo.viewSort.v1";
-    const SORT_DEFAULTS = { upcoming: "due", priority: "priority" };
-    const SORT_LABELS = { default: "Keydo order", due: "Due date", priority: "Priority", title: "Title", project: "Project", added: "Date added" };
-    const SORT_DIRECTIONS = {
-      default: ["built-in", "reversed"],
-      due: ["soonest first", "latest first"],
-      priority: ["P1 first", "P4 first"],
-      title: ["A–Z", "Z–A"],
-      project: ["A–Z", "Z–A"],
-      added: ["newest first", "oldest first"]
-    };
 
     function loadSortPreferences() {
       try {
