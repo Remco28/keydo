@@ -330,6 +330,38 @@ try {
       assert.deepEqual(errors, []);
       await close();
     });
+
+    await check("live: moving a task keeps its time of day; a repeating task is left as it is; clearing says the repeat ends", async () => {
+      const { page, errors, close } = await openPage(live.url);
+      const item = (id: string) => fixture.items.find(entry => entry.id === id)!;
+      const today = new Date().toLocaleDateString("en-CA");
+      await page.keyboard.press("4");
+      await selectRow(page, "timed");
+      const moved = page.waitForResponse(response => response.url().endsWith("/tasks/timed") && response.request().postDataJSON()?.action === "reschedule");
+      await page.keyboard.press("t");
+      assert.equal((await moved).status(), 200);
+      assert.equal(item("timed").due!.date, `${today}T14:00:00.000000`, "the time of day is kept");
+      await page.waitForFunction(() => document.querySelector("#toast")?.textContent === "Saved to Todoist · same time of day");
+
+      const repeatBefore = JSON.stringify(item("repeat").due);
+      let written = false;
+      page.on("request", request => { if (request.url().endsWith("/tasks/repeat") && request.postDataJSON()?.action !== "delete") written = true; });
+      await selectRow(page, "repeat");
+      await page.keyboard.press("t");
+      assert.match(await toast(page), /^Repeats in Todoist/);
+      await page.keyboard.press("Shift+T");
+      assert.match(await toast(page), /^Already due Tomorrow|^Repeats in Todoist/);
+      await page.waitForTimeout(500);
+      assert.equal(written, false, "nothing is sent for a repeating task");
+      assert.equal(JSON.stringify(item("repeat").due), repeatBefore);
+
+      await page.keyboard.press("c");
+      await page.waitForFunction(() => document.querySelector("#toast")?.textContent?.includes("it no longer repeats"));
+      await page.waitForFunction(() => document.querySelector("#toast")?.textContent === "Saved to Todoist · it no longer repeats");
+      assert.equal(item("repeat").due, null);
+      assert.deepEqual(errors, []);
+      await close();
+    });
   } finally {
     live.stop(true);
   }
@@ -338,7 +370,7 @@ try {
   await browser.close();
 }
 
-type Item = { id: string; content: string; description: string; project_id: string; parent_id: string | null; checked: boolean; is_deleted?: boolean; priority: number; due: { date: string; is_recurring: boolean } | null; child_order: number };
+type Item = { id: string; content: string; description: string; project_id: string; parent_id: string | null; checked: boolean; is_deleted?: boolean; priority: number; due: { date: string; is_recurring: boolean; string?: string; lang?: string; timezone?: string | null } | null; child_order: number };
 type Project = { id: string; name: string; inbox_project?: boolean; is_deleted?: boolean };
 
 function upstream() {
@@ -347,6 +379,10 @@ function upstream() {
   const items: Item[] = ["alpha", "bravo", "charlie", "delta"].map((id, index) => ({
     id, content: id.charAt(0).toUpperCase() + id.slice(1), description: "", project_id: "inbox", parent_id: null, checked: false, priority: 1, due, child_order: index + 1
   }));
+  const tomorrow = new Date(Date.now() + 86_400_000).toLocaleDateString("en-CA");
+  // A task with a time of day and a repeating task, both due tomorrow in Inbox.
+  items.push({ id: "timed", content: "Timed", description: "", project_id: "inbox", parent_id: null, checked: false, priority: 1, due: { date: `${tomorrow}T14:00:00.000000`, is_recurring: false, string: "tomorrow at 14:00", lang: "en", timezone: null }, child_order: 50 });
+  items.push({ id: "repeat", content: "Repeat", description: "", project_id: "inbox", parent_id: null, checked: false, priority: 1, due: { date: tomorrow, is_recurring: true, string: "every day", lang: "en", timezone: null }, child_order: 51 });
   items.push({ id: "side-task", content: "Side task", description: "", project_id: "side", parent_id: null, checked: false, priority: 1, due: null, child_order: 1 });
   const projects: Project[] = [{ id: "inbox", name: "Inbox", inbox_project: true }, { id: "side", name: "Side" }];
   let version = 0;
@@ -360,7 +396,18 @@ function upstream() {
     assert.equal(url.origin, "https://todoist.fixture");
     if (url.pathname === "/api/v1/sync") {
       const body = init!.body as URLSearchParams;
-      assert.ok(!body.has("commands"), "this fixture only serves reads");
+      if (body.has("commands")) {
+        const commands = JSON.parse(body.get("commands")!);
+        const status: Record<string, string> = {};
+        for (const command of commands) {
+          assert.equal(command.type, "item_update", "this fixture only takes due-date updates");
+          const item = items.find(entry => entry.id === command.args.id)!;
+          item.due = { date: command.args.due.date, timezone: command.args.due.timezone ?? null, is_recurring: false, string: command.args.due.date, lang: "en" };
+          touch(item);
+          status[command.uuid] = "ok";
+        }
+        return Response.json({ sync_token: `cursor-${version}`, sync_status: status });
+      }
       const full = body.get("sync_token") === "*";
       const since = Number(body.get("sync_token")?.replace("cursor-", "") || 0);
       return Response.json({
@@ -394,6 +441,9 @@ function upstream() {
       if (init?.method === "POST") {
         const updates = JSON.parse(String(init.body));
         if (typeof updates.priority === "number") item.priority = updates.priority;
+        if (updates.due_string === "no date") item.due = null;
+        else if (updates.due_string === "today") item.due = { date: today, is_recurring: false, string: "today" };
+        else if (typeof updates.due_date === "string") item.due = { date: updates.due_date, is_recurring: false, string: updates.due_date };
         touch(item);
       }
       return Response.json({ ...item });

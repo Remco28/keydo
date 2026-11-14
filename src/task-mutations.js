@@ -13,13 +13,19 @@ export function sameTaskDueGroup(a, b) {
   return (a.dueDateKey ?? a.due) === (b.dueDateKey ?? b.due);
 }
 
-export function applyTaskDueChange(task, due, dueDateKey) {
+// `keptTime` is the due date written when a time of day was kept (see
+// dueKeepingTime); without it Keydo wrote a plain day, or cleared the date.
+// Keydo never writes a repeat, so the task no longer repeats either way.
+export function applyTaskDueChange(task, due, dueDateKey, keptTime = null) {
   if (!sameTaskDueGroup(task, { due, dueDateKey })) task.dayOrder = null;
   task.due = due;
   task.dueDateKey = dueDateKey;
   task.dueClass = "";
-  // Keydo writes a day, never a time of day.
-  task.dueHasTime = false;
+  task.dueHasTime = Boolean(keptTime);
+  task.recurring = false;
+  task.todoistDue = !dueDateKey ? null : keptTime
+    ? { date: keptTime.date, string: null, lang: null, timezone: keptTime.timezone ?? null, is_recurring: false }
+    : { date: dueDateKey, string: null, lang: null, timezone: null, is_recurring: false };
   return task;
 }
 
@@ -91,6 +97,7 @@ export function retainOmittedTaskFields(mapped, previous, source) {
     mapped.dueClass = previous.dueClass;
     mapped.recurring = previous.recurring;
     mapped.dueHasTime = previous.dueHasTime;
+    mapped.todoistDue = previous.todoistDue;
   }
 
   const projectChanged = Object.hasOwn(source, "project_id")

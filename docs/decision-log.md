@@ -141,6 +141,12 @@ This log records product and technical decisions as they are made. Proposed deci
 - **Also decided with it:** with tasks selected, `Space` completes the selection (it used to complete only the task under the cursor); undo of a date or a priority reads Todoist first and leaves a newer change alone; `Esc` clears a search and returns to the view; `T` in details selects the title again; a date in another year shows its year.
 - **Rationale:** A question before every delete slows the common case and still allows a slip on `Enter`. An undo that is always offered protects the same mistake without the question. These came out of the review of D-019.
 
+## D-021: Moving a date keeps its time; a repeating task is not moved
+
+- **Status:** Accepted
+- **Decision:** A task with a time of day keeps that time when it is moved to another day. A repeating task is not moved by `T`, `Shift+T`, the date chooser or a bulk move; Keydo says why and points to Todoist. `C` still clears the whole due date, repeat included, and says so.
+- **Rationale:** Keydo used to write a plain day for every move, which silently dropped a task's time and ended its repeat. Todoist documents how to write a date with a time (floating, or in a fixed time zone); that is what Keydo now sends. It does not document how to move a repeating task's next date while keeping the repeat, and nobody may test against the live account, so Keydo refuses rather than guess. Moving repeating tasks can be added once it has been tried on a throwaway task in the real account.
+
 ## Open decisions
 
 - OAuth: application registration and credential storage

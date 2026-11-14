@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { canNestTask, isCurrentTaskSelection, isCurrentTaskTarget, isCompleteProjectOrderView, isTaskInProject, isUnfilteredProjectView, filterTasksByWorkspaceAndQuery, retainExistingTaskIds, selectionIndexAfterMove, sortVisibleTasks, makeSiblingReorder, orderTaskTree, orderTasksByDayOrder, dueDateKeyForRelativeLabel, todoistDueDateKey, dueStateForDateKey, refreshTaskDueStates, projectVisibleTree, reconcileTaskSelection, removeTaskSelectionIds, resolveStoredView, selectionAfterRemoval, sameTaskSiblingGroup, selectedTaskRoots, setTaskAncestorCompletion, setTaskSubtreeCompletion, swapSiblingTaskOrder, taskDeletionClosure, taskRootsForDeletedProjects, taskRootsForDeletedSections, taskParentOverridesForDelta, taskDepth, taskOutdentDestination, taskParentIdsWithChildren, taskRangeIds, taskSubtreeIds, taskSubtreeIdsByRoot, validTaskNestTargets } from "../src/task-view.js";
+import { canNestTask, dueKeepingTime, todoistDueOf, isCurrentTaskSelection, isCurrentTaskTarget, isCompleteProjectOrderView, isTaskInProject, isUnfilteredProjectView, filterTasksByWorkspaceAndQuery, retainExistingTaskIds, selectionIndexAfterMove, sortVisibleTasks, makeSiblingReorder, orderTaskTree, orderTasksByDayOrder, dueDateKeyForRelativeLabel, todoistDueDateKey, dueStateForDateKey, refreshTaskDueStates, projectVisibleTree, reconcileTaskSelection, removeTaskSelectionIds, resolveStoredView, selectionAfterRemoval, sameTaskSiblingGroup, selectedTaskRoots, setTaskAncestorCompletion, setTaskSubtreeCompletion, swapSiblingTaskOrder, taskDeletionClosure, taskRootsForDeletedProjects, taskRootsForDeletedSections, taskParentOverridesForDelta, taskDepth, taskOutdentDestination, taskParentIdsWithChildren, taskRangeIds, taskSubtreeIds, taskSubtreeIdsByRoot, validTaskNestTargets } from "../src/task-view.js";
 
 const hierarchy = [
   { id: "parent", parentId: null },
@@ -819,5 +819,44 @@ describe("view sorting", () => {
   test("a subtask whose parent is not shown sorts as a top-level task", () => {
     const orphaned = [{ id: "x", parentId: "hidden", title: "b" }, { id: "y", title: "a" }];
     expect(ids(sortVisibleTasks(orphaned, "title"))).toEqual(["y", "x"]);
+  });
+});
+
+describe("moving a task with a time of day keeps the time", () => {
+  test("a due with no time is left to the plain write", () => {
+    expect(dueKeepingTime({ date: "2026-11-20" }, "2026-11-20", "2026-11-14", "America/New_York")).toBeNull();
+    expect(dueKeepingTime(null, null, "2026-11-14", "America/New_York")).toBeNull();
+    expect(dueKeepingTime({ date: "2026-11-20T14:00:00" }, "2026-11-20", null, "America/New_York")).toBeNull();
+  });
+
+  test("a floating time keeps its clock time, written as Todoist wrote it", () => {
+    expect(dueKeepingTime({ date: "2026-11-20T14:00:00.000000", timezone: null }, "2026-11-20", "2026-11-14", "America/New_York")).toEqual({ date: "2026-11-14T14:00:00.000000" });
+    expect(dueKeepingTime({ date: "2026-11-20T09:30:00" }, "2026-11-20", "2027-01-04", undefined)).toEqual({ date: "2027-01-04T09:30:00" });
+  });
+
+  test("a fixed time in the user's own timezone keeps its clock time across a daylight-saving change", () => {
+    // 09:00 New York on Oct 30 (EDT, UTC-4) moved to Nov 2 (EST, UTC-5): still 09:00 there.
+    expect(dueKeepingTime({ date: "2026-10-30T13:00:00Z", timezone: "America/New_York" }, "2026-10-30", "2026-11-02", "America/New_York")).toEqual({ date: "2026-11-02T14:00:00Z", timezone: "America/New_York" });
+  });
+
+  test("a fixed time in another timezone moves by the days the user sees", () => {
+    // 09:00 Jakarta on Nov 20 is 21:00 Nov 19 in New York, so the user sees it on Nov 19.
+    const moved = dueKeepingTime({ date: "2026-11-20T02:00:00Z", timezone: "Asia/Jakarta" }, "2026-11-19", "2026-11-14", "America/New_York");
+    expect(moved).toEqual({ date: "2026-11-15T02:00:00Z", timezone: "Asia/Jakarta" });
+    expect(todoistDueDateKey({ date: (moved as { date: string }).date }, "America/New_York")).toBe("2026-11-14");
+  });
+
+  test("a clock time that does not exist on the new day is refused, not moved", () => {
+    // 02:30 Chicago does not exist on Mar 14 2027 (clocks go forward).
+    expect(dueKeepingTime({ date: "2027-03-10T08:30:00Z", timezone: "America/Chicago" }, "2027-03-10", "2027-03-14", "America/Chicago")).toEqual({ refuse: true });
+  });
+
+  test("a fixed time with no timezone anywhere is refused", () => {
+    expect(dueKeepingTime({ date: "2026-11-20T14:00:00Z", timezone: null }, null, "2026-11-14", undefined)).toEqual({ refuse: true });
+  });
+
+  test("keeps the parts of Todoist's due object a later change needs", () => {
+    expect(todoistDueOf({ date: "2026-11-20", string: "every day", lang: "en", timezone: null, is_recurring: true })).toEqual({ date: "2026-11-20", string: "every day", lang: "en", timezone: null, is_recurring: true });
+    expect(todoistDueOf(null)).toBeNull();
   });
 });

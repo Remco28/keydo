@@ -1009,6 +1009,62 @@ describe("Keydo server", () => {
     }
   });
 
+  test.each([[{ date: "2026-11-14T14:00:00.000000" }], [{ date: "2026-11-15T02:00:00Z", timezone: "Asia/Jakarta" }]])("moves a task with a time of day through Sync item_update with a date object %#", async due => {
+    let commands: unknown[] = [];
+    const server = createServer({
+      port: 0,
+      todoistToken: "server-only-token",
+      todoistApiBase: "https://todoist.test",
+      fetcher: async (input, init) => {
+        const body = new URLSearchParams(String(init?.body ?? ""));
+        if (String(input) !== "https://todoist.test/api/v1/sync" || !body.has("commands")) return Response.json({ sync_token: "next" });
+        commands = JSON.parse(body.get("commands")!);
+        const uuid = (commands[0] as { uuid: string }).uuid;
+        return Response.json({ sync_token: "next", sync_status: { [uuid]: "ok" } });
+      }
+    });
+    try {
+      const response = await appRequest(server, "/api/todoist/tasks/task-1", { method: "POST", body: JSON.stringify({ action: "reschedule", due }) });
+      expect(response.status).toBe(200);
+      expect(commands).toEqual([{ type: "item_update", uuid: expect.any(String), args: { id: "task-1", due } }]);
+    } finally {
+      server.stop(true);
+    }
+  });
+
+  test.each([
+    { date: "2026-11-14" },
+    { date: "tomorrow at 14" },
+    { date: "2026-11-14T14:00:00", timezone: "Asia/Jakarta" },
+    { date: "2026-11-14T14:00:00Z", string: "every day" },
+    { date: "2026-11-14T14:00:00Z", timezone: "Asia/Jakarta; rm" }
+  ])("rejects a reschedule that is not a day with a time %#", async due => {
+    let upstreamCalled = false;
+    const server = createServer({ port: 0, todoistToken: "server-only-token", todoistApiBase: "https://todoist.test", fetcher: async () => { upstreamCalled = true; return Response.json({}); } });
+    try {
+      const response = await appRequest(server, "/api/todoist/tasks/task-1", { method: "POST", body: JSON.stringify({ action: "reschedule", due }) });
+      expect(response.status).toBe(400);
+      expect(upstreamCalled).toBe(false);
+    } finally {
+      server.stop(true);
+    }
+  });
+
+  test("a reschedule Todoist rejects is a failed save", async () => {
+    const server = createServer({ port: 0, todoistToken: "server-only-token", todoistApiBase: "https://todoist.test", fetcher: async (_input, init) => {
+      const body = new URLSearchParams(String(init?.body ?? ""));
+      if (!body.has("commands")) return Response.json({ sync_token: "next" });
+      const uuid = JSON.parse(body.get("commands")!)[0].uuid;
+      return Response.json({ sync_token: "next", sync_status: { [uuid]: { error: "Invalid date" } } });
+    } });
+    try {
+      const response = await appRequest(server, "/api/todoist/tasks/task-1", { method: "POST", body: JSON.stringify({ action: "reschedule", due: { date: "2026-11-14T14:00:00" } }) });
+      expect(response.status).toBe(422);
+    } finally {
+      server.stop(true);
+    }
+  });
+
   test.each(["order_key", "parent_id", "project_id", "section_id"])("rejects unsupported structural task field %s on the generic update route", async field => {
     let upstreamCalled = false;
     const server = createServer({

@@ -88,6 +88,13 @@ export function sortVisibleTasks<T extends {
 }>(items: T[], sortKey?: string, reverse?: boolean): T[];
 export function dueDateKeyForRelativeLabel(label: string, now?: Date, timeZone?: string): string | null;
 export function todoistDueDateKey(due: { date?: string | null } | null | undefined, timeZone?: string): string | null;
+export function dueKeepingTime(
+  todoistDue: { date?: string | null; timezone?: string | null } | null | undefined,
+  shownDayKey: string | null | undefined,
+  newDayKey: string | null | undefined,
+  userTimeZone?: string | null
+): { date: string; timezone?: string } | { refuse: true } | null;
+export function todoistDueOf(due: { date?: string; string?: string; lang?: string; timezone?: string | null; is_recurring?: boolean } | null | undefined): { date: string; string: string | null; lang: string | null; timezone: string | null; is_recurring: boolean } | null;
 export function dueStateForDateKey(dateKey: string | null | undefined, recurring?: boolean, now?: Date, timeZone?: string): { due: string; dueClass: string };
 export function refreshTaskDueStates<T extends { dueDateKey?: string | null; recurring?: boolean; due?: string; dueClass?: string }>(items: T[], now?: Date, timeZone?: string): boolean;
 

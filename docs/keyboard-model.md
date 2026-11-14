@@ -37,8 +37,8 @@ truth when in doubt.
 | `Enter`, `E` | Work on the task in the details pane (`Enter` opens commands when bulk selection exists) |
 | `O` | Open the task in Todoist |
 | `Delete` | Delete the task and its subtasks. Nothing is asked; a message says it was deleted and offers Undo (see Undo) |
-| `T` / `Shift+T` | Move to Today / Tomorrow. A task already due that day is left as it is, and nothing is sent |
-| `C` | Clear due date |
+| `T` / `Shift+T` | Move to Today / Tomorrow. A task already due that day is left as it is, and nothing is sent. See "Dates with a time or a repeat" |
+| `C` | Clear due date. A repeating task stops repeating, and the message says so |
 | `D` | Open the due-date chooser for the active task |
 | `S` | Open details and focus Add subtask |
 | `Shift+S` | Open details and focus the first existing subtask (or Add if empty) |
@@ -164,6 +164,20 @@ on a day applies it. Today/Tomorrow use the existing account-timezone-aware
 date mutation path.
 The specific-date input is validated before applying. Existing `T`,
 `Shift+T`, and `C` list shortcuts remain available.
+
+### Dates with a time or a repeat
+
+Keydo shows days, not times, but it keeps them. Moving a task that has a time
+of day (`T`, `Shift+T`, the date chooser, Move selected tasks to Today) keeps
+the same time on the new day, in the task's own time zone. If that time cannot
+be placed on the new day (a clock change makes it not exist), the task is left
+as it is and a message says so.
+
+A repeating task is not moved: Keydo can only write a day, which would replace
+the repeat. The message says so; `O` opens the task in Todoist, where the next
+date can be moved with the repeat kept. In a bulk move, repeating tasks are
+left out and counted in the message. Clearing the date (`C`) is different: it
+removes the due date and the repeat, as asked.
 
 ## Sort chooser
 

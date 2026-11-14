@@ -566,6 +566,65 @@ export function dueStateForDateKey(dateKey, recurring = false, now = new Date(),
   };
 }
 
+function wallClockParts(instant, timeZone) {
+  const parts = Object.fromEntries(new Intl.DateTimeFormat("en-CA", {
+    year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit", hourCycle: "h23",
+    ...(timeZone ? { timeZone } : {})
+  }).formatToParts(instant).map(part => [part.type, part.value]));
+  return { day: `${parts.year}-${parts.month}-${parts.day}`, time: `${parts.hour}:${parts.minute}:${parts.second}` };
+}
+
+function wallClockMs({ day, time }) {
+  const [year, month, date] = day.split("-").map(Number);
+  const [hour, minute, second] = time.split(":").map(Number);
+  return Date.UTC(year, month - 1, date, hour, minute, second);
+}
+
+function shiftDay(dayKey, days) {
+  const [year, month, date] = dayKey.split("-").map(Number);
+  return new Date(Date.UTC(year, month - 1, date + days)).toISOString().slice(0, 10);
+}
+
+function daysBetween(fromKey, toKey) {
+  return Math.round((wallClockMs({ day: toKey, time: "00:00:00" }) - wallClockMs({ day: fromKey, time: "00:00:00" })) / 86_400_000);
+}
+
+// Moving a task with a time of day to another day keeps that time. Answers
+// null for a due with no time (the plain day is written as before), a due
+// date for Todoist's date-object input, or { refuse: true } when the time
+// cannot be placed on that day without guessing.
+export function dueKeepingTime(todoistDue, shownDayKey, newDayKey, userTimeZone) {
+  const date = todoistDue?.date;
+  if (typeof date !== "string" || !date.includes("T") || !newDayKey) return null;
+  if (!/(?:Z|[+-]\d{2}:?\d{2})$/i.test(date)) {
+    // A floating time is wall-clock time on its own day: the new day, the same time, written as Todoist wrote it.
+    return { date: `${newDayKey}${date.slice(10)}` };
+  }
+  // A fixed time is shown on its day in the user's timezone. Move it by the
+  // same number of days, keeping its clock time in its own timezone.
+  const zone = todoistDue.timezone || userTimeZone;
+  const instant = new Date(date);
+  if (!zone || !shownDayKey || Number.isNaN(instant.getTime())) return { refuse: true };
+  let wall;
+  try { wall = wallClockParts(instant, zone); } catch { return { refuse: true }; }
+  const target = { day: shiftDay(wall.day, daysBetween(shownDayKey, newDayKey)), time: wall.time };
+  let guess = wallClockMs(target);
+  for (let step = 0; step < 3; step += 1) guess += wallClockMs(target) - wallClockMs(wallClockParts(new Date(guess), zone));
+  const next = new Date(guess);
+  const placed = wallClockParts(next, zone);
+  // A clock time that does not exist that day (daylight saving), or a day that lands elsewhere for the user: do not guess.
+  if (placed.day !== target.day || placed.time !== target.time) return { refuse: true };
+  const value = `${next.toISOString().slice(0, 19)}Z`;
+  if (todoistDueDateKey({ date: value }, userTimeZone) !== newDayKey) return { refuse: true };
+  return todoistDue.timezone ? { date: value, timezone: todoistDue.timezone } : { date: value };
+}
+
+// The parts of Todoist's due object Keydo keeps, so a later change can write it back faithfully.
+export function todoistDueOf(due) {
+  if (!due || typeof due.date !== "string") return null;
+  return { date: due.date, string: due.string ?? null, lang: due.lang ?? null, timezone: due.timezone ?? null, is_recurring: Boolean(due.is_recurring) };
+}
+
 export function refreshTaskDueStates(items, now = new Date(), timeZone) {
   let changed = false;
   const today = localIsoDate(now, timeZone);

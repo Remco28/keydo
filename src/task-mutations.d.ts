@@ -8,10 +8,12 @@ export function sameTaskDueGroup(
   a: { due?: string; dueDateKey?: string | null },
   b: { due?: string; dueDateKey?: string | null }
 ): boolean;
-export function applyTaskDueChange<T extends { due?: string; dueDateKey?: string | null; dueClass?: string; dayOrder?: number | null }>(
+export type TodoistDueKept = { date: string; string: string | null; lang: string | null; timezone: string | null; is_recurring: boolean };
+export function applyTaskDueChange<T extends { due?: string; dueDateKey?: string | null; dueClass?: string; dayOrder?: number | null; dueHasTime?: boolean; recurring?: boolean; todoistDue?: TodoistDueKept | null }>(
   task: T,
   due: string,
-  dueDateKey: string | null
+  dueDateKey: string | null,
+  keptTime?: { date: string; timezone?: string } | null
 ): T;
 
 export function restoreTaskSnapshots<T extends { id: string }, S extends Partial<T> & { id: string; index?: number }>(
@@ -35,6 +37,8 @@ export function retainOmittedTaskFields<T extends {
   due?: string;
   dueClass?: string;
   recurring?: boolean;
+  dueHasTime?: boolean;
+  todoistDue?: TodoistDueKept | null;
   orderKey?: string | null;
   childOrder?: number | null;
   dayOrder?: number | null;

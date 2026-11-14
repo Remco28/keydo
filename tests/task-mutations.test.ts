@@ -294,10 +294,22 @@ describe("sync order field reconciliation", () => {
     expect((cleared as any).dueHasTime).toBe(false);
   });
 
-  test("a day written by Keydo has no time of day", () => {
-    const task = { id: "a", due: "Nov 20", dueDateKey: "2026-11-20", dueClass: "", dayOrder: 3, dueHasTime: true };
+  test("a day written by Keydo has no time of day, and no repeat", () => {
+    const task = { id: "a", due: "Nov 20", dueDateKey: "2026-11-20", dueClass: "", dayOrder: 3, dueHasTime: true, recurring: true, todoistDue: { date: "2026-11-20T14:00:00", string: "every day at 14", lang: "en", timezone: null, is_recurring: true } };
     applyTaskDueChange(task as any, "Today", "2026-11-14");
     expect((task as any).dueHasTime).toBe(false);
+    expect((task as any).recurring).toBe(false);
+    expect((task as any).todoistDue).toEqual({ date: "2026-11-14", string: null, lang: null, timezone: null, is_recurring: false });
+  });
+
+  test("a kept time of day stays with the task; a cleared date leaves nothing", () => {
+    const task = { id: "a", due: "Nov 20", dueDateKey: "2026-11-20", dueClass: "", dayOrder: 3, dueHasTime: true, todoistDue: null };
+    applyTaskDueChange(task as any, "Today", "2026-11-14", { date: "2026-11-14T14:00:00" });
+    expect((task as any).dueHasTime).toBe(true);
+    expect((task as any).todoistDue.date).toBe("2026-11-14T14:00:00");
+    applyTaskDueChange(task as any, "No date", null);
+    expect((task as any).dueHasTime).toBe(false);
+    expect((task as any).todoistDue).toBeNull();
   });
 
   test("preserves omitted task values in a partial delta while applying explicit values", () => {

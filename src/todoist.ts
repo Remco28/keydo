@@ -20,6 +20,10 @@ export type TodoistSyncResponse = {
   [resource: string]: unknown;
 };
 
+// A due date with a time of day, as Todoist's date-object input takes it:
+// floating "YYYY-MM-DDTHH:MM:SS[.ffffff]", or UTC "...Z" with an optional timezone.
+export type TodoistDueDate = { date: string; timezone?: string };
+
 export type TodoistTaskUpdate = {
   content?: string;
   description?: string;
@@ -247,6 +251,18 @@ export function createTodoistClient(options: TodoistClientOptions) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(updates)
       });
+    },
+
+    // Moves a task with a time of day to another day through the documented
+    // "update due date from a date object" path, so the time is kept.
+    async rescheduleTask(taskId: string, due: TodoistDueDate) {
+      const uuid = crypto.randomUUID();
+      const result = await executeSyncCommands("*", [{ type: "item_update", uuid, args: { id: taskId, due } }], { retryInvalidSyncToken: false });
+      const syncStatus = result.sync_status as Record<string, unknown> | undefined;
+      if (syncStatus?.[uuid] !== "ok") {
+        throw new TodoistCommandError("Todoist rejected the new due date", syncStatus?.[uuid] ?? null);
+      }
+      return result;
     },
 
     async updateTaskOrder(taskId: string, orderKey: string, syncToken = "*") {

@@ -1,4 +1,4 @@
-import { createTodoistClient, TodoistApiError, TodoistCommandError, type Fetcher, type TodoistSyncRequest, type TodoistSyncResponse, type TodoistTaskCreate, type TodoistTaskMove, type TodoistTaskUpdate } from "./todoist";
+import { createTodoistClient, TodoistApiError, TodoistCommandError, type Fetcher, type TodoistSyncRequest, type TodoistSyncResponse, type TodoistDueDate, type TodoistTaskCreate, type TodoistTaskMove, type TodoistTaskUpdate } from "./todoist";
 import { hasRasterImageSignature, normalizeRasterImageType } from "./image-content";
 import { createAsyncLock } from "./order-lock.js";
 import { createHash } from "node:crypto";
@@ -85,13 +85,25 @@ function isTodoistTaskUpdate(value: unknown): value is TodoistTaskUpdate {
   });
 }
 
-function isTaskMutation(value: unknown): value is { action: "update" | "complete" | "reopen" | "delete" | "move" | "reorder"; updates?: TodoistTaskUpdate; destination?: TodoistTaskMove; order_key?: string; sync_token?: string } {
+// Only a day with a time is written this way: a floating time, or a UTC time with its timezone.
+function isTodoistDueDate(value: unknown): value is TodoistDueDate {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const due = value as Record<string, unknown>;
+  if (!Object.keys(due).every(key => key === "date" || key === "timezone")) return false;
+  if (typeof due.date !== "string" || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,6})?Z?$/.test(due.date)) return false;
+  if (due.timezone !== undefined && (typeof due.timezone !== "string" || !/^[A-Za-z0-9_+\-/]{1,64}$/.test(due.timezone))) return false;
+  if (due.timezone !== undefined && !due.date.endsWith("Z")) return false;
+  return true;
+}
+
+function isTaskMutation(value: unknown): value is { action: "update" | "complete" | "reopen" | "delete" | "move" | "reorder" | "reschedule"; due?: TodoistDueDate; updates?: TodoistTaskUpdate; destination?: TodoistTaskMove; order_key?: string; sync_token?: string } {
   if (!value || typeof value !== "object") return false;
   const candidate = value as Record<string, unknown>;
   const hasOnlyKeys = (...keys: string[]) => Object.keys(candidate).every(key => keys.includes(key));
   if (candidate.action === "update") {
     return hasOnlyKeys("action", "updates") && isTodoistTaskUpdate(candidate.updates);
   }
+  if (candidate.action === "reschedule") return hasOnlyKeys("action", "due") && isTodoistDueDate(candidate.due);
   if (candidate.action === "move") {
     if (!hasOnlyKeys("action", "destination")) return false;
     const destination = candidate.destination;
@@ -682,6 +694,7 @@ export function createServer(options: KeydoServerOptions = {}) {
           if (body.action === "reopen") await completionRecovery!.reopen(taskId);
           if (body.action === "delete") { await todoist.deleteTask(taskId); completionRecovery!.forget(taskId); }
           if (body.action === "update") await todoist.updateTask(taskId, body.updates ?? {});
+          if (body.action === "reschedule") await todoist.rescheduleTask(taskId, body.due!);
           if (body.action === "move") await todoist.moveTask(taskId, body.destination ?? {});
           return Response.json({ ok: true });
         } catch (error) {
