@@ -598,6 +598,22 @@ try {
     await page.locator(`.task-row[data-task-id='${id}']`).waitFor();
   });
 
+  await check("a key that changes nothing does not end a delete's undo time", async () => {
+    await page.keyboard.press("1");
+    const rows = page.locator(".task-row");
+    const id = await rows.last().getAttribute("data-task-id");
+    await rows.last().click();
+    await page.keyboard.press("Delete");
+    await page.locator(`.task-row[data-task-id='${id}']`).waitFor({ state: "detached" });
+    // The task now under the cursor is already due today, so T has nothing to do.
+    await page.locator(".task-row .task-due.today").first().click();
+    await page.keyboard.press("t");
+    assert.match(await page.locator("#toast").innerText(), /^Already due Today/);
+    assert.match(await page.locator("#toast-undo").innerText(), /^Undo delete/);
+    await page.keyboard.press("z");
+    await page.locator(`.task-row[data-task-id='${id}']`).waitFor();
+  });
+
   await check("in details the command list shows a key only where it works, and T selects the title", async () => {
     await page.keyboard.press("1");
     await page.locator(".task-row").first().click();

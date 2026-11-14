@@ -2297,7 +2297,9 @@
     }
 
     function queueTaskUpdate(task, updates) {
-      clearUndo();
+      // Typing withdraws an earlier offer, except a held delete's: that task is only gone once
+      // its delete is sent, so its Undo stays for as long as it is held.
+      if (!pendingUndo?.hold) clearUndo();
       if (!state.liveTodoist) return;
       task.keydoPendingUpdates = { ...(task.keydoPendingUpdates || {}), ...updates };
       task.keydoUpdateAutoRetryCount = 0;
@@ -3039,8 +3041,9 @@
       const task = currentTask();
       if (!task) return;
       // One delete is held at a time, and a delete that did not go through keeps its message on screen.
-      if (!await settleHeldDelete()) return;
-      if (!tasks.includes(task) || heldDelete) return;
+      // Several Deletes can be waiting on the same send; each takes its turn.
+      do { if (!await settleHeldDelete()) return; } while (heldDelete);
+      if (!tasks.includes(task)) return;
       const subtreeIds = taskSubtreeIds(tasks, task.id);
       const beingCreated = item => item.keydoCreatePromise || (state.liveTodoist && String(item.id).startsWith("task-local-"));
       if (tasks.some(item => subtreeIds.has(item.id) && beingCreated(item))) { showToast("Wait for task creation before deleting"); return; }
@@ -3501,6 +3504,14 @@
     }
 
     async function changePriority(delta, { taskId = state.selectedId, undoing = false } = {}) {
+      if (!undoing && heldDelete) {
+        // A key that would change nothing must not end the delete's undo time.
+        const held = tasks.find(item => item.id === taskId);
+        if (held && Math.max(1, Math.min(4, held.priority + delta)) === held.priority) {
+          showToast(delta > 0 ? "Already at highest priority" : "Already at lowest priority");
+          return;
+        }
+      }
       if (!undoing && !await settleHeldDelete()) return;
       let settle;
       let appliedFrom = null;
@@ -3749,9 +3760,11 @@
     }
 
     async function createDetailSubtask() {
+      const pressedOn = currentTask();
       if (!await settleHeldDelete()) return;
       if (state.subtaskSaving) return;
       const parent = currentTask();
+      if (parent !== pressedOn) return;
       const input = document.getElementById("subtask-create-input");
       const button = document.getElementById("subtask-create-button");
       const title = input.value.trim();
@@ -4462,6 +4475,15 @@
 
     async function setTaskDue(label, dueString, taskId = currentTask()?.id, { undoing = false } = {}) {
       if (!taskId) return;
+      if (!undoing && heldDelete) {
+        // A key that would change nothing must not end the delete's undo time.
+        const held = tasks.find(item => item.id === taskId);
+        const wanted = dueChangeFor(label, dueString);
+        if (held && held.due === wanted.displayLabel && held.dueDateKey === wanted.nextDueDateKey) {
+          showToast(wanted.nextDueDateKey ? `Already due ${wanted.displayLabel}` : "No date to clear");
+          return;
+        }
+      }
       if (!undoing && !await settleHeldDelete()) return;
       let settle;
       let before = null;
@@ -4498,6 +4520,14 @@
       return run;
     }
 
+    // What a date key asks for: the day, and the words the list will show for it.
+    function dueChangeFor(label, dueString) {
+      const chosenDate = /^\d{4}-\d{2}-\d{2}$/.test(dueString) ? dueString : null;
+      const nextDueDateKey = chosenDate ?? dueDateKeyForRelativeLabel(label, new Date(), state.todoistTimeZone);
+      const displayLabel = chosenDate ? dueStateForDateKey(chosenDate, false, new Date(), state.todoistTimeZone).due : label;
+      return { chosenDate, nextDueDateKey, displayLabel };
+    }
+
     async function setTaskDueWithOrderLock(taskId, label, dueString, onApplied) {
       if (state.liveTodoist && !await ensureTaskOrderKnown()) return;
       const task = tasks.find(item => item.id === taskId);
@@ -4516,9 +4546,7 @@
       const previousClass = task.dueClass;
       const previousDayOrder = task.dayOrder;
       const previousHasTime = task.dueHasTime;
-      const chosenDate = /^\d{4}-\d{2}-\d{2}$/.test(dueString) ? dueString : null;
-      const nextDueDateKey = chosenDate ?? dueDateKeyForRelativeLabel(label, new Date(), state.todoistTimeZone);
-      const displayLabel = chosenDate ? dueStateForDateKey(chosenDate, false, new Date(), state.todoistTimeZone).due : label;
+      const { chosenDate, nextDueDateKey, displayLabel } = dueChangeFor(label, dueString);
       if (previousLabel === displayLabel && previousDueDateKey === nextDueDateKey) {
         // Nothing to change, so nothing is written: a repeating task due today keeps its schedule, and an earlier undo offer stands.
         showToast(nextDueDateKey ? `Already due ${displayLabel}` : "No date to clear");
@@ -5048,8 +5076,10 @@
     }
 
     async function removeAttachment(commentId) {
+      const pressedOn = currentTask();
       if (!await settleHeldDelete()) return;
       const task = currentTask();
+      if (task !== pressedOn) return;
       const images = taskImages(task);
       const image = images.find(item => (item.commentId || "local") === commentId);
       if (!task || !image) return;
@@ -5118,7 +5148,16 @@
     }
 
     function attachImage(file) {
-      if (heldDelete) { void settleHeldDelete().then(clear => { if (clear) attachImage(file); }); return; }
+      if (heldDelete) {
+        // The picture belongs to the task it was pasted on, even if the cursor moves while the delete is sent.
+        const pastedOn = currentTask();
+        void settleHeldDelete().then(clear => {
+          if (!clear) return;
+          if (currentTask() === pastedOn) attachImage(file);
+          else showToast("The selection changed · paste the screenshot again");
+        });
+        return;
+      }
       if (!file || !isSupportedRasterImageType(file.type)) {
         showToast("Use a PNG, JPEG, GIF, or WebP image");
         return;
