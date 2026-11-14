@@ -135,7 +135,7 @@ This log records product and technical decisions as they are made. Proposed deci
 
 - **Status:** Accepted
 - **Decision:** `Delete` no longer asks "Delete this task?". The task and its subtasks leave the list at once, a message says *Deleted "Title"*, and **Undo** (`Z`) is offered for 12 seconds, as for a completion. It must never delete silently.
-  - Todoist cannot restore a deleted task, so Keydo holds the real delete back until the offer ends and only hides the task until then. Undo therefore puts back the same task, with its subtasks, notes and screenshots.
+  - Todoist cannot restore a deleted task, so Keydo holds the real delete back until the offer ends, or until the next change of any kind, and only hides the task until then. No other change runs while a task is hidden. Undo therefore puts back the same task, with its subtasks, notes and screenshots.
   - If the delete cannot be sent, or Todoist refuses it, the task returns to the list with a message.
   - One delete is held at a time. Closing or reloading inside the 12 seconds means the task is not deleted. Another window shows the task until the delete is sent.
 - **Also decided with it:** undo of a date or a priority reads Todoist first and leaves a newer change alone; `Esc` clears a search and returns to the view; `T` in details selects the title again; a date in another year shows its year.

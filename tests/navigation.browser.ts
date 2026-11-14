@@ -296,6 +296,29 @@ try {
       await close();
     });
 
+    await check("live: another change sends a held delete first, so nothing else runs while a task is only hidden", async () => {
+      const { page, errors, close } = await openPage(live.url);
+      const before = fixture.deleted.length;
+      await page.keyboard.press("4");
+      await selectRow(page, "alpha");
+      await page.keyboard.press("Delete");
+      await page.locator(".task-row[data-task-id='alpha']").waitFor({ state: "detached" });
+      const started = Date.now();
+      await selectRow(page, "quick-1");
+      const saved = page.waitForResponse(response => response.url().endsWith("/tasks/quick-1") && response.request().postDataJSON()?.action === "update");
+      await page.keyboard.press("+");
+      assert.equal((await saved).status(), 200);
+      assert.ok(Date.now() - started < 8_000, "the delete did not wait for its 12 seconds");
+      assert.deepEqual(fixture.deleted.slice(before), ["alpha"], "the delete reached Todoist before the priority change");
+      assert.equal(fixture.items.find(item => item.id === "quick-1")!.priority, 2);
+      // The delete can no longer be undone; Z now belongs to the priority change.
+      await page.keyboard.press("z");
+      await page.waitForFunction(() => document.querySelector(".task-row[data-task-id='quick-1'] .complete-button.p1"));
+      assert.equal(await page.locator(".task-row[data-task-id='alpha']").count(), 0);
+      assert.deepEqual(errors, []);
+      await close();
+    });
+
     await check("live: Completed shows the selected task's details", async () => {
       const { page, errors, close } = await openPage(live.url);
       fixture.completeItem("charlie");

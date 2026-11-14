@@ -370,6 +370,8 @@ try {
     assert.equal(await page.locator(".task-row").count(), 0);
     assert.equal(await page.locator("#toast").innerText(), "Deleted “Browser polish check”");
     assert.equal(await page.locator("#toast-undo").isVisible(), true);
+    // The Undo button says what it would undo, whatever message it sits beside.
+    assert.match(await page.locator("#toast-undo").innerText(), /^Undo delete/);
     await page.keyboard.press("z");
     await page.locator(".task-row").waitFor();
     assert.equal(await page.locator("#toast").innerText(), "Restored “Browser polish check”");

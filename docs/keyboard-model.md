@@ -37,7 +37,7 @@ truth when in doubt.
 | `Enter`, `E` | Work on the task in the details pane (`Enter` opens commands when bulk selection exists) |
 | `O` | Open the task in Todoist |
 | `Delete` | Delete the task and its subtasks. Nothing is asked; a message says it was deleted and offers Undo (see Undo) |
-| `T` / `Shift+T` | Move to Today / Tomorrow |
+| `T` / `Shift+T` | Move to Today / Tomorrow. A task already due that day is left as it is, and nothing is sent |
 | `C` | Clear due date |
 | `D` | Open the due-date chooser for the active task |
 | `S` | Open details and focus Add subtask |
@@ -50,7 +50,7 @@ truth when in doubt.
 | `Shift+M` | In an unfiltered project view, move mode: pick any parent with `↑↓`, `Enter` drops, `Esc` cancels |
 | `G` | Go to view / project / workspace |
 | `B` | Sort the current view (see Sort chooser) |
-| `/` | Focus search and select the existing query; type to replace it or Backspace to clear it. Searches across all tasks (ignores the current view filter). `↓` or `Enter` goes to the results; `Esc` clears the search and returns to the view it was started from |
+| `/` | Focus search and select the existing query; type to replace it or Backspace to clear it. Searches across all tasks (ignores the current view filter), except in Completed, where it searches the completed tasks. `↓` or `Enter` goes to the results; `Esc` clears the search and returns to the view it was started from |
 | `N` | Capture composer (`Enter` uses Todoist Smart Add in live mode; pasted screenshots and demo mode use structured creation) |
 | `Ctrl+K` | Command palette |
 | `Ctrl+V` | Attach pasted screenshot to the selected task |
@@ -101,8 +101,8 @@ its screenshots, notes and subtasks can be read without opening anything.
 its key hints show, and the cursor in the list becomes an outline, so only
 one place looks active. Nothing is autofocused into an editor, so the detail
 keys are live immediately. These keys apply while details have the keyboard;
-list-only meanings (`T`oday, `C`lear, `N`ew) are available there through the
-command palette instead. From inside an editor, the same section keys work
+list-only meanings (`T`oday, `C`lear) are available there through the
+command palette instead; a new task is started from the list. From inside an editor, the same section keys work
 with `Alt` held.
 
 | Binding | Action |
@@ -203,7 +203,8 @@ hint to switch back to Keydo order (`B`, then `M`).
 `Z` or `Ctrl+Z` takes back the last change of these kinds: completing a
 task, a new due date, a new priority, deleting a task. The message that
 follows such a change carries an **Undo** button, and stays, for the 12
-seconds in which it can be taken back.
+seconds in which it can be taken back. The button names what it would undo
+(**Undo delete**, **Undo date**), because later messages carry it too.
 
 For a completion, a date or a priority, undo runs the opposite action through
 the same path as the key that would do it by hand, after the change it
@@ -215,12 +216,15 @@ Keydo is busy saving something else, nothing is undone, the offer stays, and
 
 A delete is different, because Todoist cannot bring a deleted task back.
 `Delete` hides the task and its subtasks at once and says so, but the delete
-itself is only sent to Todoist when the 12 seconds are over. `Z` before then
-puts the task back exactly as it was. If Todoist then refuses the delete, the
+itself is only sent to Todoist when the 12 seconds are over, or as soon as
+you make another change, whichever comes first: no other task is changed
+while one is only hidden (typing in a title or notes is the exception, and
+does not send it). `Z` before then puts the task back exactly as it was. If Todoist then refuses the delete, the
 task returns to the list with a message. One delete is held at a time:
 deleting a second task sends the first. Closing or reloading Keydo inside the
 12 seconds means the delete is never sent, and the task is there next time.
-Another window keeps showing the task until the delete is sent.
+Another window keeps showing the task until the delete is sent, and a subtask
+added to it there in the meantime is deleted with it.
 
 Not undoable: moving to a project, reordering, creating, edits to titles and
 notes, bulk actions, completing a repeating task, and changing the date of a

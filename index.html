@@ -767,7 +767,7 @@
 
   <div class="bulk-bar" id="bulk-bar"><strong id="bulk-count">0 selected</strong><span><kbd data-k="Enter">↵</kbd> all actions</span><button class="bulk-button" id="bulk-complete" type="button" tabindex="-1">Complete</button><button class="bulk-button" id="bulk-today" type="button" tabindex="-1">Move to Today</button><button class="bulk-button" id="bulk-clear-dates" type="button" tabindex="-1">Clear dates</button><button class="bulk-button" id="bulk-clear" type="button" tabindex="-1">Clear selection <kbd data-k="Esc">Esc</kbd></button></div>
 
-  <div class="toast" id="toast-box"><span class="toast-message" id="toast" role="status"></span><button class="toast-undo" id="toast-undo" type="button" tabindex="-1" hidden>Undo <kbd data-k="Z">Z</kbd></button></div>
+  <div class="toast" id="toast-box"><span class="toast-message" id="toast" role="status"></span><button class="toast-undo" id="toast-undo" type="button" tabindex="-1" hidden><span id="toast-undo-label">Undo</span> <kbd data-k="Z">Z</kbd></button></div>
 
   <div class="quick-capture" id="quick-capture" role="dialog" aria-label="New task" hidden>
     <input class="quick-capture-input" id="capture-input" placeholder="What needs doing?" autocomplete="off" aria-label="New task">
@@ -1070,7 +1070,7 @@
         { title: "Attach screenshot", description: "Paste an image from the system clipboard", action: "task:attach" },
         { title: "Move selected task to a project", description: "Pick a project for the selected task", action: "task:moveto" },
         { title: "Move selected task under another task", description: "Pick a parent with the arrow keys, Enter drops", action: "task:nest" },
-        { title: "Undo the last change", description: "Take back a completion, a new date or a new priority", action: "undo" },
+        { title: "Undo the last change", description: "Take back a completion, a new date, a new priority or a delete", action: "undo" },
         { title: "Switch theme", description: "Change between the light and the dark theme", action: "theme" },
         { title: "Turn sound on or off", description: "A soft chime when a task is completed", action: "sound" },
         { title: "Show keyboard help", description: "Open the keyboard map", action: "help" }
@@ -1577,8 +1577,8 @@
     // priority. Undo runs the opposite action through the same paths a key
     // press would, after the change it reverses has finished saving.
     const UNDO_MS = 12000;
-    function offerUndo(pending, reverse) {
-      const undo = { pending, reverse };
+    function offerUndo(pending, reverse, what) {
+      const undo = { pending, reverse, what };
       pendingUndo = undo;
       Promise.resolve(pending).then(() => expireUndoLater(undo));
     }
@@ -1605,7 +1605,8 @@
       if (reversed === false && !pendingUndo) {
         pendingUndo = undo;
         expireUndoLater(undo);
-        document.getElementById("toast-undo").hidden = false;
+        // Say again why, this time with the Undo button and for as long as the offer lasts.
+        showToast(toast.textContent);
       }
     }
 
@@ -1619,11 +1620,15 @@
     }
 
     async function reopenAfterUndo(snapshot) {
-      const current = tasks.find(item => item.id === snapshot.id);
+      let current = tasks.find(item => item.id === snapshot.id);
       if (current && !current.completed) { showToast("Already open · nothing to undo"); return true; }
       if (current) {
         await toggleComplete(snapshot.id, { undoing: true });
-        if (tasks.find(item => item.id === snapshot.id)?.completed) return false;
+        current = tasks.find(item => item.id === snapshot.id);
+        if (current?.completed) return false;
+      }
+      if (current) {
+        // Reopened in place.
       } else if (state.liveTodoist) {
         // A sync has already taken the completed task off the active list, so
         // reopen it the way the Completed view does.
@@ -2400,7 +2405,8 @@
       const query = state.query.trim().toLowerCase();
       lastViewMatchIds = null;
       if (state.view === "completed") {
-        const completed = state.liveTodoist ? state.recentCompleted : shownTasks().filter(task => task.completed);
+        const held = heldDeleteIds();
+        const completed = state.liveTodoist ? (held?.size ? state.recentCompleted.filter(item => !held.has(item.id)) : state.recentCompleted) : shownTasks().filter(task => task.completed);
         const sort = currentSort();
         return sortVisibleTasks(filterTasksByWorkspaceAndQuery(completed, state.workspace, query), sort.key, sort.reverse);
       }
@@ -2432,6 +2438,7 @@
       // Undo is offered on every message while a change can still be taken back,
       // except a message about some other change.
       const undoable = undo && Boolean(pendingUndo);
+      if (undoable) document.getElementById("toast-undo-label").textContent = `Undo ${pendingUndo.what}`;
       document.getElementById("toast-undo").hidden = !undoable;
       toastBox.classList.add("visible");
       window.clearTimeout(showToast.timer);
@@ -2606,7 +2613,7 @@
     function renderDetail() {
       // With Todoist connected, the Completed view's rows are not among the open tasks. Show them to read.
       const active = currentTask();
-      const task = active ?? (state.view === "completed" ? state.recentCompleted.find(item => item.id === state.selectedId) ?? null : null);
+      const task = active ?? (state.view === "completed" && !heldDeleteIds()?.has(state.selectedId) ? state.recentCompleted.find(item => item.id === state.selectedId) ?? null : null);
       detailContent.classList.toggle("read-only", Boolean(task) && !active);
       document.getElementById("open-hint").innerHTML = state.view === "completed" ? `${keycap("Space")} to reopen` : `${keycap("Enter")} to work on it`;
       workspaceGrid.classList.toggle("detail-open", Boolean(task && state.detailEditing));
@@ -2808,6 +2815,7 @@
     }
 
     async function toggleComplete(taskId, options = {}) {
+      if (!options.undoing && !await settleHeldDelete()) return;
       // Every way of completing or reopening withdraws an earlier undo offer once it goes ahead, including the Completed view's.
       if (state.liveTodoist && state.view === "completed" && state.recentCompleted.some(item => item.id === taskId)) {
         return reopenRecentCompleted(taskId);
@@ -2825,7 +2833,7 @@
         onApplied(completed) {
           if (!options.undoing) clearUndo();
           playSound(completed ? "done" : "back");
-          if (completed && !snapshot.recurring && !options.undoing) offerUndo(pending, () => reopenAfterUndo(snapshot));
+          if (completed && !snapshot.recurring && !options.undoing) offerUndo(pending, () => reopenAfterUndo(snapshot), "complete");
           options.onApplied?.(completed);
         }
       }));
@@ -2861,6 +2869,7 @@
 
     // Answers whether the task was reopened in Todoist.
     async function reopenRecentCompleted(taskId, { undoing = false } = {}) {
+      if (!undoing && !await settleHeldDelete()) return false;
       const task = state.recentCompleted.find(item => item.id === taskId);
       if (!task || state.reopeningCompleted.has(taskId)) return false;
       if (!undoing) clearUndo();
@@ -3029,12 +3038,16 @@
     async function deleteWithUndo() {
       const task = currentTask();
       if (!task) return;
-      if (task.keydoCreatePromise) { showToast("Wait for task creation before deleting"); return; }
-      if (heldDelete) await sendHeldDelete();
-      if (!tasks.includes(task)) return;
+      // One delete is held at a time, and a delete that did not go through keeps its message on screen.
+      if (!await settleHeldDelete()) return;
+      if (!tasks.includes(task) || heldDelete) return;
+      const subtreeIds = taskSubtreeIds(tasks, task.id);
+      const beingCreated = item => item.keydoCreatePromise || (state.liveTodoist && String(item.id).startsWith("task-local-"));
+      if (tasks.some(item => subtreeIds.has(item.id) && beingCreated(item))) { showToast("Wait for task creation before deleting"); return; }
       clearUndo();
       const hold = { rootId: task.id, title: task.title, sending: null, timer: 0 };
       heldDelete = hold;
+      for (const id of subtreeIds) state.selected.delete(id);
       hold.timer = window.setTimeout(() => { void sendHeldDelete(hold); }, UNDO_MS);
       offerUndo(null, () => {
         if (heldDelete !== hold || hold.sending) { showToast("Already deleted · nothing to undo"); return true; }
@@ -3049,18 +3062,22 @@
         returnCursorAfterUndo(hold.rootId);
         showToast(`Restored “${hold.title}”`);
         return true;
-      });
+      }, "delete");
+      pendingUndo.hold = hold;
       exitKinds.set(task.id, "gone");
       render();
       focusCurrentTaskContext();
       showToast(`Deleted “${task.title}”`);
     }
 
-    // Sends the held delete. Whatever happens, the task ends up either deleted or back in the list with a message.
+    // Sends the held delete and answers how it went. Whatever happens, the task ends up
+    // either deleted or back in the list with a message.
     function sendHeldDelete(hold = heldDelete) {
-      if (!hold || heldDelete !== hold) return Promise.resolve();
+      if (!hold || heldDelete !== hold) return Promise.resolve("gone");
       if (hold.sending) return hold.sending;
       window.clearTimeout(hold.timer);
+      // From here it can no longer be undone.
+      if (pendingUndo?.hold === hold) { clearUndo(); toastBox.classList.remove("visible"); }
       hold.sending = (async () => {
         let outcome = "gone";
         try {
@@ -3075,8 +3092,20 @@
         } else if (outcome !== "deleted") {
           render();
         }
+        return outcome;
       })();
       return hold.sending;
+    }
+
+    // Nothing else changes while a task is only hidden: every other change first sends the
+    // held delete. Answers false when that delete did not go through, so its message is not
+    // covered by the next action's.
+    async function settleHeldDelete() {
+      while (heldDelete) {
+        const outcome = await sendHeldDelete();
+        if (outcome === "failed" || outcome === "refused") return false;
+      }
+      return true;
     }
 
     // Deletes the task in Todoist now. Answers "deleted", "failed" (rolled back, with a message),
@@ -3161,6 +3190,7 @@
         // Todoist so descendants added or moved outside this tab also settle.
         const confirmedDeletionIds = taskDeletionClosure(tasks, [taskId]);
         tasks = tasks.filter(item => !confirmedDeletionIds.has(item.id));
+        state.recentCompleted = state.recentCompleted.filter(item => !confirmedDeletionIds.has(item.id));
         for (const id of confirmedDeletionIds) state.selected.delete(id);
         render();
         refocusIfIdle();
@@ -3197,6 +3227,7 @@
     }
 
     async function moveHierarchy(direction, retried = false, requestedTaskId = state.selectedId) {
+      if (!await settleHeldDelete()) return;
       if (sortBlocksStructuralMove()) return;
       return withTaskOrderLock(() => moveHierarchyWithLock(direction, retried, requestedTaskId));
     }
@@ -3470,6 +3501,7 @@
     }
 
     async function changePriority(delta, { taskId = state.selectedId, undoing = false } = {}) {
+      if (!undoing && !await settleHeldDelete()) return;
       let settle;
       let appliedFrom = null;
       const pending = new Promise(resolve => { settle = resolve; });
@@ -3486,8 +3518,10 @@
             // Put the old value back only while the new one still stands: the save may have failed, or Todoist may have changed it.
             if (current.priority !== next) { showToast("The priority has changed since · nothing to undo"); return true; }
             await changePriority(previous - next, { taskId, undoing: true });
-            return tasks.find(item => item.id === taskId)?.priority !== next;
-          });
+            if (tasks.find(item => item.id === taskId)?.priority === next) return false;
+            returnCursorAfterUndo(taskId);
+            return true;
+          }, "priority");
         });
       } finally {
         settle();
@@ -3552,6 +3586,8 @@
     }
 
     function enterDetail() {
+      // A completed task from Todoist's own list is shown to read; there is nothing to edit.
+      if (!currentTask()) return;
       state.detailReturnId = null;
       state.notesPreviewOverride = null;
       state.detailEditing = true;
@@ -3713,6 +3749,7 @@
     }
 
     async function createDetailSubtask() {
+      if (!await settleHeldDelete()) return;
       if (state.subtaskSaving) return;
       const parent = currentTask();
       const input = document.getElementById("subtask-create-input");
@@ -3834,6 +3871,7 @@
     }
 
     async function createSmartTask() {
+      if (!await settleHeldDelete()) return;
       if (!state.liveTodoist || state.captureAttachment) return createQuickTask();
       if (state.captureSaving) return;
       if (!canCaptureInWorkspace(state.workspace, true)) {
@@ -3912,6 +3950,7 @@
     }
 
     async function createQuickTask() {
+      if (!await settleHeldDelete()) return;
       if (state.captureSaving) return;
       if (state.orderMutationPending) {
         showToast("Wait for the current order change to finish");
@@ -4423,19 +4462,21 @@
 
     async function setTaskDue(label, dueString, taskId = currentTask()?.id, { undoing = false } = {}) {
       if (!taskId) return;
+      if (!undoing && !await settleHeldDelete()) return;
       let settle;
       let before = null;
       const pending = new Promise(resolve => { settle = resolve; });
       const run = withTaskOrderLock(() => setTaskDueWithOrderLock(taskId, label, dueString, ({ previousDueDateKey, previousLabel, nextDueDateKey, displayLabel, changed, restorable }) => {
         before = { key: previousDueDateKey ?? null, label: previousLabel };
-        if (!undoing && changed) clearUndo();
+        if (!undoing) clearUndo();
         playSound("move");
         // A repeating task or a due time cannot be put back from a date alone, so those are not offered.
         if (undoing || !changed || !restorable) return;
         const relative = ["Today", "Tomorrow", "No date"].includes(previousLabel);
         if (!previousDueDateKey && !relative) return;
         // The new date still stands when the task carries it; a task with no date key is told by its label.
-        const stands = item => (item.dueDateKey ?? "").slice(0, 10) === (nextDueDateKey ?? "") && (Boolean(nextDueDateKey) || item.due === displayLabel);
+        // A time of day added to that same day elsewhere is a newer change too: Keydo could only write the day over it.
+        const stands = item => !item.dueHasTime && (item.dueDateKey ?? "").slice(0, 10) === (nextDueDateKey ?? "") && (Boolean(nextDueDateKey) || item.due === displayLabel);
         offerUndo(pending, async () => {
           if (!await refreshBeforeUndo()) return false;
           const current = tasks.find(item => item.id === taskId);
@@ -4447,7 +4488,7 @@
           if (after && stands(after)) return false;
           returnCursorAfterUndo(taskId);
           return true;
-        });
+        }, "date");
       }));
       run.then(settle, settle).then(() => {
         // A date change that was rolled back leaves nothing to take back.
@@ -4478,6 +4519,12 @@
       const chosenDate = /^\d{4}-\d{2}-\d{2}$/.test(dueString) ? dueString : null;
       const nextDueDateKey = chosenDate ?? dueDateKeyForRelativeLabel(label, new Date(), state.todoistTimeZone);
       const displayLabel = chosenDate ? dueStateForDateKey(chosenDate, false, new Date(), state.todoistTimeZone).due : label;
+      if (previousLabel === displayLabel && previousDueDateKey === nextDueDateKey) {
+        // Nothing to change, so nothing is written: a repeating task due today keeps its schedule, and an earlier undo offer stands.
+        showToast(nextDueDateKey ? `Already due ${displayLabel}` : "No date to clear");
+        releaseAction();
+        return;
+      }
       const restorable = !task.recurring && !task.dueHasTime;
       exitKinds.set(task.id, !previousDueDateKey || !nextDueDateKey || nextDueDateKey > previousDueDateKey ? "later" : "sooner");
       applyTaskDueChange(task, displayLabel, nextDueDateKey);
@@ -4531,6 +4578,7 @@
 
     async function runBulk(kind) {
       const requestedIds = [...state.selected];
+      if (!await settleHeldDelete()) return;
       if (["complete", "today", "clear"].includes(kind)) {
         return withTaskOrderLock(() => runBulkWithOrderLock(kind, requestedIds));
       }
@@ -4707,6 +4755,7 @@
     async function moveTaskToProject(projectId) {
       if (state.selectedId) exitKinds.set(state.selectedId, "later");
       const requestedTaskId = state.selectedId;
+      if (!await settleHeldDelete()) return;
       return withTaskOrderLock(() => moveTaskToProjectWithLock(projectId, requestedTaskId));
     }
 
@@ -4850,6 +4899,7 @@
     async function confirmMoveMode() {
       const requestedSourceId = state.moveFromId;
       const requestedTargetId = state.moveTargetId;
+      if (!await settleHeldDelete()) return;
       return withTaskOrderLock(() => confirmMoveModeWithLock(requestedSourceId, requestedTargetId));
     }
 
@@ -4998,6 +5048,7 @@
     }
 
     async function removeAttachment(commentId) {
+      if (!await settleHeldDelete()) return;
       const task = currentTask();
       const images = taskImages(task);
       const image = images.find(item => (item.commentId || "local") === commentId);
@@ -5067,6 +5118,7 @@
     }
 
     function attachImage(file) {
+      if (heldDelete) { void settleHeldDelete().then(clear => { if (clear) attachImage(file); }); return; }
       if (!file || !isSupportedRasterImageType(file.type)) {
         showToast("Use a PNG, JPEG, GIF, or WebP image");
         return;
@@ -5218,7 +5270,7 @@
     });
     document.getElementById("open-todoist").addEventListener("click", () => runCommand("task:open"));
     document.getElementById("description-editor").addEventListener("input", event => { const task = currentTask(); if (!task) return; task.description = event.target.value; document.getElementById("description-preview").innerHTML = renderMarkdown(event.target.value); updateNotesPresentation(); queueTaskUpdate(task, { description: task.description }); });
-    document.getElementById("detail-title-input").addEventListener("input", event => { const task = currentTask(); task.title = event.target.value; document.getElementById("detail-title").textContent = event.target.value; queueTaskUpdate(task, { content: task.title }); });
+    document.getElementById("detail-title-input").addEventListener("input", event => { const task = currentTask(); if (!task) return; task.title = event.target.value; document.getElementById("detail-title").textContent = event.target.value; const rowTitle = queryTaskRow(task.id)?.querySelector(".task-title"); if (rowTitle) { rowTitle.textContent = task.title; rowTitle.title = task.title; } queueTaskUpdate(task, { content: task.title }); });
     document.getElementById("subtask-list").addEventListener("click", event => {
       const check = event.target.closest("[data-complete-subtask]");
       if (check) { void toggleComplete(check.dataset.completeSubtask); return; }
