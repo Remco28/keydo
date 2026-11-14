@@ -513,6 +513,11 @@ describe("task view hierarchy", () => {
     expect(todoistDueDateKey({ date: "2026-09-26T02:00:00Z" }, timeZone)).toBe("2026-09-25");
     expect(dueStateForDateKey("2026-09-25", false, now, timeZone)).toEqual({ due: "Today", dueClass: "" });
     expect(dueStateForDateKey("2026-09-26", false, now, timeZone)).toEqual({ due: "Tomorrow", dueClass: "" });
+    // A date in another year says which year.
+    expect(dueStateForDateKey("2026-10-02", false, now, timeZone).due).not.toMatch(/2026/);
+    expect(dueStateForDateKey("2027-01-05", false, now, timeZone).due).toMatch(/2027/);
+    expect(dueStateForDateKey("2025-12-30", false, now, timeZone)).toMatchObject({ dueClass: "overdue" });
+    expect(dueStateForDateKey("2025-12-30", false, now, timeZone).due).toMatch(/2025/);
   });
 
   test("refreshes task date labels against the configured account timezone", () => {

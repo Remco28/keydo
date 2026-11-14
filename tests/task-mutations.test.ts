@@ -285,6 +285,21 @@ describe("sync order field reconciliation", () => {
     expect(mapped).toEqual(previous);
   });
 
+  test("keeps the due-time mark when a delta leaves out due, and takes Todoist's word when it does not", () => {
+    const previous = { id: "a", title: "Dentist", description: "", priority: 1, completed: false, due: "Nov 20", dueDateKey: "2026-11-20", dueClass: "", recurring: false, dueHasTime: true };
+    const kept = retainOmittedTaskFields({ ...previous, due: "No date", dueDateKey: null, dueHasTime: false, priority: 2 } as any, previous as any, { id: "a", priority: 2 } as any);
+    expect((kept as any).dueHasTime).toBe(true);
+    expect(kept.due).toBe("Nov 20");
+    const cleared = retainOmittedTaskFields({ ...previous, due: "No date", dueDateKey: null, dueHasTime: false } as any, previous as any, { id: "a", due: null } as any);
+    expect((cleared as any).dueHasTime).toBe(false);
+  });
+
+  test("a day written by Keydo has no time of day", () => {
+    const task = { id: "a", due: "Nov 20", dueDateKey: "2026-11-20", dueClass: "", dayOrder: 3, dueHasTime: true };
+    applyTaskDueChange(task as any, "Today", "2026-11-14");
+    expect((task as any).dueHasTime).toBe(false);
+  });
+
   test("preserves omitted task values in a partial delta while applying explicit values", () => {
     const previous: {
       title: string; description: string; priority: number; completed: boolean;

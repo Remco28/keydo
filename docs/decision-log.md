@@ -125,11 +125,21 @@ This log records product and technical decisions as they are made. Proposed deci
   - **The key bar shows the keys for where the keyboard is** (list, details, a selection, an editor, a dialog), and `?` opens a map of the whole keyboard. Every on-screen keycap presses when its real key is pressed. These replace the scattered hint lines and the shortcut list.
   - **Colours come from the logo:** navy ink, keycap white and key red, in a light and a dark theme that follow the system until one is chosen. Red is the accent and also marks overdue dates and priority 1; focus rings are navy so a focused field never reads as an error. Every design value is a named variable at the top of `index.html`.
   - **Finishing a task is marked:** the checkbox pops, the title is struck through, the rows below slide up, and the day's count advances. Motion is short (110, 200 and 480 ms) and is skipped when the system asks for reduced motion. Sound is off unless turned on.
-  - **Undo.** `Z` takes back a completion, a new date or a new priority, by running the opposite action. Changes that cannot be reversed faithfully (delete, move, a repeating task, a due time) are not offered.
+  - **Undo.** `Z` takes back a completion, a new date or a new priority, by running the opposite action. Changes that cannot be reversed faithfully (move, a repeating task, a due time) are not offered. Delete became undoable in D-020.
   - **New keys:** `1` to `5` for the views, `Z` for undo, `W` for next week and arrow keys for a calendar in the date chooser, `←` to go from a subtask back to its parent.
   - **Order of the Today view.** Overdue tasks are listed before tasks due today, so the two can carry headings. This is display only, like sorting (D-016).
   - **The browser keeps its `Ctrl` shortcuts.** Single-letter keys no longer fire with `Ctrl` held, so `Ctrl+C`, `Ctrl+R` and zoom work as they do everywhere else.
 - **Rationale:** The earlier layout was a centred column that left most of a desktop window empty, hid projects behind `G`, and replaced the list with the details. A keyboard-first tool should use the window, show where the keyboard is, and teach its keys in place. The mockup that proposed this was reviewed and approved before it was built.
+
+## D-020: Delete is undoable, not confirmed
+
+- **Status:** Accepted
+- **Decision:** `Delete` no longer asks "Delete this task?". The task and its subtasks leave the list at once, a message says *Deleted "Title"*, and **Undo** (`Z`) is offered for 12 seconds, as for a completion. It must never delete silently.
+  - Todoist cannot restore a deleted task, so Keydo holds the real delete back until the offer ends and only hides the task until then. Undo therefore puts back the same task, with its subtasks, notes and screenshots.
+  - If the delete cannot be sent, or Todoist refuses it, the task returns to the list with a message.
+  - One delete is held at a time. Closing or reloading inside the 12 seconds means the task is not deleted. Another window shows the task until the delete is sent.
+- **Also decided with it:** undo of a date or a priority reads Todoist first and leaves a newer change alone; `Esc` clears a search and returns to the view; `T` in details selects the title again; a date in another year shows its year.
+- **Rationale:** A question before every delete slows the common case and still allows a slip on `Enter`. An undo that is always offered protects the same mistake without the question. These came out of the review of D-019.
 
 ## Open decisions
 

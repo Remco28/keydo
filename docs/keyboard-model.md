@@ -36,7 +36,7 @@ truth when in doubt.
 | `Shift+↑` / `Shift+↓` | Extend bulk selection |
 | `Enter`, `E` | Work on the task in the details pane (`Enter` opens commands when bulk selection exists) |
 | `O` | Open the task in Todoist |
-| `Delete` | Delete with confirmation |
+| `Delete` | Delete the task and its subtasks. Nothing is asked; a message says it was deleted and offers Undo (see Undo) |
 | `T` / `Shift+T` | Move to Today / Tomorrow |
 | `C` | Clear due date |
 | `D` | Open the due-date chooser for the active task |
@@ -50,13 +50,13 @@ truth when in doubt.
 | `Shift+M` | In an unfiltered project view, move mode: pick any parent with `↑↓`, `Enter` drops, `Esc` cancels |
 | `G` | Go to view / project / workspace |
 | `B` | Sort the current view (see Sort chooser) |
-| `/` | Focus search and select the existing query; type to replace it or Backspace to clear it. Searches across all tasks (ignores the current view filter) |
+| `/` | Focus search and select the existing query; type to replace it or Backspace to clear it. Searches across all tasks (ignores the current view filter). `↓` or `Enter` goes to the results; `Esc` clears the search and returns to the view it was started from |
 | `N` | Capture composer (`Enter` uses Todoist Smart Add in live mode; pasted screenshots and demo mode use structured creation) |
 | `Ctrl+K` | Command palette |
 | `Ctrl+V` | Attach pasted screenshot to the selected task |
 | `Z`, `Ctrl+Z` | Undo the last change (see Undo) |
 | `?` | Keyboard map |
-| `Esc` | Close panel / clear selection / return focus |
+| `Esc` | Close panel / clear selection / clear a search / return focus |
 
 The active keyboard task is marked separately from bulk-selected tasks. The
 **Select tasks** control reveals selection checkboxes for mouse use; Shift
@@ -114,12 +114,18 @@ with `Alt` held.
 | `Shift+S` | Jump to the first subtask (or Add if empty) |
 | `↑` / `↓` on a subtask | Walk the subtask list |
 | `Enter` on a subtask | Drill into that subtask |
-| `←` | From a drilled-in subtask, back to its parent |
+| `←` | From any subtask, back to its parent |
 | `+` / `-`, `M`, `O`, `G` | As in the list: priority, move to a project, open in Todoist, go to |
 | `C` | Complete (returns to the list, or to the parent from a drilled-in subtask) or reopen (stays) |
 | `Alt+T` / `Alt+N` / `Alt+D` / `Alt+S` / `Alt+C` | Same keys, usable while editing; `Alt+Shift+S` browses subtasks |
 | `Ctrl+Enter` | Save title/notes |
 | `Esc` | Return to the list |
+
+In the Completed view the pane shows the selected task to read; `Space`
+reopens it. The command list (`Ctrl+K`) shows a key beside a command only
+where that key runs it, so in details it shows the detail keys. Reorder in
+project, Clear date and the command list have no button of their own in the
+list header or the pane: use `R`, `D` then `C`, and `Ctrl+K`.
 
 Subtasks are full tasks: each level carries its own notes, photos, and
 children. Drilling in keeps the editing context; `Esc` always returns to
@@ -195,19 +201,33 @@ hint to switch back to Keydo order (`B`, then `M`).
 ## Undo
 
 `Z` or `Ctrl+Z` takes back the last change of these kinds: completing a
-task, a new due date, a new priority. The message that follows such a change
-carries an **Undo** button while it can still be taken back. Undo runs the
-opposite action through the same path as the key that would do it by hand,
-after the change it reverses has finished saving. If that change no longer
-stands (it failed to save, or the task changed in Todoist since), undo leaves
-the task alone and says so. If Keydo is busy saving something else, the offer
-stays and `Z` can be pressed again.
+task, a new due date, a new priority, deleting a task. The message that
+follows such a change carries an **Undo** button, and stays, for the 12
+seconds in which it can be taken back.
 
-Not undoable: deleting, moving to a project, reordering, creating, edits to
-titles and notes, bulk actions, completing a repeating task, and changing
-the date of a task that repeats or has a due time (a date alone cannot put
-those back). Any of these also withdraws an earlier undo offer, so **Undo**
-never refers to an older change than the one just made.
+For a completion, a date or a priority, undo runs the opposite action through
+the same path as the key that would do it by hand, after the change it
+reverses has finished saving. Before putting an old date or priority back,
+Keydo reads Todoist: if the task has been changed since, in another window or
+on a phone, undo leaves it alone and says so. If Todoist cannot be read, or
+Keydo is busy saving something else, nothing is undone, the offer stays, and
+`Z` can be pressed again.
+
+A delete is different, because Todoist cannot bring a deleted task back.
+`Delete` hides the task and its subtasks at once and says so, but the delete
+itself is only sent to Todoist when the 12 seconds are over. `Z` before then
+puts the task back exactly as it was. If Todoist then refuses the delete, the
+task returns to the list with a message. One delete is held at a time:
+deleting a second task sends the first. Closing or reloading Keydo inside the
+12 seconds means the delete is never sent, and the task is there next time.
+Another window keeps showing the task until the delete is sent.
+
+Not undoable: moving to a project, reordering, creating, edits to titles and
+notes, bulk actions, completing a repeating task, and changing the date of a
+task that repeats or has a due time (a date alone cannot put those back). Any
+of these withdraws an earlier undo offer once it goes ahead, so **Undo** never
+refers to an older change than the one just made. A key press that changes
+nothing, or is refused, leaves the offer alone.
 
 ## Keyboard map
 

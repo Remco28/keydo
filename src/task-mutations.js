@@ -18,6 +18,8 @@ export function applyTaskDueChange(task, due, dueDateKey) {
   task.due = due;
   task.dueDateKey = dueDateKey;
   task.dueClass = "";
+  // Keydo writes a day, never a time of day.
+  task.dueHasTime = false;
   return task;
 }
 
@@ -88,6 +90,7 @@ export function retainOmittedTaskFields(mapped, previous, source) {
     mapped.dueDateKey = previous.dueDateKey;
     mapped.dueClass = previous.dueClass;
     mapped.recurring = previous.recurring;
+    mapped.dueHasTime = previous.dueHasTime;
   }
 
   const projectChanged = Object.hasOwn(source, "project_id")

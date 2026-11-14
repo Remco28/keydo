@@ -80,10 +80,14 @@ try {
     assert.match(await page.locator("#view-subtitle").innerText(), /Space\s+to reopen/);
     await page.locator("[data-view='today']").click();
     await page.locator("#search-input").fill("Pick up prescription");
-    assert.deepEqual(await metrics(), [["1", "task"], ["0", "high priority"], ["0", "overdue"]]);
+    // A search looks through every task, so it carries its own title and count, and no view is marked.
+    assert.deepEqual(await metrics(), [["1", "result in all tasks"]]);
+    assert.equal(await page.locator("#view-title").innerText(), "Search");
+    assert.equal(await page.locator(".nav-item.active").count(), 0);
     await page.locator("#search-input").fill("no-task-matches-this-header-check");
-    assert.deepEqual(await metrics(), [["0", "tasks"], ["0", "high priority"], ["0", "overdue"]]);
+    assert.deepEqual(await metrics(), [["0", "results in all tasks"]]);
     await page.locator("#search-input").fill("");
+    assert.equal(await page.locator("#view-title").innerText(), "Today");
     assert.deepEqual(await metrics(), [["4", "tasks"], ["2", "high priority"], ["1", "overdue"]]);
     await page.locator(".task-row.selected").focus();
   });
@@ -361,10 +365,15 @@ try {
     assert.equal(await page.locator(".task-row").count(), 1);
     await page.keyboard.press("ArrowDown");
     assert.equal(await page.locator(".task-row.selected").evaluate(element => document.activeElement === element), true);
+    // Delete asks nothing: the task goes at once, a message says so, and Z brings it back.
     await page.keyboard.press("Delete");
-    assert.equal(await page.locator("#delete-backdrop").isVisible(), true);
-    await page.keyboard.press("Escape");
-    assert.equal(await page.locator(".task-row").count(), 1);
+    assert.equal(await page.locator(".task-row").count(), 0);
+    assert.equal(await page.locator("#toast").innerText(), "Deleted “Browser polish check”");
+    assert.equal(await page.locator("#toast-undo").isVisible(), true);
+    await page.keyboard.press("z");
+    await page.locator(".task-row").waitFor();
+    assert.equal(await page.locator("#toast").innerText(), "Restored “Browser polish check”");
+    assert.equal(await page.locator(".task-row.selected .task-title").innerText(), "Browser polish check");
     await page.locator("#search-input").fill("");
     await page.locator("[data-view='today']").click();
   });
@@ -571,6 +580,70 @@ try {
     assert.equal(await page.locator("#toast").innerText(), "Nothing to undo");
   });
 
+  await check("a key that changes nothing leaves the undo offer standing", async () => {
+    await page.keyboard.press("1");
+    const first = page.locator(".task-row").first();
+    const last = page.locator(".task-row").last();
+    const id = await last.getAttribute("data-task-id");
+    await last.click();
+    await page.keyboard.press(" ");
+    await page.locator(`.task-row[data-task-id='${id}']`).waitFor({ state: "detached" });
+    await first.click();
+    for (let step = 0; step < 4; step += 1) await page.keyboard.press("+");
+    assert.equal(await page.locator("#toast").innerText(), "Already at highest priority");
+    await page.keyboard.press("z");
+    await page.keyboard.press("z");
+    await page.locator(`.task-row[data-task-id='${id}']`).waitFor();
+  });
+
+  await check("in details the command list shows a key only where it works, and T selects the title", async () => {
+    await page.keyboard.press("1");
+    await page.locator(".task-row").first().click();
+    await page.keyboard.press("Enter");
+    await page.locator("#detail-pane.editing").waitFor();
+    await page.keyboard.press("Control+k");
+    await page.locator("#command-search").fill("clear selected task date");
+    assert.equal(await page.locator(".command-item.active kbd").count(), 0, "C clears a date in the list only");
+    await page.locator("#command-search").fill("complete selected task");
+    assert.equal(await page.locator(".command-item.active kbd").innerText(), "C");
+    await page.keyboard.press("Escape");
+    await page.keyboard.press("t");
+    const title = page.locator("#detail-title-input");
+    assert.deepEqual(await title.evaluate((input: HTMLInputElement) => [document.activeElement === input, input.selectionStart, input.selectionEnd === input.value.length]), [true, 0, true]);
+    await page.keyboard.press("Escape");
+    await page.keyboard.press("Escape");
+    await page.locator("#detail-pane.editing").waitFor({ state: "detached" });
+  });
+
+  await check("Escape clears a search and returns to the view; Enter goes to the first result", async () => {
+    await page.keyboard.press("1");
+    await page.keyboard.press("/");
+    await page.keyboard.type("design");
+    assert.equal(await page.locator("#view-title").innerText(), "Search");
+    await page.keyboard.press("Enter");
+    assert.equal(await page.locator(".task-row.selected").evaluate(element => document.activeElement === element), true);
+    await page.keyboard.press("Escape");
+    assert.equal(await page.locator("#search-input").inputValue(), "");
+    assert.equal(await page.locator("#view-title").innerText(), "Today");
+    await page.keyboard.press("/");
+    await page.keyboard.type("design");
+    await page.keyboard.press("Escape");
+    assert.equal(await page.locator("#search-input").inputValue(), "");
+    assert.equal(await page.locator(".task-row.selected").evaluate(element => document.activeElement === element), true);
+  });
+
+  await check("tasks completed several at once count as done today", async () => {
+    await page.keyboard.press("1");
+    const before = await page.locator("#day-ring .num").innerText();
+    const done = Number(before.split(" ")[0]);
+    await page.locator(".task-row").first().click();
+    await page.keyboard.press("Shift+ArrowDown");
+    assert.ok(await page.locator(".task-row.bulk-selected").count() >= 2);
+    await page.locator("#bulk-complete").click();
+    // A parent completed with its subtask counts once, as it does when completed alone.
+    await page.waitForFunction(before => Number(document.querySelector("#day-ring .num")?.textContent?.split(" ")[0]) > before, done);
+  });
+
   await check("the date chooser has a next-week key and a calendar the arrows walk", async () => {
     await page.keyboard.press("r");
     const shifted = (key: string, days: number) => page.evaluate(([from, by]) => {
@@ -583,7 +656,8 @@ try {
     assert.equal(await page.locator("#due-calendar .is-today").getAttribute("data-cal-date"), today);
     await page.keyboard.press("d");
     assert.equal(await page.locator("#due-specific-input").evaluate(element => document.activeElement === element), true);
-    assert.equal(await page.locator("#key-context").textContent(), "Calendar");
+    // The key bar follows the keyboard a frame later.
+    await page.waitForFunction(() => document.querySelector("#key-context")?.textContent === "Calendar");
     await page.keyboard.press("ArrowRight");
     await page.keyboard.press("ArrowDown");
     const picked = await shifted(today, 8);

@@ -372,6 +372,7 @@
     .detail-crumb span:last-child { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
     .open-hint { display: inline-flex; align-items: center; gap: var(--s2); flex: none; }
     .detail-pane.editing .open-hint { display: none; }
+    .read-only .prop, .read-only .subtask-create-form, .read-only .detail-hint { pointer-events: none; opacity: 0.6; }
     .detail-top .icon-button { display: none; height: 26px; padding: 0 var(--s2); }
     .detail-pane.editing .detail-top .icon-button { display: inline-flex; }
     /* Key hints inside the pane only show while the pane has the keyboard. */
@@ -512,7 +513,7 @@
     .modal-backdrop.centered { align-items: center; padding-top: var(--s4); }
     @keyframes scrim-in { from { opacity: 0; } }
     @keyframes modal-in { from { opacity: 0; translate: 0 -8px; } }
-    .due-modal, .command-modal, .help-modal, .delete-modal { width: 600px; max-width: 100%; display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--surface); box-shadow: var(--shadow-pop); overflow: hidden; animation: modal-in var(--d-med) var(--ease); }
+    .due-modal, .command-modal, .help-modal { width: 600px; max-width: 100%; display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--surface); box-shadow: var(--shadow-pop); overflow: hidden; animation: modal-in var(--d-med) var(--ease); }
     .command-modal { max-height: 72vh; }
     .modal-head { padding: var(--s4) var(--s5) var(--s3); }
     .modal-head h2 { font-size: var(--t-body); font-weight: 650; }
@@ -525,6 +526,8 @@
     .command-item:hover, .due-choices button:hover { background: var(--hover); }
     .command-item.active, .due-choices button:focus { background: var(--select); color: var(--ink); box-shadow: inset 3px 0 0 var(--accent); outline: none; }
     .command-item > div:first-of-type { flex: 1; min-width: 0; }
+    .command-item { min-height: 48px; padding-block: var(--s2); line-height: 1.3; }
+    .subtask .bullet { width: 18px; flex: none; text-align: center; color: var(--muted); }
     .command-item-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .command-item-description { color: var(--muted); font-size: var(--t-cap); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .command-empty { padding: var(--s6); color: var(--muted); text-align: center; font-size: var(--t-meta); }
@@ -555,10 +558,6 @@
     .calendar.active .calendar-grid .is-picked { background: var(--accent-fill); color: var(--on-accent); font-weight: 650; box-shadow: none; }
     .calendar:not(.active) .calendar-grid .is-picked { background: var(--select); }
 
-    .delete-modal { width: 420px; }
-    .delete-modal .modal-head { padding-bottom: var(--s4); }
-    .delete-modal .modal-head p { white-space: normal; margin-top: var(--s1); }
-    .delete-modal-actions { display: flex; justify-content: flex-end; gap: var(--s2); padding: var(--s3) var(--s5); border-top: 1px solid var(--line); background: var(--surface-2); }
 
     /* Keyboard map */
     .help-modal { width: auto; --ku: clamp(52px, 5.9vw, 78px); }
@@ -659,7 +658,7 @@
           <button tabindex="-1" type="button" class="nav-item" data-view="upcoming"><kbd data-k="2">2</kbd><span class="nm">Upcoming</span><span class="ct" data-count="upcoming"></span></button>
           <button tabindex="-1" type="button" class="nav-item" data-view="priority"><kbd data-k="3">3</kbd><span class="nm">Priority</span><span class="ct" data-count="priority"></span></button>
           <button tabindex="-1" type="button" class="nav-item" data-view="inbox"><kbd data-k="4">4</kbd><span class="nm">Inbox</span><span class="ct" data-count="inbox"></span></button>
-          <button tabindex="-1" type="button" class="nav-item" data-view="completed"><kbd data-k="5">5</kbd><span class="nm">Completed</span><span class="ct" data-count="completed"></span></button>
+          <button tabindex="-1" type="button" class="nav-item" data-view="completed"><kbd data-k="5">5</kbd><span class="nm">Completed</span></button>
         </nav>
         <div class="nav side-projects">
           <div class="side-label"><span>Projects</span><button class="text-action" id="view-jump" type="button" tabindex="-1" title="Go to any view or project">Go to <kbd data-k="G">G</kbd></button></div>
@@ -706,7 +705,7 @@
             <div class="detail-inner">
               <div class="detail-top">
                 <span class="detail-crumb"><span class="dot" id="detail-dot"></span><span id="detail-label"></span></span>
-                <span class="open-hint"><kbd data-k="Enter">↵</kbd> to work on it</span>
+                <span class="open-hint" id="open-hint"><kbd data-k="Enter">↵</kbd> to work on it</span>
                 <button class="icon-button" id="close-detail" type="button" tabindex="-1" title="Return to list">Back <kbd data-k="Esc">Esc</kbd></button>
               </div>
               <div class="detail-heading">
@@ -794,7 +793,7 @@
             <button type="button" tabindex="-1" data-due-choice="clear"><span class="lb">Clear date</span><kbd data-k="C">C</kbd></button>
           </div>
           <form class="due-specific" id="due-specific-form" hidden>
-            <label for="due-specific-input">Type a date, or use the arrow keys</label>
+            <label for="due-specific-input">Use the arrow keys, or type the date as numbers</label>
             <div class="due-specific-row"><input id="due-specific-input" type="date" required max="9999-12-31"><button class="primary-button" type="submit" tabindex="-1">Apply <kbd data-k="Enter">↵</kbd></button></div>
           </form>
         </div>
@@ -830,13 +829,6 @@
 
   <div class="modal-backdrop centered" id="help-backdrop">
     <div class="help-modal" id="help-dialog" role="dialog" aria-modal="true" aria-label="Keyboard map" tabindex="-1"></div>
-  </div>
-
-  <div class="modal-backdrop centered" id="delete-backdrop">
-    <div class="delete-modal" role="dialog" aria-modal="true" aria-labelledby="delete-title">
-      <div class="modal-head"><h2 id="delete-title">Delete this task?</h2><p id="delete-copy">This removes the task from Keydo and Todoist.</p></div>
-      <div class="delete-modal-actions"><button class="quiet-button" id="delete-cancel" type="button">Cancel <kbd data-k="Esc">Esc</kbd></button><button class="primary-button" id="delete-confirm" type="button">Delete task <kbd data-k="Enter">↵</kbd></button></div>
-    </div>
   </div>
 
   <div id="fx" aria-hidden="true"></div>
@@ -1069,7 +1061,7 @@
         { title: "Decrease priority", description: "Make the selected task less important", action: "task:priority-down" },
         { title: "Clear selected task date", description: "Remove the selected task's due date", action: "task:clear" },
         { title: "Complete selected task", description: "Toggle completion for the selected task", action: "task:complete" },
-        { title: "Delete selected task", description: "Remove the selected task from Keydo and Todoist", action: "task:delete" },
+        { title: "Delete selected task", description: "Remove the selected task from Keydo and Todoist; Undo is offered", action: "task:delete" },
         { title: "Move selected tasks to Today", description: "Set the selected tasks' due dates to today", action: "bulk:today" },
         { title: "Clear selected task dates", description: "Remove due dates from selected tasks", action: "bulk:clear" },
         { title: "Complete selected tasks", description: "Complete every selected task", action: "bulk:complete" },
@@ -1097,10 +1089,6 @@
     const commandSearch = document.getElementById("command-search");
     const commandList = document.getElementById("command-list");
     const helpBackdrop = document.getElementById("help-backdrop");
-    const deleteBackdrop = document.getElementById("delete-backdrop");
-    const deleteCopy = document.getElementById("delete-copy");
-    const deleteCancel = document.getElementById("delete-cancel");
-    const deleteConfirm = document.getElementById("delete-confirm");
     const dueBackdrop = document.getElementById("due-backdrop");
     const dueSpecificForm = document.getElementById("due-specific-form");
     const dueSpecificInput = document.getElementById("due-specific-input");
@@ -1133,6 +1121,14 @@
       "task:open": ["O"], "task:moveto": ["M"], "task:nest": ["Shift", "M"], "task:reorder-view": ["R"], "task:attach": ["Ctrl", "V"],
       "sort:choose": ["B"], help: ["?"], undo: ["Z"]
     };
+    // In details the same letters mean other things, so only these hold there.
+    const DETAIL_COMMAND_KEYS = {
+      "task:complete": ["C"], "task:date": ["D"], "task:priority-up": ["+"], "task:priority-down": ["-"], "task:subtask": ["S"],
+      "task:open": ["O"], "task:moveto": ["M"], "task:attach": ["Ctrl", "V"], help: ["?"], undo: ["Z"]
+    };
+    function commandKeysFor(action) {
+      return (state.detailEditing ? DETAIL_COMMAND_KEYS : COMMAND_KEYS)[action];
+    }
     // How a row leaves the list, by task id. The action that removes it says so before it renders.
     const exitKinds = new Map();
     const pulseIds = new Set();
@@ -1197,7 +1193,17 @@
     }
 
     function formatDateKey(key, options) {
-      return new Date(`${key}T00:00:00Z`).toLocaleDateString(undefined, { timeZone: "UTC", ...options });
+      // A date in another year says which year.
+      const year = key.slice(0, 4) === todayKey().slice(0, 4) ? {} : { year: "numeric" };
+      return new Date(`${key}T00:00:00Z`).toLocaleDateString(undefined, { timeZone: "UTC", ...options, ...year });
+    }
+
+    // The demo tasks carry real dates counted from today, so they sort and group as Todoist's do.
+    const DEMO_DUE_DAYS = { Today: 0, Tomorrow: 1, "Sep 28": 9, "Sep 30": 11, "Oct 01": -3 };
+    for (const task of tasks) {
+      if (!(task.due in DEMO_DUE_DAYS)) continue;
+      task.dueDateKey = shiftDateKey(todayKey(), task.dueClass === "overdue" ? -1 : DEMO_DUE_DAYS[task.due]);
+      Object.assign(task, dueStateForDateKey(task.dueDateKey, false, new Date(), state.todoistTimeZone));
     }
 
     function pickedDateKey() {
@@ -1335,13 +1341,12 @@
 
     // ── Sidebar ──
     function renderSidebar() {
-      const open = filterTasksByWorkspaceAndQuery(tasks, state.workspace, "").filter(task => !task.completed);
+      const open = filterTasksByWorkspaceAndQuery(shownTasks(), state.workspace, "").filter(task => !task.completed);
       const counts = {
         today: open.filter(task => task.due === "Today" || task.dueClass === "overdue").length,
         upcoming: open.filter(task => task.due !== "Today" && task.due !== "No date" && task.dueClass !== "overdue").length,
         priority: open.filter(task => task.priority >= 3).length,
         inbox: open.filter(task => isTaskInProject(task, state.inboxProjectId, "Inbox")).length,
-        completed: doneTodayIds().length
       };
       const overdue = open.some(task => task.dueClass === "overdue");
       for (const element of document.querySelectorAll("[data-count]")) {
@@ -1358,7 +1363,7 @@
 
       const projects = state.liveTodoist
         ? [...state.projectsById.values()].filter(project => project.id !== state.inboxProjectId).map(project => ({ id: project.id, name: project.name }))
-        : [...new Set(filterTasksByWorkspaceAndQuery(tasks, state.workspace, "").map(task => task.project))].filter(name => name && name !== "Inbox").map(name => ({ id: null, name }));
+        : [...new Set(filterTasksByWorkspaceAndQuery(shownTasks(), state.workspace, "").map(task => task.project))].filter(name => name && name !== "Inbox").map(name => ({ id: null, name }));
       const html = projects.length ? projects.map(project => {
         const count = open.filter(task => isTaskInProject(task, project.id, project.name)).length;
         return `<button class="nav-item" type="button" tabindex="-1" data-project="${escapeAttr(project.name)}"${project.id ? ` data-project-id="${escapeAttr(project.id)}"` : ""}><span class="dot" style="color:${projectColor(project.name, project.id)}"></span><span class="nm">${escapeHtml(project.name)}</span><span class="ct">${count || ""}</span></button>`;
@@ -1412,7 +1417,6 @@
 
     // ── Key bar: the keys for wherever the keyboard is ──
     function keyContext() {
-      if (deleteBackdrop.classList.contains("visible")) return "delete";
       if (dueBackdrop.classList.contains("visible")) return dueSpecificForm.hidden ? "due" : "calendar";
       if (sortBackdrop.classList.contains("visible")) return "sort";
       if (helpBackdrop.classList.contains("visible")) return "help";
@@ -1435,11 +1439,11 @@
       const bars = {
         list: ["List", state.view === "completed"
           ? [[["↑ ↓"], "Select"], [["Space"], "Reopen"], [["G"], "Go to"], [["/"], "Search"], [["N"], "New"], [["Z"], "Undo"]]
-          : [[["↑ ↓"], "Select"], [["Space"], "Complete"], [["Enter"], "Details"], [["T"], "Today"], [["D"], "Date"], [["-", "+"], "Priority"], [["M"], "Move"], [["N"], "New"], [["/"], "Search"], [["Z"], "Undo"]]],
-        detail: ["Details", [[["T"], "Title"], [["N"], "Notes"], [["D"], "Date"], [["S"], "Add subtask"], [["Shift", "S"], "Browse subtasks"], [["C"], completing], [["Esc"], "Back to list"]]],
-        subtasks: ["Subtasks", [[["↑ ↓"], "Move"], [["Enter"], "Open subtask"], ...(state.detailReturnId ? [[["←"], "Parent"]] : []), [["S"], "Add subtask"], [["Esc"], "Back to list"]]],
-        bulk: [`${state.selected.size} selected`, [[["Enter"], "Actions for the selection"], [["Shift", "↑ ↓"], "Extend"], [["Shift", "Space"], "Add or remove a task"], [["Esc"], "Clear selection"]]],
-        search: ["Search", [[["↑ ↓"], "Go to results"], [["Esc"], "Leave search"]]],
+          : [[["↑ ↓"], "Select"], ...(state.query ? [[["Esc"], "Clear search"]] : []), [["Space"], "Complete"], [["Enter"], "Details"], [["T"], "Today"], [["D"], "Date"], [["-", "+"], "Priority"], [["M"], "Move"], [["N"], "New"], [["/"], "Search"], [["Z"], "Undo"]]],
+        detail: ["Details", [[["T"], "Title"], [["N"], "Notes"], [["D"], "Date"], [["S"], "Add subtask"], [["Shift", "S"], "Browse subtasks"], ...(parentOfCurrentTask() ? [[["←"], "Parent"]] : []), [["C"], completing], [["Esc"], "Back to list"]]],
+        subtasks: ["Subtasks", [[["↑ ↓"], "Move"], [["Enter"], "Open subtask"], ...(parentOfCurrentTask() ? [[["←"], "Parent"]] : []), [["S"], "Add subtask"], [["Esc"], "Back to list"]]],
+        bulk: [`${state.selected.size} selected`, [...(state.selected.size ? [[["Enter"], "Actions for the selection"]] : []), [["Shift", "↑ ↓"], "Extend"], [["Shift", "Space"], "Add or remove a task"], [["Esc"], "Clear selection"]]],
+        search: ["Search", [[["↑ ↓"], "Go to results"], [["Enter"], "First result"], [["Esc"], state.query ? "Clear search" : "Leave search"]]],
         title: ["Title", [[["Ctrl", "Enter"], "Save and return"], [["Esc"], "Done"], [["Alt", "N"], "Notes"], [["Alt", "S"], "Add subtask"]]],
         notes: ["Notes", [[["Ctrl", "Enter"], "Save and return"], [["Esc"], "Done"], [["Alt", "T"], "Title"], [["Alt", "S"], "Add subtask"]]],
         subtask: ["Subtask", [[["Enter"], "Add"], [["↑"], "Browse subtasks"], [["Esc"], "Done"]]],
@@ -1449,7 +1453,6 @@
         calendar: ["Calendar", [[["← →"], "Day"], [["↑ ↓"], "Week"], [["PageUp", "PageDown"], "Month"], [["Enter"], "Apply"], [["Esc"], "Cancel"]]],
         sort: ["Sort", [[["↑ ↓"], "Choose"], [["Enter"], "Apply"], [["Esc"], "Cancel"]]],
         help: ["Keyboard map", [[["← →"], "List or details"], [["Esc"], "Close"]]],
-        delete: ["Delete", [[["Enter"], "Delete"], [["Esc"], "Cancel"]]],
         move: ["Move", [[["↑ ↓"], "Choose a parent"], [["Enter"], "Move here"], [["Esc"], "Cancel"]]]
       };
       const context = keyContext();
@@ -1520,12 +1523,12 @@
       },
       detail: {
         Esc: "To list", "-": "Priority", "+": "Priority", T: "Title", O: "Todoist", Enter: "Open subtask", S: "Subtask", D: "Date", G: "Go to",
-        Z: "Undo", C: "Complete", N: "Notes", M: "Move", "↑": "Subtasks", "↓": "Subtasks", "←": "Parent"
+        Z: "Undo", C: "Complete", N: "Notes", M: "Move", "←": "Parent"
       }
     };
     const KEY_COMBOS = {
       list: [[["Shift", "T"], "Move to Tomorrow"], [["Shift", "↑ ↓"], "Select a range"], [["Shift", "Space"], "Select one more"], [["Alt", "↑ ↓"], "Reorder in a project"], [["Alt", "← →"], "Nest or outdent"], [["Shift", "M"], "Move under a task"], [["Ctrl", "K"], "Commands"], [["Ctrl", "V"], "Attach a screenshot"], [["?"], "This map"]],
-      detail: [[["Shift", "S"], "Browse subtasks"], [["Ctrl", "Enter"], "Save and return to the list"], [["Alt", "T"], "The same keys while typing"], [["Ctrl", "K"], "Commands"], [["Ctrl", "V"], "Attach a screenshot"], [["?"], "This map"]]
+      detail: [[["Shift", "S"], "Browse subtasks, then ↑ ↓"], [["Ctrl", "Enter"], "Save and return to the list"], [["Alt", "T"], "The same keys while typing"], [["Ctrl", "K"], "Commands"], [["Ctrl", "V"], "Attach a screenshot"], [["?"], "This map"]]
     };
 
     function renderKeyMap() {
@@ -1573,6 +1576,7 @@
     // One change can be taken back: completing a task, a new date, or a new
     // priority. Undo runs the opposite action through the same paths a key
     // press would, after the change it reverses has finished saving.
+    const UNDO_MS = 12000;
     function offerUndo(pending, reverse) {
       const undo = { pending, reverse };
       pendingUndo = undo;
@@ -1580,7 +1584,8 @@
     }
 
     function expireUndoLater(undo) {
-      window.setTimeout(() => { if (pendingUndo === undo) clearUndo(); }, 12000);
+      // The message carrying the Undo button leaves with the offer.
+      window.setTimeout(() => { if (pendingUndo === undo) { clearUndo(); toastBox.classList.remove("visible"); } }, UNDO_MS);
     }
 
     function clearUndo() {
@@ -1600,7 +1605,17 @@
       if (reversed === false && !pendingUndo) {
         pendingUndo = undo;
         expireUndoLater(undo);
+        document.getElementById("toast-undo").hidden = false;
       }
+    }
+
+    // Another window, or the phone, may have changed the task since. Read Todoist
+    // before putting an old value back; if that cannot be done, do not undo.
+    async function refreshBeforeUndo() {
+      if (!state.liveTodoist) return true;
+      if (await refreshFromSync()) return true;
+      showToast("Could not check Todoist · not undone");
+      return false;
     }
 
     async function reopenAfterUndo(snapshot) {
@@ -1613,7 +1628,8 @@
         // A sync has already taken the completed task off the active list, so
         // reopen it the way the Completed view does.
         if (!state.recentCompleted.some(item => item.id === snapshot.id)) state.recentCompleted = [{ ...snapshot, completed: true }, ...state.recentCompleted];
-        await reopenRecentCompleted(snapshot.id);
+        // The reopen may be refused (the request fails, or another tab holds the order lock): the offer then stands.
+        if (!await reopenRecentCompleted(snapshot.id, { undoing: true })) return false;
       } else {
         showToast("That task is gone · nothing to undo");
         return true;
@@ -1695,7 +1711,7 @@
     }
 
     function currentTask() {
-      if (state.selectedId == null) return null;
+      if (state.selectedId == null || heldDeleteIds()?.has(state.selectedId)) return null;
       return tasks.find(task => task.id === state.selectedId) ?? null;
     }
 
@@ -2043,10 +2059,7 @@
         resetSelectionRange(state.selectedId);
         showToast("Move cancelled · task changed in Todoist");
       }
-      if (state.deleteTargetId && !taskIds.has(state.deleteTargetId)) {
-        closeDeleteConfirmation();
-        showToast("Delete cancelled · task was removed in Todoist");
-      }
+      if (state.deleteTargetId && !taskIds.has(state.deleteTargetId)) state.deleteTargetId = null;
     }
 
     async function refreshFromSync(options = {}) {
@@ -2380,20 +2393,24 @@
       return tasks.some(task => task.parentId === taskId);
     }
 
+    // The tasks that belong to the current view, as opposed to subtasks shown only because their parent does.
+    let lastViewMatchIds = null;
     function visibleTasks() {
       refreshTaskDueStates(tasks, new Date(), state.todoistTimeZone);
       const query = state.query.trim().toLowerCase();
+      lastViewMatchIds = null;
       if (state.view === "completed") {
-        const completed = state.liveTodoist ? state.recentCompleted : tasks.filter(task => task.completed);
+        const completed = state.liveTodoist ? state.recentCompleted : shownTasks().filter(task => task.completed);
         const sort = currentSort();
         return sortVisibleTasks(filterTasksByWorkspaceAndQuery(completed, state.workspace, query), sort.key, sort.reverse);
       }
-      const workspaceTasks = filterTasksByWorkspaceAndQuery(tasks, state.workspace, query);
+      const workspaceTasks = filterTasksByWorkspaceAndQuery(shownTasks(), state.workspace, query);
       if (query) return workspaceTasks;
       const matching = workspaceTasks.filter(task => {
         const viewMatch = state.view === "today" ? (task.due === "Today" || task.dueClass === "overdue") && !task.completed : state.view === "inbox" ? isTaskInProject(task, state.inboxProjectId, "Inbox") && !task.completed : state.view === "upcoming" ? task.due !== "Today" && task.due !== "No date" && task.dueClass !== "overdue" && !task.completed : state.view === "priority" ? task.priority >= 3 && !task.completed : state.view === "completed" ? task.completed : state.view === "project" ? isTaskInProject(task, state.projectId, state.project) && !task.completed : true;
         return viewMatch;
       });
+      lastViewMatchIds = new Set(matching.map(task => task.id));
       const withChildren = ["today", "upcoming", "priority"].includes(state.view)
         ? includeTaskDescendants(workspaceTasks, matching)
         : matching;
@@ -2410,20 +2427,23 @@
       return priority === 4 ? "P1 · Urgent" : priority === 3 ? "P2 · High" : priority === 2 ? "P3 · Medium" : "P4 · Low";
     }
 
-    function showToast(message) {
+    function showToast(message, { undo = true } = {}) {
       toast.textContent = message;
-      // Undo is offered on every message while a change can still be taken back.
-      const undoable = Boolean(pendingUndo);
+      // Undo is offered on every message while a change can still be taken back,
+      // except a message about some other change.
+      const undoable = undo && Boolean(pendingUndo);
       document.getElementById("toast-undo").hidden = !undoable;
       toastBox.classList.add("visible");
       window.clearTimeout(showToast.timer);
-      showToast.timer = window.setTimeout(() => toastBox.classList.remove("visible"), undoable ? 5200 : 2600);
+      showToast.timer = window.setTimeout(() => toastBox.classList.remove("visible"), undoable ? UNDO_MS : 2600);
     }
 
     function renderTaskList() {
       const filtered = visibleTasks();
+      const matchIds = lastViewMatchIds;
+      const belonging = matchIds ? matchIds.size : filtered.length;
       const visibleIds = new Set(filtered.map(task => task.id));
-      const listTasks = state.view === "completed" ? filtered : tasks;
+      const listTasks = state.view === "completed" ? filtered : shownTasks();
       const parentById = new Map(listTasks.map(task => [task.id, task]));
       const parentIdsWithChildren = taskParentIdsWithChildren(listTasks);
       // D-017: a selected task that leaves this list hands the cursor to the
@@ -2431,7 +2451,7 @@
       // starts at the top.
       const placeKey = [state.workspace, state.view, state.projectId ?? "", state.project ?? "", state.query].join("\u0000");
       const filteredIds = filtered.map(task => task.id);
-      if (!filtered.some(task => task.id === state.selectedId) && !(state.detailEditing && tasks.some(task => task.id === state.selectedId))) {
+      if (!filtered.some(task => task.id === state.selectedId) && !(state.detailEditing && shownTasks().some(task => task.id === state.selectedId))) {
         const removedId = state.selectedId;
         state.selectedId = state.place?.key === placeKey
           ? selectionAfterRemoval(state.place.ids, removedId, filteredIds)
@@ -2470,8 +2490,8 @@
       filtered.forEach((task, index) => {
         if (depths[index] === 0) group = taskGroup(task);
         groups[index] = group;
-        // Headings count top-level tasks, to agree with the summary above the list.
-        if (group && depths[index] === 0) groupSizes.set(group.key, (groupSizes.get(group.key) ?? 0) + 1);
+        // Headings count the tasks that belong to the view, to agree with the summary above the list and the sidebar.
+        if (group && (matchIds ? matchIds.has(task.id) : depths[index] === 0)) groupSizes.set(group.key, (groupSizes.get(group.key) ?? 0) + 1);
       });
       const showProject = state.view !== "project" && state.view !== "inbox";
       let headingKey = null;
@@ -2530,18 +2550,22 @@
       const viewTitle = state.view === "project"
         ? duplicateProjectName ? `${selectedProject.name} · ${selectedProject.id}` : state.project
         : state.view.charAt(0).toUpperCase() + state.view.slice(1);
-      document.getElementById("view-title").textContent = viewTitle;
-      document.title = `${query ? "Search" : viewTitle}${filtered.length ? ` · ${filtered.length}` : ""} — Keydo`;
+      // A search looks through every task, so it does not carry the view's name or its counts.
+      const searching = Boolean(query) && state.view !== "completed";
+      document.getElementById("view-title").textContent = searching ? "Search" : viewTitle;
+      document.title = `${query ? "Search" : viewTitle}${belonging ? ` · ${belonging}` : ""} — Keydo`;
       const today = new Date();
       const date = document.getElementById("view-eyebrow");
       date.textContent = today.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric", year: "numeric" });
       date.setAttribute("datetime", [today.getFullYear(), String(today.getMonth() + 1).padStart(2, "0"), String(today.getDate()).padStart(2, "0")].join("-"));
-      const taskLabel = filtered.length === 1 ? "task" : "tasks";
-      const summary = state.view === "today"
-        ? [[filtered.length, taskLabel], [filtered.filter(task => task.priority >= 3 && !task.completed).length, "high priority"], [filtered.filter(task => task.dueClass === "overdue" && !task.completed).length, "overdue"]]
-        : [[filtered.length, state.view === "completed" ? "recently completed" : taskLabel]];
+      const taskLabel = belonging === 1 ? "task" : "tasks";
+      const summary = searching
+        ? [[filtered.length, filtered.length === 1 ? "result in all tasks" : "results in all tasks"]]
+        : state.view === "today"
+        ? [[belonging, taskLabel], [filtered.filter(task => task.priority >= 3 && !task.completed).length, "high priority"], [filtered.filter(task => task.dueClass === "overdue" && !task.completed).length, "overdue"]]
+        : [[belonging, state.view === "completed" ? "recently completed" : taskLabel]];
       document.getElementById("view-subtitle").innerHTML = summary.map(([count, label]) => `<span class="summary-metric ${label === "overdue" && count ? "warn" : ""}"><strong>${count}</strong><span>${label}</span></span>`).join("")
-        + (state.view === "completed" ? `<span class="summary-hint">${keycap("Space")} to reopen</span>` : "");
+        + (searching ? `<span class="summary-hint">${keycap("Esc")} to clear</span>` : state.view === "completed" ? `<span class="summary-hint">${keycap("Space")} to reopen</span>` : "");
       const sortButton = document.getElementById("view-sort");
       document.getElementById("view-sort-label").textContent = isCustomSort() ? `Sort: ${sortDescription()}` : "Sort";
       sortButton.classList.toggle("sorted", isCustomSort());
@@ -2550,8 +2574,8 @@
       document.querySelectorAll(".nav-item, .view-switcher button").forEach(button => {
         const isProjectButton = Boolean(button.dataset.project);
         const isWorkspaceButton = Boolean(button.dataset.workspace);
-        const viewActive = button.dataset.view === state.view && !isProjectButton && !isWorkspaceButton;
-        const projectActive = button.dataset.projectId ? button.dataset.projectId === state.projectId && state.view === "project" : button.dataset.project === state.project && state.view === "project";
+        const viewActive = !searching && button.dataset.view === state.view && !isProjectButton && !isWorkspaceButton;
+        const projectActive = searching ? false : button.dataset.projectId ? button.dataset.projectId === state.projectId && state.view === "project" : button.dataset.project === state.project && state.view === "project";
         const workspaceActive = button.dataset.workspace === state.workspace;
         button.classList.toggle("active", viewActive || projectActive || workspaceActive);
         if (button.dataset.view) button.setAttribute("aria-current", viewActive ? "page" : "false");
@@ -2580,7 +2604,11 @@
     }
 
     function renderDetail() {
-      const task = currentTask();
+      // With Todoist connected, the Completed view's rows are not among the open tasks. Show them to read.
+      const active = currentTask();
+      const task = active ?? (state.view === "completed" ? state.recentCompleted.find(item => item.id === state.selectedId) ?? null : null);
+      detailContent.classList.toggle("read-only", Boolean(task) && !active);
+      document.getElementById("open-hint").innerHTML = state.view === "completed" ? `${keycap("Space")} to reopen` : `${keycap("Enter")} to work on it`;
       workspaceGrid.classList.toggle("detail-open", Boolean(task && state.detailEditing));
       if (!task) {
         state.detailEditing = false;
@@ -2635,7 +2663,7 @@
         return `<div class="attachment-card"><div class="attachment-thumb">${src ? `<img src="${escapeAttr(src)}" alt="Pasted screenshot">` : "Image unavailable"}</div><div class="attachment-foot"><div class="attachment-copy"><div class="attachment-name">${escapeHtml(image.name)}</div><div class="attachment-meta">${escapeHtml(image.type)} · ${image.commentId ? "synced to Todoist" : "stored locally"}</div></div><button class="attachment-view" type="button" tabindex="-1" data-view-attachment="${escapeAttr(key)}">View larger</button><button class="attachment-view" type="button" tabindex="-1" data-remove-attachment="${escapeAttr(key)}">Remove</button></div></div>`;
       }).join("");
 
-      const childTasks = tasks.filter(item => item.parentId === task.id);
+      const childTasks = shownTasks().filter(item => item.parentId === task.id);
       const subtasks = childTasks.length ? childTasks : task.subtasks || [];
       const finished = subtasks.filter(item => item.completed).length;
       document.getElementById("subtask-count").textContent = subtasks.length ? `${finished} of ${subtasks.length}` : "";
@@ -2644,7 +2672,7 @@
       progress.firstElementChild.style.width = subtasks.length ? `${(finished / subtasks.length) * 100}%` : "0";
       document.getElementById("subtask-list").innerHTML = subtasks.map(item => item.id
         ? `<button class="subtask ${item.completed ? "done" : ""}" type="button" data-subtask="${escapeAttr(item.id)}" tabindex="-1"><span class="complete-button p${item.priority ?? 1}" data-complete-subtask="${escapeAttr(item.id)}" title="${item.completed ? "Reopen" : "Complete"}">${icon("check")}</span><span class="t">${escapeHtml(item.title)}</span>${item.due && item.due !== "No date" && !item.completed ? `<span class="due">${escapeHtml(item.due)}</span>` : ""}</button>`
-        : `<div class="subtask ${item.completed ? "done" : ""}"><span class="complete-button">${icon("check")}</span><span class="t">${escapeHtml(item.title)}</span></div>`).join("");
+        : `<div class="subtask plain ${item.completed ? "done" : ""}"><span class="bullet" aria-hidden="true">•</span><span class="t">${escapeHtml(item.title)}</span></div>`).join("");
     }
 
     function render() {
@@ -2780,8 +2808,7 @@
     }
 
     async function toggleComplete(taskId, options = {}) {
-      // Every way of completing or reopening withdraws an earlier undo offer, including the Completed view's.
-      if (!options.undoing) clearUndo();
+      // Every way of completing or reopening withdraws an earlier undo offer once it goes ahead, including the Completed view's.
       if (state.liveTodoist && state.view === "completed" && state.recentCompleted.some(item => item.id === taskId)) {
         return reopenRecentCompleted(taskId);
       }
@@ -2796,6 +2823,7 @@
       const pending = new Promise(resolve => { settle = resolve; });
       const run = withTaskOrderLock(() => toggleCompleteWithOrderLock(taskId, observedCompleted, {
         onApplied(completed) {
+          if (!options.undoing) clearUndo();
           playSound(completed ? "done" : "back");
           if (completed && !snapshot.recurring && !options.undoing) offerUndo(pending, () => reopenAfterUndo(snapshot));
           options.onApplied?.(completed);
@@ -2831,15 +2859,19 @@
       });
     }
 
-    async function reopenRecentCompleted(taskId) {
+    // Answers whether the task was reopened in Todoist.
+    async function reopenRecentCompleted(taskId, { undoing = false } = {}) {
       const task = state.recentCompleted.find(item => item.id === taskId);
-      if (!task || state.reopeningCompleted.has(taskId)) return;
+      if (!task || state.reopeningCompleted.has(taskId)) return false;
+      if (!undoing) clearUndo();
+      let reopened = false;
       state.reopeningCompleted.add(taskId);
       showToast("Reopening task in Todoist…");
       try {
         await withTaskOrderLock(async () => {
           try {
             await persistTaskMutation(task, "reopen");
+            reopened = true;
             state.recentCompleted = state.recentCompleted.filter(item => item.id !== taskId);
             noteCompletion(taskId, false);
             exitKinds.set(taskId, "sooner");
@@ -2849,6 +2881,7 @@
             showToast(refreshed ? "Task reopened in Todoist" : "Task reopened · active list will refresh on sync");
           } catch (error) {
             await refreshFromSync({ full: true });
+            reopened = tasks.some(item => item.id === taskId && !item.completed);
             showToast(error.recoveryPending ? "Some subtasks remain completed · retry this task in Completed" : error.message || "Reopen result uncertain · refreshing completed tasks");
           }
         });
@@ -2856,6 +2889,7 @@
         state.reopeningCompleted.delete(taskId);
         await loadRecentCompleted();
       }
+      return reopened;
     }
 
     async function toggleCompleteWithOrderLock(taskId, observedCompleted, { onApplied } = {}) {
@@ -2972,24 +3006,84 @@
       render();
     }
 
-    function openDeleteConfirmation() {
+    // ── Undoable delete ──
+    // Todoist cannot bring a deleted task back, so the real delete is held
+    // back for as long as it can be undone. Until it is sent, the task and its
+    // subtasks are only hidden here. One delete is held at a time.
+    let heldDelete = null;
+
+    function heldDeleteIds() {
+      return heldDelete ? taskSubtreeIds(tasks, heldDelete.rootId) : null;
+    }
+
+    // Every list, count and subtask list is drawn from these, so a task being deleted shows nowhere.
+    function shownTasks() {
+      const hidden = heldDeleteIds();
+      return hidden?.size ? tasks.filter(task => !hidden.has(task.id)) : tasks;
+    }
+
+    function refocusIfIdle() {
+      if (document.activeElement === document.body) focusCurrentTaskContext();
+    }
+
+    async function deleteWithUndo() {
       const task = currentTask();
       if (!task) return;
-      state.deleteTargetId = task.id;
-      deleteCopy.textContent = `“${task.title}” will be removed from Keydo and Todoist.`;
-      deleteBackdrop.classList.add("visible");
-      deleteConfirm.focus();
-    }
-
-    function closeDeleteConfirmation() {
-      state.deleteTargetId = null;
-      deleteBackdrop.classList.remove("visible");
-      focusCurrentTaskContext();
-    }
-
-    async function deleteSelectedTask() {
+      if (task.keydoCreatePromise) { showToast("Wait for task creation before deleting"); return; }
+      if (heldDelete) await sendHeldDelete();
+      if (!tasks.includes(task)) return;
       clearUndo();
-      let requestedTaskId = state.deleteTargetId;
+      const hold = { rootId: task.id, title: task.title, sending: null, timer: 0 };
+      heldDelete = hold;
+      hold.timer = window.setTimeout(() => { void sendHeldDelete(hold); }, UNDO_MS);
+      offerUndo(null, () => {
+        if (heldDelete !== hold || hold.sending) { showToast("Already deleted · nothing to undo"); return true; }
+        window.clearTimeout(hold.timer);
+        heldDelete = null;
+        if (!tasks.some(item => item.id === hold.rootId)) {
+          render();
+          showToast("That task is gone · nothing to undo");
+          return true;
+        }
+        render();
+        returnCursorAfterUndo(hold.rootId);
+        showToast(`Restored “${hold.title}”`);
+        return true;
+      });
+      exitKinds.set(task.id, "gone");
+      render();
+      focusCurrentTaskContext();
+      showToast(`Deleted “${task.title}”`);
+    }
+
+    // Sends the held delete. Whatever happens, the task ends up either deleted or back in the list with a message.
+    function sendHeldDelete(hold = heldDelete) {
+      if (!hold || heldDelete !== hold) return Promise.resolve();
+      if (hold.sending) return hold.sending;
+      window.clearTimeout(hold.timer);
+      hold.sending = (async () => {
+        let outcome = "gone";
+        try {
+          if (tasks.some(item => item.id === hold.rootId)) outcome = await deleteTaskNow(hold.rootId);
+        } catch {
+          outcome = "refused";
+        }
+        if (heldDelete === hold) heldDelete = null;
+        if (outcome === "refused" && tasks.some(item => item.id === hold.rootId)) {
+          render();
+          showToast(`Could not delete “${hold.title}” · it is back in the list`, { undo: false });
+        } else if (outcome !== "deleted") {
+          render();
+        }
+      })();
+      return hold.sending;
+    }
+
+    // Deletes the task in Todoist now. Answers "deleted", "failed" (rolled back, with a message),
+    // "refused" (nothing was sent) or "gone" (there was nothing left to delete).
+    async function deleteTaskNow(taskId) {
+      state.deleteTargetId = taskId;
+      let requestedTaskId = taskId;
       const selectedTask = tasks.find(item => item.id === requestedTaskId);
       if (selectedTask?.keydoCreatePromise) {
         const creationPromise = selectedTask.keydoCreatePromise;
@@ -2997,50 +3091,44 @@
         try {
           await creationPromise;
         } catch {
-          closeDeleteConfirmation();
-          showToast("Task creation failed · nothing to delete");
-          return;
+          state.deleteTargetId = null;
+          return "gone";
         }
         if (selectedTask.keydoCreatePromise === creationPromise) selectedTask.keydoCreatePromise = null;
         if (!isCurrentTaskSelection(tasks, selectedTask.id, state.deleteTargetId)) {
-          showToast("Delete cancelled · target changed while task creation finished");
-          return;
+          return "refused";
         }
         requestedTaskId = selectedTask.id;
       }
-      return withTaskOrderLock(() => deleteSelectedTaskWithLock(requestedTaskId));
+      const outcome = await withTaskOrderLock(() => deleteTaskNowWithLock(requestedTaskId), { silent: true });
+      if (outcome !== "deleted") state.deleteTargetId = null;
+      return outcome ?? "refused";
     }
 
-    async function deleteSelectedTaskWithLock(requestedTaskId) {
+    async function deleteTaskNowWithLock(requestedTaskId) {
       if (!isCurrentTaskTarget(tasks, requestedTaskId, state.deleteTargetId)) {
-        showToast("Delete cancelled · target changed while waiting");
-        return;
+        return "refused";
       }
       if (state.orderMutationPending) {
-        showToast("Wait for the current order change to finish");
-        return;
+        return "refused";
       }
       const taskId = requestedTaskId;
-      if (state.liveTodoist && !await ensureTaskOrderKnown()) return;
+      if (state.liveTodoist && !await ensureTaskOrderKnown()) return "refused";
       if (!isCurrentTaskTarget(tasks, taskId, state.deleteTargetId)) {
-        showToast("Delete cancelled · target changed while syncing");
-        return;
+        return "refused";
       }
       if (state.orderMutationPending) {
-        showToast("Wait for the current order change to finish");
-        return;
+        return "refused";
       }
       let task = tasks.find(item => item.id === taskId);
-      if (!task) return closeDeleteConfirmation();
+      if (!task) return "gone";
       if (task.keydoCreatePromise) {
-        showToast("Task creation is still finishing · try deleting again");
-        return;
+        return "refused";
       }
       const subtreeIds = taskSubtreeIds(tasks, taskId);
       const releaseAction = state.liveTodoist ? taskActionGate.acquire(subtreeIds) : () => {};
       if (!releaseAction) {
-        showToast("Wait for the current task change to finish");
-        return;
+        return "refused";
       }
       if (state.liveTodoist) {
         const pendingTasks = tasks.filter(item => subtreeIds.has(item.id));
@@ -3050,23 +3138,21 @@
         }));
         if (saved.some(result => !result)) {
           releaseAction();
-          showToast("Save subtask edits before deleting this task");
-          return;
+          return "refused";
         }
       }
       const previousSelectedId = state.selectedId;
       const removedTasks = tasks.map((item, index) => ({ item, index })).filter(entry => subtreeIds.has(entry.item.id));
       const removedSelection = new Set([...state.selected].filter(id => subtreeIds.has(id)));
       state.deleteTargetId = null;
-      deleteBackdrop.classList.remove("visible");
+      let outcome = "deleted";
       tasks = tasks.filter(item => !subtreeIds.has(item.id));
       for (const id of subtreeIds) state.selected.delete(id);
       render();
-      focusCurrentTaskContext();
+      refocusIfIdle();
       if (!state.liveTodoist) {
-        showToast("Task deleted in demo mode");
         releaseAction();
-        return;
+        return outcome;
       }
       try {
         await persistTaskMutation(task, "delete");
@@ -3077,12 +3163,11 @@
         tasks = tasks.filter(item => !confirmedDeletionIds.has(item.id));
         for (const id of confirmedDeletionIds) state.selected.delete(id);
         render();
-        focusCurrentTaskContext();
+        refocusIfIdle();
         const refreshed = await refreshFromSync();
         if (!refreshed) state.orderSyncUncertain = true;
-        showToast(refreshed
-          ? "Task deleted · saved to Todoist"
-          : "Task deleted · sync refresh unavailable; order is uncertain");
+        // The user was told when the task went. Say more only if nothing newer is on screen with its own Undo.
+        if (!pendingUndo) showToast(refreshed ? "Deleted in Todoist" : "Deleted in Todoist · sync refresh unavailable; order is uncertain");
       } catch {
         tasks = orderTaskTree(restoreMissingTasks(tasks, removedTasks));
         const refreshed = await refreshFromSync({ full: true });
@@ -3094,7 +3179,7 @@
           }
           if (taskIds.has(previousSelectedId)) reclaimSelection(previousSelectedId);
           render();
-          focusCurrentTaskContext();
+          refocusIfIdle();
         } else {
           // A snapshot may already have restored some or all of these tasks.
           // Merge by ID so rollback cannot create duplicate tasks.
@@ -3102,15 +3187,16 @@
           for (const id of removedSelection) state.selected.add(id);
           reclaimSelection(previousSelectedId);
           render();
-          focusCurrentTaskContext();
+          refocusIfIdle();
         }
-        showToast(refreshed ? "Delete failed · list reloaded from Todoist" : "Todoist delete failed · task restored");
+        showToast(refreshed ? "Delete failed · list reloaded from Todoist" : "Todoist delete failed · task restored", { undo: false });
+        outcome = "failed";
       }
       releaseAction();
+      return outcome;
     }
 
     async function moveHierarchy(direction, retried = false, requestedTaskId = state.selectedId) {
-      clearUndo();
       if (sortBlocksStructuralMove()) return;
       return withTaskOrderLock(() => moveHierarchyWithLock(direction, retried, requestedTaskId));
     }
@@ -3188,6 +3274,7 @@
         }
         const previousSubtree = taskPlacementSnapshots(taskSubtreeIds(tasks, task.id));
         if (state.liveTodoist) state.orderMutationPending = true;
+        clearUndo();
         tasks = orderTaskTree(applyTaskHierarchyMove(tasks, task.id, previous.id));
         render();
         focusSelectedTask();
@@ -3199,6 +3286,7 @@
         showToast(`Nested under “${previous.title}” · syncing to Todoist`);
         try {
           await persistTaskMutation(task, "move", { destination: { parent_id: previous.id } });
+          clearUndo();
           tasks = orderTaskTree(applyTaskHierarchyMove(tasks, task.id, previous.id));
           render();
           focusSelectedTask();
@@ -3245,6 +3333,7 @@
         // through the current project instead.
         const grandparentId = tasks.find(item => item.id === previousParentId)?.parentId ?? null;
         if (state.liveTodoist) state.orderMutationPending = true;
+        clearUndo();
         tasks = orderTaskTree(applyTaskHierarchyMove(tasks, task.id, grandparentId));
         render();
         focusSelectedTask();
@@ -3267,6 +3356,7 @@
         showToast("Moved out one level · syncing to Todoist");
         try {
           await persistTaskMutation(task, "move", { destination });
+          clearUndo();
           tasks = orderTaskTree(applyTaskHierarchyMove(tasks, task.id, grandparentId));
           render();
           focusSelectedTask();
@@ -3304,6 +3394,7 @@
           showToast(direction === "up" ? "Already first among its siblings" : "Already last among its siblings");
           return;
         }
+        clearUndo();
         if (!state.liveTodoist) {
           const taskIndex = tasks.indexOf(task);
           const targetIndex = tasks.indexOf(target);
@@ -3379,16 +3470,17 @@
     }
 
     async function changePriority(delta, { taskId = state.selectedId, undoing = false } = {}) {
-      if (!undoing) clearUndo();
       let settle;
       let appliedFrom = null;
       const pending = new Promise(resolve => { settle = resolve; });
       try {
         return await applyPriorityChange(delta, taskId, (previous, next) => {
           appliedFrom = previous;
+          if (!undoing) clearUndo();
           pulseIds.add(taskId);
           playSound("move");
           if (!undoing) offerUndo(pending, async () => {
+            if (!await refreshBeforeUndo()) return false;
             const current = tasks.find(item => item.id === taskId);
             if (!current) { showToast("That task is gone · nothing to undo"); return true; }
             // Put the old value back only while the new one still stands: the save may have failed, or Todoist may have changed it.
@@ -3480,7 +3572,7 @@
     function focusDetailTitle() {
       const input = document.getElementById("detail-title-input");
       input.focus();
-      input.setSelectionRange(input.value.length, input.value.length);
+      input.setSelectionRange(0, input.value.length);
     }
 
     function focusDetailNotes() {
@@ -3506,6 +3598,11 @@
       input.scrollIntoView({ block: "nearest" });
     }
 
+    function parentOfCurrentTask() {
+      const parentId = currentTask()?.parentId;
+      return parentId ? tasks.find(task => task.id === parentId) ?? null : null;
+    }
+
     function openSubtask(taskId) {
       if (!tasks.some(task => task.id === taskId)) return;
       state.detailReturnId = state.selectedId;
@@ -3516,7 +3613,6 @@
     }
 
     async function saveDescription() {
-      clearUndo();
       const task = currentTask();
       if (!task) return;
       task.description = document.getElementById("description-editor").value;
@@ -3617,13 +3713,13 @@
     }
 
     async function createDetailSubtask() {
-      clearUndo();
       if (state.subtaskSaving) return;
       const parent = currentTask();
       const input = document.getElementById("subtask-create-input");
       const button = document.getElementById("subtask-create-button");
       const title = input.value.trim();
       if (!parent || !title) return;
+      clearUndo();
       if (state.liveTodoist && !canCaptureInWorkspace(state.workspace, true)) {
         showToast("Work workspace is demo-only until live task classification is configured");
         return;
@@ -3738,7 +3834,6 @@
     }
 
     async function createSmartTask() {
-      clearUndo();
       if (!state.liveTodoist || state.captureAttachment) return createQuickTask();
       if (state.captureSaving) return;
       if (!canCaptureInWorkspace(state.workspace, true)) {
@@ -3751,6 +3846,7 @@
         captureInput.focus();
         return;
       }
+      clearUndo();
       state.captureSaving = true;
       const saveButton = document.getElementById("capture-save");
       const exactButton = document.getElementById("capture-exact");
@@ -3816,7 +3912,6 @@
     }
 
     async function createQuickTask() {
-      clearUndo();
       if (state.captureSaving) return;
       if (state.orderMutationPending) {
         showToast("Wait for the current order change to finish");
@@ -3835,6 +3930,7 @@
         showToast(`Project “${parsed.project}” is unknown or ambiguous`);
         return;
       }
+      clearUndo();
       const previousSelectedId = state.selectedId;
       const pendingAttachment = state.captureAttachment;
       state.captureAttachment = null;
@@ -4090,7 +4186,7 @@
       const matches = commandMatches();
       state.commandIndex = Math.min(state.commandIndex, Math.max(0, matches.length - 1));
       commandList.innerHTML = matches.length ? matches.map((command, index) => {
-        const keys = COMMAND_KEYS[command.action];
+        const keys = commandKeysFor(command.action);
         return `<div class="command-item ${index === state.commandIndex ? "active" : ""}" data-command="${escapeHtml(command.action)}"><div><div class="command-item-title">${escapeHtml(command.title)}</div><div class="command-item-description">${escapeHtml(command.description)}</div></div>${keys ? keycaps(...keys) : ""}</div>`;
       }).join("") : `<div class="command-empty">No command matches. Try a different phrase.</div>`;
       commandList.querySelector(".command-item.active")?.scrollIntoView({ block: "nearest" });
@@ -4327,12 +4423,12 @@
 
     async function setTaskDue(label, dueString, taskId = currentTask()?.id, { undoing = false } = {}) {
       if (!taskId) return;
-      if (!undoing) clearUndo();
       let settle;
       let before = null;
       const pending = new Promise(resolve => { settle = resolve; });
       const run = withTaskOrderLock(() => setTaskDueWithOrderLock(taskId, label, dueString, ({ previousDueDateKey, previousLabel, nextDueDateKey, displayLabel, changed, restorable }) => {
         before = { key: previousDueDateKey ?? null, label: previousLabel };
+        if (!undoing && changed) clearUndo();
         playSound("move");
         // A repeating task or a due time cannot be put back from a date alone, so those are not offered.
         if (undoing || !changed || !restorable) return;
@@ -4341,6 +4437,7 @@
         // The new date still stands when the task carries it; a task with no date key is told by its label.
         const stands = item => (item.dueDateKey ?? "").slice(0, 10) === (nextDueDateKey ?? "") && (Boolean(nextDueDateKey) || item.due === displayLabel);
         offerUndo(pending, async () => {
+          if (!await refreshBeforeUndo()) return false;
           const current = tasks.find(item => item.id === taskId);
           if (!current) { showToast("That task is gone · nothing to undo"); return true; }
           if (!stands(current)) { showToast("The date has changed since · nothing to undo"); return true; }
@@ -4377,6 +4474,7 @@
       const previousDueDateKey = task.dueDateKey;
       const previousClass = task.dueClass;
       const previousDayOrder = task.dayOrder;
+      const previousHasTime = task.dueHasTime;
       const chosenDate = /^\d{4}-\d{2}-\d{2}$/.test(dueString) ? dueString : null;
       const nextDueDateKey = chosenDate ?? dueDateKeyForRelativeLabel(label, new Date(), state.todoistTimeZone);
       const displayLabel = chosenDate ? dueStateForDateKey(chosenDate, false, new Date(), state.todoistTimeZone).due : label;
@@ -4411,6 +4509,7 @@
           optimisticTask.dueDateKey = previousDueDateKey;
           optimisticTask.dueClass = previousClass;
           optimisticTask.dayOrder = previousDayOrder;
+          optimisticTask.dueHasTime = previousHasTime;
         }
         reclaimSelection(task.id);
         render();
@@ -4422,6 +4521,7 @@
           currentTask.dueDateKey = previousDueDateKey;
           currentTask.dueClass = previousClass;
           currentTask.dayOrder = null;
+          currentTask.dueHasTime = previousHasTime;
         }
         render();
         showToast(refreshed ? "Todoist update failed · list reloaded" : "Todoist update failed · sync unavailable; order is unknown");
@@ -4430,7 +4530,6 @@
     }
 
     async function runBulk(kind) {
-      clearUndo();
       const requestedIds = [...state.selected];
       if (["complete", "today", "clear"].includes(kind)) {
         return withTaskOrderLock(() => runBulkWithOrderLock(kind, requestedIds));
@@ -4506,8 +4605,9 @@
           return;
         }
       }
+      clearUndo();
       const optimisticTasksById = new Map(tasks.map(task => [task.id, task]));
-      const previous = new Map(tasks.filter(task => affectedIds.has(task.id)).map(task => [task.id, { due: task.due, dueDateKey: task.dueDateKey, dueClass: task.dueClass, dayOrder: task.dayOrder, completed: task.completed }]));
+      const previous = new Map(tasks.filter(task => affectedIds.has(task.id)).map(task => [task.id, { due: task.due, dueDateKey: task.dueDateKey, dueClass: task.dueClass, dayOrder: task.dayOrder, dueHasTime: task.dueHasTime, completed: task.completed }]));
       if (kind === "today") ids.forEach(id => { const task = optimisticTasksById.get(id); if (task) applyTaskDueChange(task, "Today", dueDateKeyForRelativeLabel("Today", new Date(), state.todoistTimeZone)); });
       if (kind === "clear") ids.forEach(id => { const task = optimisticTasksById.get(id); if (task) applyTaskDueChange(task, "No date", null); });
       if (kind === "complete") {
@@ -4517,7 +4617,7 @@
             const subtree = subtreeIdsByRoot.get(id);
             state.demoCompletionSnapshots.set(id, new Map(tasks.filter(item => subtree?.has(item.id)).map(item => [item.id, item.completed])));
           }
-          if (task) setTaskSubtreeCompletion(tasks, id, true, Boolean(task.recurring));
+          if (task) { setTaskSubtreeCompletion(tasks, id, true, Boolean(task.recurring)); noteCompletion(id, true); }
         }
       }
       if (kind === "complete") removeRequestedSelection(ids);
@@ -4557,6 +4657,7 @@
         ? taskSubtreeIdsByRoot(tasks, actionIds)
         : subtreeIdsByRoot;
       for (const id of failedIds) {
+        if (kind === "complete") noteCompletion(id, false);
         const rollbackIds = kind === "complete" ? currentSubtreeIdsByRoot.get(id) ?? [] : [id];
         for (const rollbackId of rollbackIds) {
           const currentTask = currentTasksById.get(rollbackId);
@@ -4604,7 +4705,6 @@
     }
 
     async function moveTaskToProject(projectId) {
-      clearUndo();
       if (state.selectedId) exitKinds.set(state.selectedId, "later");
       const requestedTaskId = state.selectedId;
       return withTaskOrderLock(() => moveTaskToProjectWithLock(projectId, requestedTaskId));
@@ -4663,6 +4763,7 @@
         dayOrder: item.dayOrder ?? null
       }));
       const destinationProject = state.projectsById.get(projectId);
+      clearUndo();
       tasks = orderTaskTree(applyProjectTaskMove(tasks, task.id, projectId, projectName, destinationProject?.orderKey ?? null, destinationProject?.childOrder ?? null, destinationProject?.parentId ?? null));
       render();
       if (!state.liveTodoist) {
@@ -4675,6 +4776,7 @@
       try {
         await persistTaskMutation(task, "move", { destination: { project_id: projectId } });
         const destinationProject = state.projectsById.get(projectId);
+        clearUndo();
         tasks = orderTaskTree(applyProjectTaskMove(tasks, task.id, projectId, projectName, destinationProject?.orderKey ?? null, destinationProject?.childOrder ?? null, destinationProject?.parentId ?? null));
         render();
         const refreshed = await refreshFromSync();
@@ -4746,7 +4848,6 @@
     }
 
     async function confirmMoveMode() {
-      clearUndo();
       const requestedSourceId = state.moveFromId;
       const requestedTargetId = state.moveTargetId;
       return withTaskOrderLock(() => confirmMoveModeWithLock(requestedSourceId, requestedTargetId));
@@ -4803,6 +4904,7 @@
         return;
       }
       const previousSubtree = taskPlacementSnapshots(taskSubtreeIds(tasks, task.id));
+      clearUndo();
       tasks = orderTaskTree(applyTaskHierarchyMove(tasks, task.id, target.id));
       state.selectedId = task.id;
       resetSelectionRange(task.id);
@@ -4817,6 +4919,7 @@
       showToast(`Moving under “${target.title}” · syncing to Todoist`);
       try {
         await persistTaskMutation(task, "move", { destination: { parent_id: target.id } });
+        clearUndo();
         tasks = orderTaskTree(applyTaskHierarchyMove(tasks, task.id, target.id));
         render();
         focusSelectedTask();
@@ -4861,7 +4964,7 @@
       if (action === "task:priority-down") { changePriority(-1); return; }
       if (action === "task:complete") { if (state.detailEditing) completeFromDetail(); else toggleComplete(state.selectedId); return; }
       if (action === "task:reorder-view") { openProjectForReorder(); return; }
-      if (action === "task:delete") { openDeleteConfirmation(); return; }
+      if (action === "task:delete") { void deleteWithUndo(); return; }
       if (action === "task:edit") { enterDetail(); return; }
       if (action === "task:open") { openTaskInTodoist(); return; }
       if (action === "task:attach") { showToast("Copy a screenshot, then press Ctrl+V"); return; }
@@ -4895,7 +4998,6 @@
     }
 
     async function removeAttachment(commentId) {
-      clearUndo();
       const task = currentTask();
       const images = taskImages(task);
       const image = images.find(item => (item.commentId || "local") === commentId);
@@ -4906,6 +5008,7 @@
         showToast("Wait for the current task change to finish");
         return;
       }
+      clearUndo();
       removeTaskImageAttachment(tasks, taskId, commentId);
       render();
       if (!image.commentId || !state.liveTodoist) {
@@ -4964,13 +5067,13 @@
     }
 
     function attachImage(file) {
-      clearUndo();
       if (!file || !isSupportedRasterImageType(file.type)) {
         showToast("Use a PNG, JPEG, GIF, or WebP image");
         return;
       }
       const task = currentTask();
       if (!task) return;
+      clearUndo();
       const taskId = task.id;
       if (task.keydoCreatePromise) {
         showToast("Wait for task creation before attaching an image");
@@ -5066,13 +5169,21 @@
     document.getElementById("view-jump").addEventListener("click", () => openCommands("goto"));
 
     document.getElementById("search-input").addEventListener("input", event => { state.query = event.target.value; resetSelectionRange(state.selectedId); render(); });
+    function clearSearch() {
+      state.query = "";
+      searchInput.value = "";
+      searchInput.blur();
+      resetSelectionRange(state.selectedId);
+      render();
+      focusSelectedTask(false);
+    }
     searchInput.addEventListener("keydown", event => {
-      if (event.key !== "ArrowDown" && event.key !== "ArrowUp") return;
+      if (event.key !== "ArrowDown" && event.key !== "ArrowUp" && event.key !== "Enter") return;
       const results = visibleTasks();
       if (!results.length) return;
       event.preventDefault();
       document.body.classList.add("keyboard-navigation");
-      state.selectedId = event.key === "ArrowDown" ? results[0].id : results[results.length - 1].id;
+      state.selectedId = event.key === "ArrowUp" ? results[results.length - 1].id : results[0].id;
       resetSelectionRange(state.selectedId);
       render();
       focusSelectedTask();
@@ -5168,9 +5279,6 @@
     document.getElementById("sort-cancel").addEventListener("click", closeSortChooser);
     document.getElementById("view-sort").addEventListener("click", openSortChooser);
     dueSpecificForm.addEventListener("submit", event => { event.preventDefault(); void applyDueChoice("date"); });
-    document.getElementById("delete-cancel").addEventListener("click", closeDeleteConfirmation);
-    document.getElementById("delete-confirm").addEventListener("click", deleteSelectedTask);
-    deleteBackdrop.addEventListener("click", event => { if (event.target === deleteBackdrop) closeDeleteConfirmation(); });
 
     commandSearch.addEventListener("keydown", event => {
       const matches = commandMatches();
@@ -5193,22 +5301,6 @@
       const target = event.target;
       const typing = target.matches("input, textarea");
       if (["ArrowUp", "ArrowDown", "PageUp", "PageDown"].includes(event.key) && !typing) document.body.classList.add("keyboard-navigation");
-      if (deleteBackdrop.classList.contains("visible")) {
-        if (event.key === "Escape") { event.preventDefault(); closeDeleteConfirmation(); return; }
-        if (event.key === "Enter") {
-          event.preventDefault();
-          if (document.activeElement === deleteConfirm) deleteSelectedTask();
-          else closeDeleteConfirmation();
-          return;
-        }
-        if (event.key === "Tab") {
-          event.preventDefault();
-          if (document.activeElement === deleteCancel) deleteConfirm.focus();
-          else deleteCancel.focus();
-          return;
-        }
-        return;
-      }
       if (dueBackdrop.classList.contains("visible")) {
         if (event.key === "Escape") { event.preventDefault(); closeDueChooser(); return; }
         if (event.key === "Tab") {
@@ -5291,8 +5383,15 @@
           return;
         }
         if (state.detailEditing) { event.preventDefault(); leaveDetail(); return; }
+        if (target === searchInput) {
+          event.preventDefault();
+          if (state.query) clearSearch();
+          else { target.blur(); focusSelectedTask(false); }
+          return;
+        }
         if (typing) { event.preventDefault(); target.blur(); return; }
         if (state.selected.size || state.bulkSelecting) { event.preventDefault(); clearBulkSelection(); render(); focusSelectedTask(false); return; }
+        if (state.query) { event.preventDefault(); clearSearch(); return; }
         const row = queryTaskRow(state.selectedId);
         if (row) row.focus({ preventScroll: true });
         return;
@@ -5380,23 +5479,21 @@
           return;
         }
       }
-      if (state.detailEditing && event.key === "ArrowLeft" && state.detailReturnId && !event.altKey) {
-        // From a subtask, back up to the task it belongs to.
+      if (state.detailEditing && event.key === "ArrowLeft" && !event.altKey && parentOfCurrentTask()) {
+        // From a subtask, back up to the task it belongs to, however it was reached.
         event.preventDefault();
-        const parentId = state.detailReturnId;
-        state.detailReturnId = null;
-        if (tasks.some(task => task.id === parentId)) {
-          state.selectedId = parentId;
-          render();
-          detailPane.focus({ preventScroll: true });
-        }
+        const parent = parentOfCurrentTask();
+        state.detailReturnId = tasks.some(task => task.id === parent.parentId) ? parent.parentId : null;
+        state.selectedId = parent.id;
+        render();
+        detailPane.focus({ preventScroll: true });
         return;
       }
       if (state.detailEditing) return;
       if (VIEW_KEYS[event.key] && !event.altKey) { event.preventDefault(); setView(VIEW_KEYS[event.key]); return; }
       if (event.key === "PageDown") { event.preventDefault(); moveSelectionByPage(1); return; }
       if (event.key === "PageUp") { event.preventDefault(); moveSelectionByPage(-1); return; }
-      if (event.key === "Delete") { event.preventDefault(); openDeleteConfirmation(); return; }
+      if (event.key === "Delete") { event.preventDefault(); void deleteWithUndo(); return; }
       if (event.key === "ArrowDown") { event.preventDefault(); moveSelection(1, event.shiftKey); return; }
       if (event.key === "ArrowUp") { event.preventDefault(); moveSelection(-1, event.shiftKey); return; }
       if (event.key === "ArrowRight") { event.preventDefault(); toggleCollapse("right"); return; }
@@ -5421,7 +5518,6 @@
       if (state.captureOpen) capturePasteImage(file);
       else if (!commandBackdrop.classList.contains("visible")
         && !helpBackdrop.classList.contains("visible")
-        && !deleteBackdrop.classList.contains("visible")
         && !sortBackdrop.classList.contains("visible")) attachImage(file);
     });
 

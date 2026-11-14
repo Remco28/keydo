@@ -31,8 +31,10 @@ to this list when a new one is made.
 - Pressing `/` outside an editor focuses search and selects the whole query,
   so typing replaces it and Backspace clears it. Focusing search with the
   mouse keeps normal text editing behavior.
-- Pressing `T` in details puts the caret at the end of the title. It does not
-  select the title.
+- Pressing `T` in details selects the whole title, so typing replaces it,
+  as `/` does for a search.
+- A message that offers Undo stays for as long as the offer does.
+- A date in another year shows its year.
 - The font is Inter, bundled under `assets/fonts` and served by Keydo itself,
   so text looks the same on every machine and no request leaves for a font
   host.

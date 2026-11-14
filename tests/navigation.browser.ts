@@ -94,7 +94,6 @@ try {
       index = 1;
       await selectRow(page, before[index]);
       await page.keyboard.press("Delete");
-      await page.locator("#delete-confirm").click();
       after = await rowIds(page);
       assert.ok(!after.includes(before[index]));
       assert.equal(await selectedId(page), expectedReplacement(before, index, after));
@@ -153,9 +152,9 @@ try {
       assert.equal(await page.locator(".task-row.selected .task-title").innerText(), "Captured right here");
       assert.match(await toast(page), /^Task captured/);
 
+      // Enter leaves the search field for its results and keeps the search; Escape would clear it.
       await page.locator("#search-input").fill("Captured");
-      await page.keyboard.press("Escape");
-      await page.locator(".task-row.selected").focus();
+      await page.locator("#search-input").press("Enter");
       await page.keyboard.press("n");
       await page.locator("#capture-input").fill("Captured during search");
       await page.keyboard.press("Enter");
@@ -238,6 +237,76 @@ try {
       assert.deepEqual(errors, []);
       await close();
     });
+
+    await check("live: undo reads Todoist first, and leaves a newer change made elsewhere alone", async () => {
+      const { page, errors, close } = await openPage(live.url);
+      await selectRow(page, "charlie");
+      const saved = page.waitForResponse(response => response.url().endsWith("/tasks/charlie") && response.request().method() === "POST");
+      await page.keyboard.press("+");
+      assert.equal((await saved).status(), 200);
+      assert.equal(fixture.items.find(item => item.id === "charlie")!.priority, 2);
+      fixture.setPriority("charlie", 4);
+      await page.keyboard.press("z");
+      await page.waitForFunction(() => document.querySelector("#toast")?.textContent?.includes("changed since"));
+      assert.equal(fixture.items.find(item => item.id === "charlie")!.priority, 4, "the newer priority is not written over");
+      await page.locator(".task-row[data-task-id='charlie'] .complete-button.p4").waitFor();
+      assert.deepEqual(errors, []);
+      await close();
+    });
+
+    await check("live: Delete hides the task and sends nothing until the undo time is over; Z brings it back", async () => {
+      const { page, errors, close } = await openPage(live.url);
+      await selectRow(page, "delta");
+      await page.keyboard.press("Delete");
+      await page.locator(".task-row[data-task-id='delta']").waitFor({ state: "detached" });
+      assert.equal(await toast(page), "Deleted “Delta”");
+      assert.equal(await page.locator("#toast-undo").isVisible(), true);
+      await page.keyboard.press("z");
+      await page.locator(".task-row[data-task-id='delta']").waitFor();
+      assert.equal(await selectedId(page), "delta");
+      assert.deepEqual(fixture.deleted, [], "an undone delete never reaches Todoist");
+
+      const started = Date.now();
+      const sent = page.waitForResponse(response => response.url().endsWith("/tasks/delta") && response.request().postDataJSON()?.action === "delete", { timeout: 20_000 });
+      await page.keyboard.press("Delete");
+      await page.locator(".task-row[data-task-id='delta']").waitFor({ state: "detached" });
+      // A sync in the meantime still receives the task from Todoist; it stays hidden.
+      await page.evaluate(() => window.dispatchEvent(new Event("online")));
+      await page.waitForTimeout(1500);
+      assert.equal(await page.locator(".task-row[data-task-id='delta']").count(), 0);
+      assert.deepEqual(fixture.deleted, []);
+      assert.equal((await sent).status(), 200);
+      assert.ok(Date.now() - started >= 11_000, "the delete waits out the undo offer");
+      assert.deepEqual(fixture.deleted, ["delta"]);
+      assert.equal(await page.locator(".task-row[data-task-id='delta']").count(), 0);
+      assert.deepEqual(errors, []);
+      await close();
+    });
+
+    await check("live: a delete that Todoist refuses puts the task back and says so", async () => {
+      const { page, errors, close } = await openPage(live.url);
+      fixture.failDeletes(true);
+      await selectRow(page, "alpha");
+      await page.keyboard.press("Delete");
+      await page.locator(".task-row[data-task-id='alpha']").waitFor({ state: "detached" });
+      await page.locator(".task-row[data-task-id='alpha']").waitFor({ timeout: 20_000 });
+      assert.match(await toast(page), /^(Delete failed|Todoist delete failed)/);
+      fixture.failDeletes(false);
+      assert.deepEqual(errors, []);
+      await close();
+    });
+
+    await check("live: Completed shows the selected task's details", async () => {
+      const { page, errors, close } = await openPage(live.url);
+      fixture.completeItem("charlie");
+      await page.keyboard.press("5");
+      await page.locator(".task-row[data-task-id='charlie']").waitFor();
+      assert.equal(await page.locator("#detail-empty").isVisible(), false);
+      assert.equal(await page.locator("#detail-title").innerText(), "Charlie");
+      assert.match(await page.locator("#open-hint").innerText(), /to reopen/);
+      assert.deepEqual(errors, []);
+      await close();
+    });
   } finally {
     live.stop(true);
   }
@@ -261,6 +330,8 @@ function upstream() {
   let sequence = 0;
   const changedAt = new Map<string, number>();
   const touch = (item: Item) => changedAt.set(item.id, ++version);
+  const deleted: string[] = [];
+  let failDeletes = false;
   const fetcher = async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = new URL(String(input));
     assert.equal(url.origin, "https://todoist.fixture");
@@ -285,11 +356,43 @@ function upstream() {
       touch(item);
       return Response.json({ ...item });
     }
-    if (url.pathname === "/api/v1/tasks/completed/by_completion_date") return Response.json({ items: [] });
+    if (url.pathname === "/api/v1/tasks/completed/by_completion_date") return Response.json({ items: items.filter(item => item.checked && !item.is_deleted).map(item => ({ ...item, completed_at: "2026-09-30T18:00:00Z" })) });
+    const taskMatch = url.pathname.match(/^\/api\/v1\/tasks\/([^/]+)$/);
+    if (taskMatch) {
+      const item = items.find(entry => entry.id === taskMatch[1] && !entry.is_deleted);
+      if (!item) return Response.json({ error: "not found" }, { status: 404 });
+      if (init?.method === "DELETE") {
+        if (failDeletes) return Response.json({ error: "fixture delete failure" }, { status: 503 });
+        item.is_deleted = true;
+        touch(item);
+        deleted.push(item.id);
+        return new Response(null, { status: 204 });
+      }
+      if (init?.method === "POST") {
+        const updates = JSON.parse(String(init.body));
+        if (typeof updates.priority === "number") item.priority = updates.priority;
+        touch(item);
+      }
+      return Response.json({ ...item });
+    }
     throw new Error(`Unexpected fixture URL ${url.pathname}`);
   };
   return {
     fetcher,
+    items,
+    deleted,
+    failDeletes(fail: boolean) { failDeletes = fail; },
+    // A change made somewhere else: another window, or the phone.
+    setPriority(id: string, priority: number) {
+      const item = items.find(entry => entry.id === id)!;
+      item.priority = priority;
+      touch(item);
+    },
+    completeItem(id: string) {
+      const item = items.find(entry => entry.id === id)!;
+      item.checked = true;
+      touch(item);
+    },
     deleteItem(id: string) {
       const item = items.find(entry => entry.id === id)!;
       item.is_deleted = true;

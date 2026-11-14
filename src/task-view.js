@@ -560,7 +560,8 @@ export function dueStateForDateKey(dateKey, recurring = false, now = new Date(),
   if (recurring) return { due: "Recurring", dueClass: "" };
   const displayDate = new Date(`${date}T00:00:00`);
   return {
-    due: displayDate.toLocaleDateString(undefined, { month: "short", day: "numeric" }),
+    // A date in another year says which year.
+    due: displayDate.toLocaleDateString(undefined, { month: "short", day: "numeric", ...(date.slice(0, 4) === today.slice(0, 4) ? {} : { year: "numeric" }) }),
     dueClass: date < today ? "overdue" : ""
   };
 }
