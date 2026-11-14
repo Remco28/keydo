@@ -650,6 +650,32 @@ try {
     assert.equal(await page.locator(".task-row.selected").evaluate(element => document.activeElement === element), true);
   });
 
+  await check("Space with tasks selected completes all of them", async () => {
+    await page.keyboard.press("1");
+    const rows = page.locator(".task-row");
+    const before = await rows.count();
+    await rows.nth(0).click();
+    await page.keyboard.press("Shift+ArrowDown");
+    const picked = await page.locator(".task-row.bulk-selected").evaluateAll(list => list.map(row => (row as HTMLElement).dataset.taskId));
+    assert.equal(picked.length, 2);
+    assert.match(await page.locator("#key-list").innerText(), /Complete the selection/);
+    await page.keyboard.press(" ");
+    for (const id of picked) await page.locator(`.task-row[data-task-id='${id}']`).waitFor({ state: "detached" });
+    assert.ok(await rows.count() <= before - 2);
+    assert.equal(await page.locator(".task-row.bulk-selected").count(), 0);
+    await page.keyboard.press("5");
+    for (const id of picked) await page.locator(`.task-row[data-task-id='${id}']`).waitFor();
+    // Put them back for the checks that follow (reopening a parent also reopens its subtask).
+    for (const id of picked) {
+      const row = page.locator(`.task-row[data-task-id='${id}']`);
+      if (!await row.count()) continue;
+      await row.click();
+      await page.keyboard.press(" ");
+      await row.waitFor({ state: "detached" });
+    }
+    await page.keyboard.press("1");
+  });
+
   await check("tasks completed several at once count as done today", async () => {
     await page.keyboard.press("1");
     const before = await page.locator("#day-ring .num").innerText();

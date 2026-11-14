@@ -51,8 +51,9 @@ sure we are. Remove an entry in the commit that fixes it.
 ## The selection bar counts a task that has left the list
 
 - **Rating:** low.
-- **What happens:** select two tasks, then press `Space`: only the task under
-  the cursor is completed and leaves the list, but the bar still says
-  "2 selected".
+- **What happens:** select two tasks, then complete one of them on its own
+  (click its circle): it leaves the list, but the bar still says
+  "2 selected". (`Space` now completes the whole selection, so it no longer
+  leads here.)
 - **Since:** before D-019.
 - **How we know:** reproduced on both versions during the D-019 review.

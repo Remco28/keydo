@@ -31,7 +31,7 @@ truth when in doubt.
 | `PageUp` / `PageDown` | Move selection by a page |
 | `←` / `→` | Collapse / expand the selected task's subtasks |
 | `1` to `5` | Go to Today, Upcoming, Priority, Inbox, Completed |
-| `Space` | Complete or reopen the selected task |
+| `Space` | Complete or reopen the selected task. With tasks selected (bulk selection), complete all of them; this cannot be undone with `Z` |
 | `Shift+Space` | Toggle bulk selection on the selected task |
 | `Shift+↑` / `Shift+↓` | Extend bulk selection |
 | `Enter`, `E` | Work on the task in the details pane (`Enter` opens commands when bulk selection exists) |

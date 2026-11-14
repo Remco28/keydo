@@ -1442,7 +1442,7 @@
           : [[["↑ ↓"], "Select"], ...(state.query ? [[["Esc"], "Clear search"]] : []), [["Space"], "Complete"], [["Enter"], "Details"], [["T"], "Today"], [["D"], "Date"], [["-", "+"], "Priority"], [["M"], "Move"], [["N"], "New"], [["/"], "Search"], [["Z"], "Undo"]]],
         detail: ["Details", [[["T"], "Title"], [["N"], "Notes"], [["D"], "Date"], [["S"], "Add subtask"], [["Shift", "S"], "Browse subtasks"], ...(parentOfCurrentTask() ? [[["←"], "Parent"]] : []), [["C"], completing], [["Esc"], "Back to list"]]],
         subtasks: ["Subtasks", [[["↑ ↓"], "Move"], [["Enter"], "Open subtask"], ...(parentOfCurrentTask() ? [[["←"], "Parent"]] : []), [["S"], "Add subtask"], [["Esc"], "Back to list"]]],
-        bulk: [`${state.selected.size} selected`, [...(state.selected.size ? [[["Enter"], "Actions for the selection"]] : []), [["Shift", "↑ ↓"], "Extend"], [["Shift", "Space"], "Add or remove a task"], [["Esc"], "Clear selection"]]],
+        bulk: [`${state.selected.size} selected`, [...(state.selected.size ? [[["Space"], state.view === "completed" ? "Reopen this task" : "Complete the selection"], [["Enter"], "Actions for the selection"]] : []), [["Shift", "↑ ↓"], "Extend"], [["Shift", "Space"], "Add or remove a task"], [["Esc"], "Clear selection"]]],
         search: ["Search", [[["↑ ↓"], "Go to results"], [["Enter"], "First result"], [["Esc"], state.query ? "Clear search" : "Leave search"]]],
         title: ["Title", [[["Ctrl", "Enter"], "Save and return"], [["Esc"], "Done"], [["Alt", "N"], "Notes"], [["Alt", "S"], "Add subtask"]]],
         notes: ["Notes", [[["Ctrl", "Enter"], "Save and return"], [["Esc"], "Done"], [["Alt", "T"], "Title"], [["Alt", "S"], "Add subtask"]]],
@@ -5601,7 +5601,15 @@
       if (event.key === "ArrowUp") { event.preventDefault(); moveSelection(-1, event.shiftKey); return; }
       if (event.key === "ArrowRight") { event.preventDefault(); toggleCollapse("right"); return; }
       if (event.key === "ArrowLeft") { event.preventDefault(); toggleCollapse("left"); return; }
-      if (event.key === " ") { if (target.closest("button")) return; event.preventDefault(); if (event.shiftKey) toggleSelection(state.selectedId); else toggleComplete(state.selectedId); return; }
+      if (event.key === " ") {
+        if (target.closest("button")) return;
+        event.preventDefault();
+        if (event.shiftKey) toggleSelection(state.selectedId);
+        // With tasks selected, Space completes the selection, as the bar's Complete button does.
+        else if (state.selected.size && state.view !== "completed") runBulk("complete");
+        else toggleComplete(state.selectedId);
+        return;
+      }
       if (event.key === "Enter") {
         if (target.closest("button")) return;
         event.preventDefault();
