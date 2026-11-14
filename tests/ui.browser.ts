@@ -375,6 +375,11 @@ try {
     await page.keyboard.press("Enter");
     assert.equal(await page.locator("#delete-backdrop").isVisible(), false);
     assert.equal(await page.locator(".task-row").count(), 1);
+    // The buttons answer the mouse too.
+    await page.keyboard.press("Delete");
+    await page.locator("#delete-cancel").click();
+    assert.equal(await page.locator("#delete-backdrop").isVisible(), false);
+    assert.equal(await page.locator(".task-row").count(), 1);
     await page.locator("#search-input").fill("");
     await page.locator("[data-view='today']").click();
   });

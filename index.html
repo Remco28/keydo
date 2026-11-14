@@ -3161,8 +3161,7 @@
         refocusIfIdle();
         const refreshed = await refreshFromSync();
         if (!refreshed) state.orderSyncUncertain = true;
-        // The user was told when the task went. Say more only if nothing newer is on screen with its own Undo.
-        if (!pendingUndo) showToast(refreshed ? "Deleted in Todoist" : "Deleted in Todoist · sync refresh unavailable; order is uncertain");
+        showToast(refreshed ? `Deleted “${task.title}” in Todoist` : `Deleted “${task.title}” in Todoist · sync refresh unavailable; order is uncertain`, { undo: false });
       } catch {
         tasks = orderTaskTree(restoreMissingTasks(tasks, removedTasks));
         const refreshed = await refreshFromSync({ full: true });
@@ -5348,6 +5347,9 @@
       else if (event.target === dueBackdrop) closeDueChooser();
     });
     document.getElementById("due-cancel").addEventListener("click", closeDueChooser);
+    document.getElementById("delete-cancel").addEventListener("click", closeDeleteConfirmation);
+    deleteConfirm.addEventListener("click", () => { void deleteSelectedTask(); });
+    deleteBackdrop.addEventListener("click", event => { if (event.target === deleteBackdrop) closeDeleteConfirmation(); });
     sortBackdrop.addEventListener("click", event => {
       const choice = event.target.closest("[data-sort-choice]");
       if (choice) applySortChoice(choice.dataset.sortChoice);

@@ -271,7 +271,7 @@ try {
       assert.equal((await sent).status(), 200);
       await page.locator(".task-row[data-task-id='delta']").waitFor({ state: "detached" });
       assert.deepEqual(fixture.deleted, ["delta"]);
-      await page.waitForFunction(() => document.querySelector("#toast")?.textContent?.startsWith("Deleted in Todoist"));
+      await page.waitForFunction(() => document.querySelector("#toast")?.textContent?.startsWith("Deleted “Delta” in Todoist"));
       await page.keyboard.press("z");
       assert.equal(await toast(page), "Nothing to undo");
       assert.deepEqual(errors, []);
@@ -284,7 +284,7 @@ try {
       await page.keyboard.press("4");
       await selectRow(page, "alpha");
       await page.keyboard.press("Delete");
-      await page.keyboard.press("Enter");
+      await page.locator("#delete-confirm").click();
       await page.waitForFunction(() => /^(Delete failed|Todoist delete failed)/.test(document.querySelector("#toast")?.textContent ?? ""));
       await page.locator(".task-row[data-task-id='alpha']").waitFor();
       fixture.failDeletes(false);
