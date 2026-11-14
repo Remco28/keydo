@@ -198,7 +198,10 @@ hint to switch back to Keydo order (`B`, then `M`).
 task, a new due date, a new priority. The message that follows such a change
 carries an **Undo** button while it can still be taken back. Undo runs the
 opposite action through the same path as the key that would do it by hand,
-after the change it reverses has finished saving.
+after the change it reverses has finished saving. If that change no longer
+stands (it failed to save, or the task changed in Todoist since), undo leaves
+the task alone and says so. If Keydo is busy saving something else, the offer
+stays and `Z` can be pressed again.
 
 Not undoable: deleting, moving to a project, reordering, creating, edits to
 titles and notes, bulk actions, completing a repeating task, and changing

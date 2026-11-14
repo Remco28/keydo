@@ -1576,9 +1576,11 @@
     function offerUndo(pending, reverse) {
       const undo = { pending, reverse };
       pendingUndo = undo;
-      Promise.resolve(pending).then(() => {
-        window.setTimeout(() => { if (pendingUndo === undo) clearUndo(); }, 12000);
-      });
+      Promise.resolve(pending).then(() => expireUndoLater(undo));
+    }
+
+    function expireUndoLater(undo) {
+      window.setTimeout(() => { if (pendingUndo === undo) clearUndo(); }, 12000);
     }
 
     function clearUndo() {
@@ -1592,30 +1594,40 @@
       clearUndo();
       showToast("Undoing…");
       await undo.pending;
-      await undo.reverse();
+      // A reverse action answers false when it was refused, for example because
+      // another change was still saving. The offer then stands, so Z works again.
+      const reversed = await undo.reverse();
+      if (reversed === false && !pendingUndo) {
+        pendingUndo = undo;
+        expireUndoLater(undo);
+      }
     }
 
     async function reopenAfterUndo(snapshot) {
       const current = tasks.find(item => item.id === snapshot.id);
-      if (current && !current.completed) return;
-      if (current) await toggleComplete(snapshot.id, { undoing: true });
-      else if (state.liveTodoist) {
+      if (current && !current.completed) { showToast("Already open · nothing to undo"); return true; }
+      if (current) {
+        await toggleComplete(snapshot.id, { undoing: true });
+        if (tasks.find(item => item.id === snapshot.id)?.completed) return false;
+      } else if (state.liveTodoist) {
         // A sync has already taken the completed task off the active list, so
         // reopen it the way the Completed view does.
         if (!state.recentCompleted.some(item => item.id === snapshot.id)) state.recentCompleted = [{ ...snapshot, completed: true }, ...state.recentCompleted];
         await reopenRecentCompleted(snapshot.id);
-        noteCompletion(snapshot.id, false);
       } else {
         showToast("That task is gone · nothing to undo");
-        return;
+        return true;
       }
       returnCursorAfterUndo(snapshot.id);
+      return true;
     }
 
     // D-017 in reverse: when an undone task comes back into the list, the
     // cursor returns to it, unless the user has moved on since it left.
     function returnCursorAfterUndo(taskId) {
       if (state.detailEditing || !visibleTasks().some(task => task.id === taskId)) return;
+      // The user may have started something else while the undo was saving: never take the keyboard from it.
+      if (state.captureOpen || state.moveFromId || document.querySelector(".modal-backdrop.visible") || document.activeElement?.matches?.("input, textarea")) return;
       const replacement = state.placeReplacement;
       const stillWhereItWasPut = replacement?.from === taskId && replacement.to === state.selectedId;
       if (state.selectedId != null && state.selectedId !== taskId && !stillWhereItWasPut) return;
@@ -1646,7 +1658,12 @@
       if (state.query.trim()) return null;
       const sort = currentSort();
       if (state.view === "today" && sort.key === "default") return task.dueClass === "overdue" ? { key: "overdue", label: "Overdue", warn: true } : { key: "today", label: "Today" };
-      if (state.view === "upcoming" && sort.key === "due") return { key: task.dueDateKey ?? task.due, label: task.due };
+      if (state.view === "upcoming" && sort.key === "due") {
+        // Name the day from the date itself: a repeating task's own label is "Recurring", whatever its date.
+        const key = typeof task.dueDateKey === "string" ? task.dueDateKey.slice(0, 10) : null;
+        if (!key) return { key: task.due, label: task.due };
+        return { key, label: key === shiftDateKey(todayKey(), 1) ? "Tomorrow" : formatDateKey(key, { weekday: "long", month: "short", day: "numeric" }) };
+      }
       if (state.view === "priority" && sort.key === "priority") return { key: `p${task.priority}`, label: `Priority ${5 - task.priority}` };
       return null;
     }
@@ -2680,7 +2697,8 @@
     }
 
     function moveSelectionByPage(direction) {
-      const pageSize = Math.max(1, Math.floor(listScroll.clientHeight / 44) - 1);
+      // On a narrow window the list is as tall as its content and the page scrolls, so a page is the window.
+      const pageSize = Math.max(1, Math.floor(Math.min(listScroll.clientHeight, window.innerHeight) / 44) - 1);
       moveSelection(direction * pageSize);
     }
 
@@ -2762,6 +2780,8 @@
     }
 
     async function toggleComplete(taskId, options = {}) {
+      // Every way of completing or reopening withdraws an earlier undo offer, including the Completed view's.
+      if (!options.undoing) clearUndo();
       if (state.liveTodoist && state.view === "completed" && state.recentCompleted.some(item => item.id === taskId)) {
         return reopenRecentCompleted(taskId);
       }
@@ -2771,7 +2791,6 @@
         return;
       }
       const observedCompleted = task.completed;
-      if (!options.undoing) clearUndo();
       const snapshot = { ...task };
       let settle;
       const pending = new Promise(resolve => { settle = resolve; });
@@ -3369,7 +3388,14 @@
           appliedFrom = previous;
           pulseIds.add(taskId);
           playSound("move");
-          if (!undoing) offerUndo(pending, () => changePriority(previous - next, { taskId, undoing: true }));
+          if (!undoing) offerUndo(pending, async () => {
+            const current = tasks.find(item => item.id === taskId);
+            if (!current) { showToast("That task is gone · nothing to undo"); return true; }
+            // Put the old value back only while the new one still stands: the save may have failed, or Todoist may have changed it.
+            if (current.priority !== next) { showToast("The priority has changed since · nothing to undo"); return true; }
+            await changePriority(previous - next, { taskId, undoing: true });
+            return tasks.find(item => item.id === taskId)?.priority !== next;
+          });
         });
       } finally {
         settle();
@@ -4305,17 +4331,25 @@
       let settle;
       let before = null;
       const pending = new Promise(resolve => { settle = resolve; });
-      const run = withTaskOrderLock(() => setTaskDueWithOrderLock(taskId, label, dueString, ({ previousDueDateKey, previousLabel, changed, restorable }) => {
+      const run = withTaskOrderLock(() => setTaskDueWithOrderLock(taskId, label, dueString, ({ previousDueDateKey, previousLabel, nextDueDateKey, displayLabel, changed, restorable }) => {
         before = { key: previousDueDateKey ?? null, label: previousLabel };
         playSound("move");
         // A repeating task or a due time cannot be put back from a date alone, so those are not offered.
         if (undoing || !changed || !restorable) return;
         const relative = ["Today", "Tomorrow", "No date"].includes(previousLabel);
         if (!previousDueDateKey && !relative) return;
+        // The new date still stands when the task carries it; a task with no date key is told by its label.
+        const stands = item => (item.dueDateKey ?? "").slice(0, 10) === (nextDueDateKey ?? "") && (Boolean(nextDueDateKey) || item.due === displayLabel);
         offerUndo(pending, async () => {
+          const current = tasks.find(item => item.id === taskId);
+          if (!current) { showToast("That task is gone · nothing to undo"); return true; }
+          if (!stands(current)) { showToast("The date has changed since · nothing to undo"); return true; }
           if (previousDueDateKey) await setTaskDue(previousDueDateKey, previousDueDateKey, taskId, { undoing: true });
           else await setTaskDue(previousLabel, previousLabel.toLowerCase(), taskId, { undoing: true });
+          const after = tasks.find(item => item.id === taskId);
+          if (after && stands(after)) return false;
           returnCursorAfterUndo(taskId);
+          return true;
         });
       }));
       run.then(settle, settle).then(() => {
@@ -4349,7 +4383,7 @@
       const restorable = !task.recurring && !task.dueHasTime;
       exitKinds.set(task.id, !previousDueDateKey || !nextDueDateKey || nextDueDateKey > previousDueDateKey ? "later" : "sooner");
       applyTaskDueChange(task, displayLabel, nextDueDateKey);
-      onApplied?.({ previousDueDateKey, previousLabel, changed: previousLabel !== displayLabel || previousDueDateKey !== nextDueDateKey, restorable });
+      onApplied?.({ previousDueDateKey, previousLabel, nextDueDateKey, displayLabel, changed: previousLabel !== displayLabel || previousDueDateKey !== nextDueDateKey, restorable });
       render();
       if (!state.liveTodoist) {
         showToast(`${label === "No date" ? "Due date cleared" : `Due ${displayLabel}`} · demo mode`);
