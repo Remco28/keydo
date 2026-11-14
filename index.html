@@ -4379,6 +4379,7 @@
     function openDueChooser() {
       const task = currentTask();
       if (!task) { showToast("Select a task first"); return; }
+      if (task.recurring) { showToast(REPEAT_REFUSAL); return; }
       state.dueTargetId = task.id;
       document.getElementById("due-task-name").textContent = `${task.title} · ${task.due}`;
       dueSpecificInput.value = task.dueDateKey ?? dueDateKeyForRelativeLabel("Today", new Date(), state.todoistTimeZone);
@@ -4463,15 +4464,15 @@
       return run;
     }
 
-    const REPEAT_REFUSAL = "Repeats in Todoist · moving it here would end the repeat (O opens it in Todoist)";
+    // Repeating tasks are managed in Todoist itself; Keydo never changes their dates (D-021).
+    const REPEAT_REFUSAL = "Repeating task · change its date in Todoist (O opens it)";
 
     // Why a date key changes nothing for this task, or null. Days are compared, not labels:
     // a repeating task's label reads "Recurring" whatever its day.
     function dueRefusal(task, { nextDueDateKey, displayLabel }) {
+      if (task.recurring) return REPEAT_REFUSAL;
       const currentDay = typeof task.dueDateKey === "string" ? task.dueDateKey.slice(0, 10) : null;
       if (currentDay === nextDueDateKey && (nextDueDateKey || !task.due || task.due === "No date")) return nextDueDateKey ? `Already due ${displayLabel}` : "No date to clear";
-      // Keydo can only write a day, which would replace the repeat: leave the task as it is.
-      if (task.recurring && nextDueDateKey) return REPEAT_REFUSAL;
       return null;
     }
 
@@ -4524,11 +4525,11 @@
       onApplied?.({ previousDueDateKey, previousLabel, nextDueDateKey, displayLabel, changed: previousLabel !== displayLabel || previousDueDateKey !== nextDueDateKey, restorable });
       render();
       if (!state.liveTodoist) {
-        showToast(`${label === "No date" ? `Due date cleared${previousRecurring ? " · it no longer repeats" : ""}` : `Due ${displayLabel}`} · demo mode`);
+        showToast(`${label === "No date" ? "Due date cleared" : `Due ${displayLabel}`} · demo mode`);
         releaseAction();
         return;
       }
-      showToast(`${label === "No date" ? `Due date cleared${previousRecurring ? " · it no longer repeats" : ""}` : `Due ${displayLabel}`} · syncing to Todoist`);
+      showToast(`${label === "No date" ? "Due date cleared" : `Due ${displayLabel}`} · syncing to Todoist`);
       try {
         if (keptTime) await persistTaskMutation(task, "reschedule", { due: keptTime });
         else await persistTaskMutation(task, "update", chosenDate ? { due_date: chosenDate } : { due_string: dueString });
@@ -4540,7 +4541,7 @@
         const refreshed = await refreshFromSync();
         if (!refreshed) state.orderSyncUncertain = true;
         showToast(refreshed
-          ? (label === "No date" && previousRecurring ? "Saved to Todoist · it no longer repeats" : keptTime ? "Saved to Todoist · same time of day" : "Saved to Todoist")
+          ? (keptTime ? "Saved to Todoist · same time of day" : "Saved to Todoist")
           : "Saved · Todoist order refresh unavailable");
       } catch {
         // A dropped response can follow a successful Todoist update. Reload
@@ -4645,15 +4646,15 @@
         }
       } else if (kind === "today" || kind === "clear") {
         actionIds = retainExistingTaskIds(tasks, ids);
-        if (kind === "today") {
-          const todayDay = dueDateKeyForRelativeLabel("Today", new Date(), state.todoistTimeZone);
+        { // Leave out every repeating task, and anything the change would leave as it is.
+          const todayDay = kind === "today" ? dueDateKeyForRelativeLabel("Today", new Date(), state.todoistTimeZone) : null;
           const byId = new Map(tasks.map(task => [task.id, task]));
           bulkLeft = { repeating: 0, timed: 0 };
           actionIds = actionIds.filter(id => {
             const task = byId.get(id);
-            const refusal = task && dueRefusal(task, { nextDueDateKey: todayDay, displayLabel: "Today" });
+            const refusal = task && dueRefusal(task, { nextDueDateKey: todayDay, displayLabel: kind === "today" ? "Today" : "No date" });
             if (refusal === REPEAT_REFUSAL) { bulkLeft.repeating += 1; return false; }
-            if (refusal) return false;
+            if (refusal || kind === "clear") return !refusal;
             const kept = dueKeepingTime(task.todoistDue, typeof task.dueDateKey === "string" ? task.dueDateKey.slice(0, 10) : null, todayDay, state.todoistTimeZone);
             if (kept?.refuse) { bulkLeft.timed += 1; return false; }
             if (kept) bulkKeptTime.set(id, kept);
@@ -4662,7 +4663,7 @@
           if (!actionIds.length) {
             removeRequestedSelection(ids);
             render();
-            showToast(bulkLeft.repeating || bulkLeft.timed ? `Nothing moved · ${bulkLeftNote(bulkLeft)}` : "Already due Today");
+            showToast(bulkLeft.repeating || bulkLeft.timed ? `Nothing changed · ${bulkLeftNote(bulkLeft)}` : kind === "today" ? "Already due Today" : "No dates to clear");
             return;
           }
         }
@@ -4702,7 +4703,7 @@
       if (!state.selected.size) state.bulkSelecting = false;
       render();
       if (!state.liveTodoist) {
-        showToast(kind === "today" ? `Selected tasks moved to Today${bulkLeftNote(bulkLeft) ? ` · ${bulkLeftNote(bulkLeft)}` : ""} · demo mode` : kind === "clear" ? "Due dates cleared · demo mode" : "Selected tasks completed · demo mode");
+        showToast(kind === "today" ? `Selected tasks moved to Today${bulkLeftNote(bulkLeft) ? ` · ${bulkLeftNote(bulkLeft)}` : ""} · demo mode` : kind === "clear" ? `Due dates cleared${bulkLeftNote(bulkLeft) ? ` · ${bulkLeftNote(bulkLeft)}` : ""} · demo mode` : "Selected tasks completed · demo mode");
         releaseTaskActions();
         return;
       }
@@ -4775,7 +4776,7 @@
       }
       if (!refreshed) state.orderSyncUncertain = true;
       render();
-      const left = kind === "today" && bulkLeftNote(bulkLeft) ? ` · ${bulkLeftNote(bulkLeft)}` : "";
+      const left = (kind === "today" || kind === "clear") && bulkLeftNote(bulkLeft) ? ` · ${bulkLeftNote(bulkLeft)}` : "";
       showToast((failed ? `Saved ${actionIds.length - failed} · ${failed} failed · reverted` : refreshed ? `Saved ${actionIds.length} to Todoist` : `Saved ${actionIds.length} · list refresh unavailable`) + left);
       releaseTaskActions();
     }

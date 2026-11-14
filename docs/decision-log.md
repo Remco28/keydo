@@ -135,14 +135,15 @@ This log records product and technical decisions as they are made. Proposed deci
 
 - **Status:** Withdrawn on 2026-11-14. `Delete` asks "Delete this task?" and cannot be undone, as it did before D-019. The decisions listed under "Still in force" stand.
 - **What it was:** `Delete` hid the task at once, offered Undo for 12 seconds, and sent the delete to Todoist only when the offer ended or the next change started, because Todoist cannot restore a deleted task.
-- **Why it was withdrawn:** hiding a task inside Keydo while everything else carried on kept failing. Four review passes each found a serious case: a delete completed later with no Undo and no message; a key that changed nothing sent it; an empty Enter sent it; a delete became final at the next action with nothing on screen saying so, and a careless user lost a task that way twice. The owner had agreed beforehand that a further serious finding would bring the question back. If an undoable delete is wanted again, it should leave the task in Todoist and mark it (a trash project or label) rather than hide it in Keydo.
+- **Why it was withdrawn:** hiding a task inside Keydo while everything else carried on kept failing. Four review passes each found a serious case: a delete completed later with no Undo and no message; a key that changed nothing sent it; an empty Enter sent it; a delete became final at the next action with nothing on screen saying so, and a careless user lost a task that way twice. The owner had agreed beforehand that a further serious finding would bring the question back. The owner then decided (2026-11-14) that Keydo will not have an undoable delete.
 - **Still in force, decided at the same time:** with tasks selected, `Space` completes the selection; undo of a date or a priority reads Todoist first and leaves a newer change alone; `Esc` clears a search and returns to the view; `T` in details selects the title; a date in another year shows its year.
 
-## D-021: Moving a date keeps its time; a repeating task is not moved
+## D-021: Moving a date keeps its time; Keydo leaves repeating tasks to Todoist
 
 - **Status:** Accepted
-- **Decision:** A task with a time of day keeps that time when it is moved to another day. A repeating task is not moved by `T`, `Shift+T`, the date chooser or a bulk move; Keydo says why and points to Todoist. `C` still clears the whole due date, repeat included, and says so.
-- **Rationale:** Keydo used to write a plain day for every move, which silently dropped a task's time and ended its repeat. Todoist documents how to write a date with a time (floating, or in a fixed time zone); that is what Keydo now sends. It does not document how to move a repeating task's next date while keeping the repeat, and nobody may test against the live account, so Keydo refuses rather than guess. Moving repeating tasks can be added once it has been tried on a throwaway task in the real account.
+- **Decision:** A task with a time of day keeps that time when it is moved to another day. Keydo does not change the date of a repeating task in any way: `T`, `Shift+T`, the date chooser, `C`, and the bulk Move to Today and Clear dates leave it as it is, say why, and point to Todoist (`O`). Repeating tasks are still shown and can be completed; Todoist then schedules the next one.
+- **Scope:** Keydo writes to Todoist only in ways Todoist documents, or that Keydo has long used against the real account. Repeating tasks are out of scope: the owner manages them in the full Todoist app, which he uses alongside Keydo (2026-11-14).
+- **Rationale:** Keydo used to write a plain day for every move, which silently dropped a task's time and ended its repeat. Todoist documents how to write a date with a time (floating, or in a fixed time zone); that is what Keydo now sends. It does not document how to move a repeating task while keeping its repeat.
 
 ## Open decisions
 

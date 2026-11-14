@@ -304,7 +304,7 @@ try {
       await close();
     });
 
-    await check("live: moving a task keeps its time of day; a repeating task is left as it is; clearing says the repeat ends", async () => {
+    await check("live: moving a task keeps its time of day; Keydo never changes a repeating task's date", async () => {
       const { page, errors, close } = await openPage(live.url);
       const item = (id: string) => fixture.items.find(entry => entry.id === id)!;
       const today = new Date().toLocaleDateString("en-CA");
@@ -318,20 +318,27 @@ try {
 
       const repeatBefore = JSON.stringify(item("repeat").due);
       let written = false;
-      page.on("request", request => { if (request.url().endsWith("/tasks/repeat") && request.postDataJSON()?.action !== "delete") written = true; });
+      page.on("request", request => { if (request.url().endsWith("/tasks/repeat")) written = true; });
       await selectRow(page, "repeat");
-      await page.keyboard.press("t");
-      assert.match(await toast(page), /^Repeats in Todoist/);
-      await page.keyboard.press("Shift+T");
-      assert.match(await toast(page), /^Already due Tomorrow|^Repeats in Todoist/);
+      for (const key of ["t", "Shift+T", "c", "d"]) {
+        await page.keyboard.press(key);
+        assert.equal(await toast(page), "Repeating task · change its date in Todoist (O opens it)", key);
+        assert.equal(await page.locator("#due-backdrop").isVisible(), false);
+      }
       await page.waitForTimeout(500);
       assert.equal(written, false, "nothing is sent for a repeating task");
       assert.equal(JSON.stringify(item("repeat").due), repeatBefore);
 
-      await page.keyboard.press("c");
-      await page.waitForFunction(() => document.querySelector("#toast")?.textContent?.includes("it no longer repeats"));
-      await page.waitForFunction(() => document.querySelector("#toast")?.textContent === "Saved to Todoist · it no longer repeats");
-      assert.equal(item("repeat").due, null);
+      // Several selected: the repeating task is left out of Clear dates, and the message says so.
+      await page.keyboard.press("Shift+Space");
+      await selectRow(page, "timed");
+      await page.keyboard.press("Shift+Space");
+      await page.locator("#bulk-clear-dates").click();
+      await page.waitForFunction(() => /1 repeating task left as it is/.test(document.querySelector("#toast")?.textContent ?? ""));
+      await page.waitForFunction(() => document.querySelector(".task-row[data-task-id='timed'] .task-due")?.textContent === "");
+      assert.equal(item("timed").due, null);
+      assert.equal(written, false);
+      assert.equal(JSON.stringify(item("repeat").due), repeatBefore);
       assert.deepEqual(errors, []);
       await close();
     });

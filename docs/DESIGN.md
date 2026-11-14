@@ -38,3 +38,6 @@ to this list when a new one is made.
 - The font is Inter, bundled under `assets/fonts` and served by Keydo itself,
   so text looks the same on every machine and no request leaves for a font
   host.
+- Keydo only writes to Todoist in ways Todoist documents, or that it has long
+  used against the real account. It does not try to reproduce what the full
+  Todoist app does (repeating tasks, an undoable delete).
