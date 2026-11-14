@@ -133,7 +133,8 @@ This log records product and technical decisions as they are made. Proposed deci
 
 ## D-020: Delete is undoable, not confirmed
 
-- **Status:** Accepted
+- **Status:** Withdrawn on 2026-11-14 (the delete part). `Delete` asks "Delete this task?" again and cannot be undone. The items under "Also decided with it" stand.
+- **Why it was withdrawn:** Todoist cannot restore a deleted task, so the undo had to hide the task and hold the real delete back while everything else in Keydo carried on. Four review passes each found a serious way for that to go wrong (a delete completed later with no Undo and no message; a key that changed nothing sent it; an empty Enter sent it), and a careless user lost a task "without being told" twice. The owner had agreed beforehand that a further serious finding would bring the question back.
 - **Decision:** `Delete` no longer asks "Delete this task?". The task and its subtasks leave the list at once, a message says *Deleted "Title"*, and **Undo** (`Z`) is offered for 12 seconds, as for a completion. It must never delete silently.
   - Todoist cannot restore a deleted task, so Keydo holds the real delete back until the offer ends, or until the next change of any kind, and only hides the task until then. No other change runs while a task is hidden. Undo therefore puts back the same task, with its subtasks, notes and screenshots.
   - If the delete cannot be sent, or Todoist refuses it, the task returns to the list with a message.

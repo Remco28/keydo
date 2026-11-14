@@ -94,6 +94,8 @@ try {
       index = 1;
       await selectRow(page, before[index]);
       await page.keyboard.press("Delete");
+      await page.keyboard.press("Enter");
+      await page.locator(`.task-row[data-task-id='${before[index]}']`).waitFor({ state: "detached" });
       after = await rowIds(page);
       assert.ok(!after.includes(before[index]));
       assert.equal(await selectedId(page), expectedReplacement(before, index, after));
@@ -254,31 +256,24 @@ try {
       await close();
     });
 
-    await check("live: Delete hides the task and sends nothing until the undo time is over; Z brings it back", async () => {
+    await check("live: Delete asks first and is sent at once; Escape keeps the task", async () => {
       const { page, errors, close } = await openPage(live.url);
+      await page.keyboard.press("4");
       await selectRow(page, "delta");
       await page.keyboard.press("Delete");
-      await page.locator(".task-row[data-task-id='delta']").waitFor({ state: "detached" });
-      assert.equal(await toast(page), "Deleted “Delta”");
-      assert.equal(await page.locator("#toast-undo").isVisible(), true);
-      await page.keyboard.press("z");
-      await page.locator(".task-row[data-task-id='delta']").waitFor();
-      assert.equal(await selectedId(page), "delta");
-      assert.deepEqual(fixture.deleted, [], "an undone delete never reaches Todoist");
-
-      const started = Date.now();
-      const sent = page.waitForResponse(response => response.url().endsWith("/tasks/delta") && response.request().postDataJSON()?.action === "delete", { timeout: 20_000 });
-      await page.keyboard.press("Delete");
-      await page.locator(".task-row[data-task-id='delta']").waitFor({ state: "detached" });
-      // A sync in the meantime still receives the task from Todoist; it stays hidden.
-      await page.evaluate(() => window.dispatchEvent(new Event("online")));
-      await page.waitForTimeout(1500);
-      assert.equal(await page.locator(".task-row[data-task-id='delta']").count(), 0);
+      assert.equal(await page.locator("#delete-backdrop").isVisible(), true);
+      await page.keyboard.press("Escape");
+      assert.equal(await page.locator(".task-row[data-task-id='delta']").count(), 1);
       assert.deepEqual(fixture.deleted, []);
+      const sent = page.waitForResponse(response => response.url().endsWith("/tasks/delta") && response.request().postDataJSON()?.action === "delete");
+      await page.keyboard.press("Delete");
+      await page.keyboard.press("Enter");
       assert.equal((await sent).status(), 200);
-      assert.ok(Date.now() - started >= 11_000, "the delete waits out the undo offer");
+      await page.locator(".task-row[data-task-id='delta']").waitFor({ state: "detached" });
       assert.deepEqual(fixture.deleted, ["delta"]);
-      assert.equal(await page.locator(".task-row[data-task-id='delta']").count(), 0);
+      await page.waitForFunction(() => document.querySelector("#toast")?.textContent?.startsWith("Deleted in Todoist"));
+      await page.keyboard.press("z");
+      assert.equal(await toast(page), "Nothing to undo");
       assert.deepEqual(errors, []);
       await close();
     });
@@ -286,35 +281,13 @@ try {
     await check("live: a delete that Todoist refuses puts the task back and says so", async () => {
       const { page, errors, close } = await openPage(live.url);
       fixture.failDeletes(true);
-      await selectRow(page, "alpha");
-      await page.keyboard.press("Delete");
-      await page.locator(".task-row[data-task-id='alpha']").waitFor({ state: "detached" });
-      await page.locator(".task-row[data-task-id='alpha']").waitFor({ timeout: 20_000 });
-      assert.match(await toast(page), /^(Delete failed|Todoist delete failed)/);
-      fixture.failDeletes(false);
-      assert.deepEqual(errors, []);
-      await close();
-    });
-
-    await check("live: another change sends a held delete first, so nothing else runs while a task is only hidden", async () => {
-      const { page, errors, close } = await openPage(live.url);
-      const before = fixture.deleted.length;
       await page.keyboard.press("4");
       await selectRow(page, "alpha");
       await page.keyboard.press("Delete");
-      await page.locator(".task-row[data-task-id='alpha']").waitFor({ state: "detached" });
-      const started = Date.now();
-      await selectRow(page, "quick-1");
-      const saved = page.waitForResponse(response => response.url().endsWith("/tasks/quick-1") && response.request().postDataJSON()?.action === "update");
-      await page.keyboard.press("+");
-      assert.equal((await saved).status(), 200);
-      assert.ok(Date.now() - started < 8_000, "the delete did not wait for its 12 seconds");
-      assert.deepEqual(fixture.deleted.slice(before), ["alpha"], "the delete reached Todoist before the priority change");
-      assert.equal(fixture.items.find(item => item.id === "quick-1")!.priority, 2);
-      // The delete can no longer be undone; Z now belongs to the priority change.
-      await page.keyboard.press("z");
-      await page.waitForFunction(() => document.querySelector(".task-row[data-task-id='quick-1'] .complete-button.p1"));
-      assert.equal(await page.locator(".task-row[data-task-id='alpha']").count(), 0);
+      await page.keyboard.press("Enter");
+      await page.waitForFunction(() => /^(Delete failed|Todoist delete failed)/.test(document.querySelector("#toast")?.textContent ?? ""));
+      await page.locator(".task-row[data-task-id='alpha']").waitFor();
+      fixture.failDeletes(false);
       assert.deepEqual(errors, []);
       await close();
     });

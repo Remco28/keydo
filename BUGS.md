@@ -27,9 +27,7 @@ sure we are. Remove an entry in the commit that fixes it.
 - **What happens:** a save that starts while another save in the same window
   holds the order lock borrows that lock instead of taking its own. If the
   first save finishes first, the second is refused by the server and reports
-  a failed save (edits to titles and notes are kept and retried). The delete
-  that is now sent 12 seconds after `Delete` makes the overlap a little more
-  likely, for example while notes are being typed.
+  a failed save (edits to titles and notes are kept and retried).
 - **Since:** before D-019.
 - **How we know:** read in the code of both versions during the D-019 review
   (second round). Not reproduced.

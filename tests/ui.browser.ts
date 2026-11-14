@@ -365,17 +365,16 @@ try {
     assert.equal(await page.locator(".task-row").count(), 1);
     await page.keyboard.press("ArrowDown");
     assert.equal(await page.locator(".task-row.selected").evaluate(element => document.activeElement === element), true);
-    // Delete asks nothing: the task goes at once, a message says so, and Z brings it back.
+    // Delete asks first; Enter answers the button that has the keyboard, and the key bar says which.
     await page.keyboard.press("Delete");
-    assert.equal(await page.locator(".task-row").count(), 0);
-    assert.equal(await page.locator("#toast").innerText(), "Deleted “Browser polish check”");
-    assert.equal(await page.locator("#toast-undo").isVisible(), true);
-    // The Undo button says what it would undo, whatever message it sits beside.
-    assert.match(await page.locator("#toast-undo").innerText(), /^Undo delete/);
-    await page.keyboard.press("z");
-    await page.locator(".task-row").waitFor();
-    assert.equal(await page.locator("#toast").innerText(), "Restored “Browser polish check”");
-    assert.equal(await page.locator(".task-row.selected .task-title").innerText(), "Browser polish check");
+    assert.equal(await page.locator("#delete-backdrop").isVisible(), true);
+    assert.match(await page.locator("#delete-copy").innerText(), /cannot be undone/);
+    await page.waitForFunction(() => /↵\s*Delete/.test(document.querySelector("#key-list")?.textContent ?? ""));
+    await page.keyboard.press("Tab");
+    await page.waitForFunction(() => /↵\s*Cancel/.test(document.querySelector("#key-list")?.textContent ?? ""));
+    await page.keyboard.press("Enter");
+    assert.equal(await page.locator("#delete-backdrop").isVisible(), false);
+    assert.equal(await page.locator(".task-row").count(), 1);
     await page.locator("#search-input").fill("");
     await page.locator("[data-view='today']").click();
   });
@@ -598,20 +597,12 @@ try {
     await page.locator(`.task-row[data-task-id='${id}']`).waitFor();
   });
 
-  await check("a key that changes nothing does not end a delete's undo time", async () => {
+  await check("the command list finds Undo first for \"undo\"", async () => {
     await page.keyboard.press("1");
-    const rows = page.locator(".task-row");
-    const id = await rows.last().getAttribute("data-task-id");
-    await rows.last().click();
-    await page.keyboard.press("Delete");
-    await page.locator(`.task-row[data-task-id='${id}']`).waitFor({ state: "detached" });
-    // The task now under the cursor is already due today, so T has nothing to do.
-    await page.locator(".task-row .task-due.today").first().click();
-    await page.keyboard.press("t");
-    assert.match(await page.locator("#toast").innerText(), /^Already due Today/);
-    assert.match(await page.locator("#toast-undo").innerText(), /^Undo delete/);
-    await page.keyboard.press("z");
-    await page.locator(`.task-row[data-task-id='${id}']`).waitFor();
+    await page.keyboard.press("Control+k");
+    await page.locator("#command-search").fill("undo");
+    assert.match(await page.locator(".command-item.active").innerText(), /^Undo the last change/);
+    await page.keyboard.press("Escape");
   });
 
   await check("in details the command list shows a key only where it works, and T selects the title", async () => {

@@ -36,7 +36,7 @@ truth when in doubt.
 | `Shift+↑` / `Shift+↓` | Extend bulk selection |
 | `Enter`, `E` | Work on the task in the details pane (`Enter` opens commands when bulk selection exists) |
 | `O` | Open the task in Todoist |
-| `Delete` | Delete the task and its subtasks. Nothing is asked; a message says it was deleted and offers Undo (see Undo) |
+| `Delete` | Delete the task and its subtasks, after asking "Delete this task?" (`Enter` answers the button that has the keyboard, `Tab` switches, `Esc` cancels). This cannot be undone (D-020 was withdrawn) |
 | `T` / `Shift+T` | Move to Today / Tomorrow. A task already due that day is left as it is, and nothing is sent. See "Dates with a time or a repeat" |
 | `C` | Clear due date. A repeating task stops repeating, and the message says so |
 | `D` | Open the due-date chooser for the active task |
@@ -215,10 +215,10 @@ hint to switch back to Keydo order (`B`, then `M`).
 ## Undo
 
 `Z` or `Ctrl+Z` takes back the last change of these kinds: completing a
-task, a new due date, a new priority, deleting a task. The message that
-follows such a change carries an **Undo** button, and stays, for the 12
-seconds in which it can be taken back. The button names what it would undo
-(**Undo delete**, **Undo date**), because later messages carry it too.
+task, a new due date, a new priority. The message that follows such a change
+carries an **Undo** button, and stays, for the 12 seconds in which it can be
+taken back. The button names what it would undo (**Undo complete**,
+**Undo date**), because later messages carry it too.
 
 For a completion, a date or a priority, undo runs the opposite action through
 the same path as the key that would do it by hand, after the change it
@@ -228,19 +228,8 @@ on a phone, undo leaves it alone and says so. If Todoist cannot be read, or
 Keydo is busy saving something else, nothing is undone, the offer stays, and
 `Z` can be pressed again.
 
-A delete is different, because Todoist cannot bring a deleted task back.
-`Delete` hides the task and its subtasks at once and says so, but the delete
-itself is only sent to Todoist when the 12 seconds are over, or as soon as
-you make another change, whichever comes first: no other task is changed
-while one is only hidden (typing in a title or notes is the exception, and
-does not send it). `Z` before then puts the task back exactly as it was. If Todoist then refuses the delete, the
-task returns to the list with a message. One delete is held at a time:
-deleting a second task sends the first. Closing or reloading Keydo inside the
-12 seconds means the delete is never sent, and the task is there next time.
-Another window keeps showing the task until the delete is sent, and a subtask
-added to it there in the meantime is deleted with it.
-
-Not undoable: moving to a project, reordering, creating, edits to titles and
+Not undoable: deleting (Todoist cannot bring a deleted task back, so `Delete`
+asks first), moving to a project, reordering, creating, edits to titles and
 notes, bulk actions, completing a repeating task, and changing the date of a
 task that repeats or has a due time (a date alone cannot put those back). Any
 of these withdraws an earlier undo offer once it goes ahead, so **Undo** never
