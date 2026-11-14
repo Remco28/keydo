@@ -3230,8 +3230,20 @@
     }
 
     async function moveHierarchy(direction, retried = false, requestedTaskId = state.selectedId) {
-      if (!await settleHeldDelete()) return;
       if (sortBlocksStructuralMove()) return;
+      if (heldDelete) {
+        // A key that would change nothing must not end the delete's undo time.
+        if (!canEditTaskOrder()) { showToast("Press R to open this task's complete project list, then retry"); return; }
+        const task = tasks.find(item => item.id === requestedTaskId);
+        if ((direction === "up" || direction === "down") && task) {
+          const siblings = shownTasks().filter(item => sameTaskSiblingGroup(item, task));
+          if (!siblings[siblings.indexOf(task) + (direction === "up" ? -1 : 1)]) {
+            showToast(direction === "up" ? "Already first among its siblings" : "Already last among its siblings");
+            return;
+          }
+        }
+      }
+      if (!await settleHeldDelete()) return;
       return withTaskOrderLock(() => moveHierarchyWithLock(direction, retried, requestedTaskId));
     }
 
