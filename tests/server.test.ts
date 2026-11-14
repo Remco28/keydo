@@ -27,13 +27,13 @@ describe("Keydo server", () => {
   test("serves only the approved brand assets with correct types", async () => {
     const server = createServer({ port: 0, todoistToken: "" });
     try {
-      for (const [path, type] of [["/assets/keydo-logo.png", "image/png"], ["/assets/favicon.png", "image/png"], ["/favicon.ico", "image/x-icon"], ["/assets/app-icon-192.png", "image/png"], ["/assets/app-icon-512.png", "image/png"]]) {
+      for (const [path, type] of [["/assets/keydo-logo.png", "image/png"], ["/assets/favicon.png", "image/png"], ["/favicon.ico", "image/x-icon"], ["/assets/app-icon-192.png", "image/png"], ["/assets/app-icon-512.png", "image/png"], ["/assets/fonts/InterVariable.woff2", "font/woff2"]]) {
         const response = await fetch(new URL(path, server.url));
         expect(response.status).toBe(200);
         expect(response.headers.get("Content-Type")).toBe(type);
         expect(response.headers.get("X-Content-Type-Options")).toBe("nosniff");
         const bytes = new Uint8Array(await response.arrayBuffer());
-        expect([...bytes.slice(0, 4)]).toEqual(type === "image/png" ? [137, 80, 78, 71] : [0, 0, 1, 0]);
+        expect([...bytes.slice(0, 4)]).toEqual(type === "image/png" ? [137, 80, 78, 71] : type === "font/woff2" ? [119, 79, 70, 50] : [0, 0, 1, 0]);
         const head = await fetch(new URL(path, server.url), { method: "HEAD" });
         expect(head.status).toBe(200);
         expect(await head.text()).toBe("");

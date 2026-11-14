@@ -2,18 +2,20 @@
 
 Keydo is a keyboard-first desktop workspace for [Todoist](https://www.todoist.com). Move through your tasks with the arrow keys and act on the selected one with a single key: complete, reschedule, reprioritise, move, nest or reorder it. Todoist stays the system of record. Keydo reads and writes your account directly and stores no task content of its own.
 
-![Keydo's Today view, showing four tasks with the second one selected](docs/images/keydo-today.png)
+![Keydo's Today view: views and projects on the left, the task list in the middle with one task selected, that task's details on the right, and the keys for the list along the bottom](docs/images/keydo-today.png)
 
 ## What it does
 
-- **One key per action.** `Space` completes, `T` / `Shift+T` move to Today / Tomorrow, `D` picks a date, `+` / `-` change priority, `M` moves to a project, `Delete` deletes. `Ctrl+K` opens a command palette, `G` jumps to any view or project, `/` searches everything, `?` lists every shortcut.
+- **One key per action.** `Space` completes, `T` / `Shift+T` move to Today / Tomorrow, `D` picks a date, `+` / `-` change priority, `M` moves to a project, `Delete` deletes. `1` to `5` open the views, `G` goes to any view or project, `/` searches everything, `Ctrl+K` opens a command palette.
 - **Actions keep your place.** Completing or moving a task leaves you in the same view, on the task that took its place, so a list can be worked top to bottom.
-- **Details without dialogs.** `Enter` opens a task's notes, subtasks and images. Each section has its own key, and notes have a live Markdown preview.
+- **The keys are always on screen.** A bar along the bottom shows the keys for wherever the keyboard is, and each keycap presses when you press the real key. `?` opens a map of the whole keyboard.
+- **Details beside the list.** The selected task's notes, subtasks and screenshots show next to the list as you move through it. `Enter` moves the keyboard into them. Each section has its own key, and notes have a live Markdown preview.
 - **Subtasks and structure.** Add, browse and drill into subtasks. In a project view, `Alt+Arrow` indents, outdents and reorders, and `Shift+M` moves a task under any parent.
 - **Screenshots by paste.** Take a screenshot with your operating system's tool, select a task and press `Ctrl+V`. Keydo uploads it to Todoist as a task comment and shows it at full width in the task's details.
-- **Fast and forgiving.** Changes appear instantly and sync to Todoist in the background. Failures roll back with a message. Reopening a parent also reopens the subtasks that were still open when you completed it.
+- **Fast and forgiving.** Changes appear instantly and sync to Todoist in the background. Failures roll back with a message. `Z` takes back a completion, a new date or a new priority. Reopening a parent also reopens the subtasks that were still open when you completed it.
 - **Smart Add.** `N` captures a task with Todoist's natural-language parsing (`Call Alex tomorrow #Launch p1`).
 - **Sorting.** `B` sorts the current view by due date, priority, title, project or date added. Sorting is a display choice and never changes order in Todoist.
+- **Light and dark.** Keydo follows your system's theme until you choose one.
 - **Installable.** Served over HTTPS, Chrome can install Keydo as its own desktop app, with its own window and dock icon.
 
 The full key map is in the [keyboard model](docs/keyboard-model.md).

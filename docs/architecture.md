@@ -4,7 +4,7 @@ Keydo is a web application with a small backend. The backend holds the Todoist c
 
 ```text
 Browser (index.html + src/*.js)
-  ├── task list, detail room, capture, palette, sort and date choosers
+  ├── sidebar, task list, details pane, key bar, capture, palette, sort and date choosers
   ├── in-memory task state, optimistic updates, selection and view rules
   └── clipboard paste → image upload
         │  same-origin JSON API, write lock
@@ -44,7 +44,7 @@ Keydo runs in a desktop browser. It becomes a desktop app by being installable: 
 
 Todoist is the source of truth. The browser keeps an in-memory copy of the synchronized projects, sections, items (tasks), labels, notes (comments and their attachments) and the user's time zone. Only the Sync token is persisted, in session storage; browser storage otherwise holds preferences (each view's sort and the last view).
 
-Writes are optimistic. A local operation stays visibly pending until Todoist confirms it or reports a command-level error, and a failure reverts the change with a message in the status strip.
+Writes are optimistic. A local operation stays visibly pending until Todoist confirms it or reports a command-level error, and a failure reverts the change with a message above the key bar.
 
 Individual actions are applied locally immediately. A short-lived queue may batch multiple mutations into one Todoist Sync request, and repeated edits to the same field may be coalesced. Multi-select operations such as completing several tasks use explicit batch semantics and keep each operation's result.
 

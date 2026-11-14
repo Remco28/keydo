@@ -117,6 +117,20 @@ This log records product and technical decisions as they are made. Proposed deci
 - **Decision:** Keydo stays a web application, made installable: a web app manifest and icons, served over HTTPS through a Tailnet-only Tailscale Serve entry. Chrome installs it as its own window with its own dock icon. Keydo does not get a native shell (Electron, Tauri) and is not rewritten.
 - **Rationale:** The pain was finding Keydo among browser tabs, especially on GNOME, which groups every browser window under one icon. An installed app fixes that with no change to how Keydo works. A native shell would add a global capture hotkey, a tray icon and notifications, at the cost of packaging and a second runtime; none of those are wanted now. A Chrome shortcut window over plain HTTP was rejected as a poor experience.
 
+## D-019: Three panes, a key bar, and colours from the logo
+
+- **Status:** Accepted
+- **Decision:** The interface is three panes that fill the window: views and projects on the left, the task list in the middle, and the selected task's details on the right, with a key bar along the bottom.
+  - **Details follow the cursor.** The details pane always shows the selected task, so reading it needs no key. `Enter` moves the keyboard into the pane; the pane then shows a red line and its key hints, and the list cursor becomes an outline. This replaces the detail room that took over the page.
+  - **The key bar shows the keys for where the keyboard is** (list, details, a selection, an editor, a dialog), and `?` opens a map of the whole keyboard. Every on-screen keycap presses when its real key is pressed. These replace the scattered hint lines and the shortcut list.
+  - **Colours come from the logo:** navy ink, keycap white and key red, in a light and a dark theme that follow the system until one is chosen. Red is the accent and also marks overdue dates and priority 1; focus rings are navy so a focused field never reads as an error. Every design value is a named variable at the top of `index.html`.
+  - **Finishing a task is marked:** the checkbox pops, the title is struck through, the rows below slide up, and the day's count advances. Motion is short (110, 200 and 480 ms) and is skipped when the system asks for reduced motion. Sound is off unless turned on.
+  - **Undo.** `Z` takes back a completion, a new date or a new priority, by running the opposite action. Changes that cannot be reversed faithfully (delete, move, a repeating task, a due time) are not offered.
+  - **New keys:** `1` to `5` for the views, `Z` for undo, `W` for next week and arrow keys for a calendar in the date chooser, `←` to go from a subtask back to its parent.
+  - **Order of the Today view.** Overdue tasks are listed before tasks due today, so the two can carry headings. This is display only, like sorting (D-016).
+  - **The browser keeps its `Ctrl` shortcuts.** Single-letter keys no longer fire with `Ctrl` held, so `Ctrl+C`, `Ctrl+R` and zoom work as they do everywhere else.
+- **Rationale:** The earlier layout was a centred column that left most of a desktop window empty, hid projects behind `G`, and replaced the list with the details. A keyboard-first tool should use the window, show where the keyboard is, and teach its keys in place. The mockup that proposed this was reviewed and approved before it was built.
+
 ## Open decisions
 
 - OAuth: application registration and credential storage

@@ -92,7 +92,7 @@ try {
       if (scenario === "project") {
         await page.keyboard.press("Escape"); await page.keyboard.press("Escape");
         await page.keyboard.press("r"); await page.keyboard.press("Enter");
-        assert.equal(await page.locator("#detail-pane").isVisible(), true);
+        assert.equal(await page.locator("#detail-pane.editing").isVisible(), true);
       }
       const completed = page.waitForResponse(response => response.url().endsWith("/tasks/root") && response.request().postDataJSON().action === "complete");
       if (scenario === "bulk") {
@@ -110,7 +110,7 @@ try {
       if (scenario === "project") {
         // D-017: completing from details returns to the list, and the
         // completed task leaves the project view straight away.
-        await page.locator("#detail-pane").waitFor({ state: "hidden" });
+        await page.locator("#detail-pane.editing").waitFor({ state: "hidden" });
         assert.equal(await page.locator(".task-row").filter({ hasText: "Recovery parent" }).count(), 0);
       }
       await page.locator("[data-view='completed']").click();
@@ -136,7 +136,7 @@ try {
       await parent.waitFor({ state: "hidden" });
       await page.locator("[data-view='today']").click();
       await parent.click(); await page.keyboard.press("Enter");
-      await page.locator("#detail-pane").waitFor({ state: "visible" });
+      await page.locator("#detail-pane.editing").waitFor({ state: "visible" });
       assert.equal(await page.locator("#subtask-list [data-subtask]").count(), 2);
       assert.equal(await page.locator("#subtask-list .done").count(), 0);
       assert.equal(fixture.items.find(item => item.id === "done")!.checked, true);
@@ -144,6 +144,39 @@ try {
       assert.deepEqual(errors, []);
       checks++;
       console.log(`PASS fixture Todoist ${scenario}: created subtasks restore, finished children remain finished`);
+    } finally { await page.close(); server.stop(true); }
+  }
+  // Undo reverses a completion through the same reopen path the Completed view uses.
+  {
+    const fixture = upstream();
+    const server = createServer({ port: 0, hostname: "127.0.0.1", todoistToken: "fixture-token", todoistApiBase: "https://todoist.fixture", fetcher: fixture.fetcher, completionRecoveryPath: ":memory:", trustTailscaleServe: false });
+    const page = await browser.newPage();
+    const errors: string[] = [];
+    page.on("pageerror", error => errors.push(error.message));
+    page.on("request", request => { if (!request.url().startsWith(server.url.origin)) errors.push(`External request ${request.url()}`); });
+    try {
+      await page.goto(server.url.href);
+      await page.locator("#boot-overlay").waitFor({ state: "hidden" });
+      const row = page.locator(".task-row[data-task-id='root']");
+      await row.click();
+      const completed = page.waitForResponse(response => response.url().endsWith("/tasks/root") && response.request().postDataJSON().action === "complete");
+      await page.keyboard.press(" ");
+      assert.equal((await completed).status(), 200);
+      await row.waitFor({ state: "detached" });
+      assert.equal(await page.locator("#toast-undo").getAttribute("hidden"), null, "Undo is offered");
+      const reopened = page.waitForResponse(response => response.url().endsWith("/tasks/root") && response.request().postDataJSON().action === "reopen");
+      await page.keyboard.press("z");
+      assert.equal((await reopened).status(), 200);
+      await row.waitFor();
+      await page.waitForFunction(() => document.querySelector(".task-row[data-task-id='root']")?.getAttribute("aria-current") === "true");
+      assert.deepEqual(fixture.closed, ["root"]);
+      assert.deepEqual(fixture.reopened, ["root"]);
+      assert.equal(fixture.items.find(item => item.id === "root")!.checked, false);
+      await page.keyboard.press("z");
+      await page.waitForFunction(() => document.querySelector("#toast")?.textContent === "Nothing to undo");
+      assert.deepEqual(errors, []);
+      checks++;
+      console.log("PASS fixture Todoist undo: Z reopens the task it just completed, once");
     } finally { await page.close(); server.stop(true); }
   }
   console.log(JSON.stringify({ checks, liveTodoistUsed: false }));

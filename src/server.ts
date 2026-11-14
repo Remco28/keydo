@@ -25,7 +25,9 @@ const brandAssets = new Map([
   // Web app manifest and icons let Chrome install Keydo as its own desktop window.
   ["/manifest.webmanifest", { file: Bun.file(new URL("../assets/manifest.webmanifest", import.meta.url)), type: "application/manifest+json" }],
   ["/assets/app-icon-192.png", { file: Bun.file(new URL("../assets/app-icon-192.png", import.meta.url)), type: "image/png" }],
-  ["/assets/app-icon-512.png", { file: Bun.file(new URL("../assets/app-icon-512.png", import.meta.url)), type: "image/png" }]
+  ["/assets/app-icon-512.png", { file: Bun.file(new URL("../assets/app-icon-512.png", import.meta.url)), type: "image/png" }],
+  // The interface font is bundled so text looks the same on every machine and no request leaves for a font host.
+  ["/assets/fonts/InterVariable.woff2", { file: Bun.file(new URL("../assets/fonts/InterVariable.woff2", import.meta.url)), type: "font/woff2" }]
 ]);
 const taskViewFile = Bun.file(new URL("./task-view.js", import.meta.url));
 const taskActionGateFile = Bun.file(new URL("./task-action-gate.js", import.meta.url));

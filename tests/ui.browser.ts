@@ -66,7 +66,7 @@ try {
 
   await check("header removes placeholder identity and presents quiet grouped task counts", async () => {
     assert.equal(await page.locator(".user-chip, .avatar").count(), 0);
-    assert.doesNotMatch(await page.locator(".topbar").innerText(), /Remco/);
+    assert.doesNotMatch(await page.locator(".side").innerText(), /Remco/);
     const date = await page.locator("#view-eyebrow").innerText();
     assert.doesNotMatch(date, /workspace|Task browser/i);
     assert.match(await page.locator("#view-eyebrow").getAttribute("datetime") || "", /^\d{4}-\d{2}-\d{2}$/);
@@ -99,35 +99,30 @@ try {
     assert.equal(await page.locator(".task-row").first().getAttribute("aria-current"), "true");
   });
 
-  await check("up from the first task returns the scrolled page to the top", async () => {
+  await check("up from the first task returns the list to the top", async () => {
     await page.setViewportSize({ width: 1100, height: 360 });
     await page.locator(".task-row").first().click();
-    await page.evaluate(() => window.scrollTo(0, document.querySelector("#task-list")!.getBoundingClientRect().top + window.scrollY));
-    const scrolledAway = await page.evaluate(() => ({ scrollY: window.scrollY, searchBottom: document.querySelector("#search-input")!.getBoundingClientRect().bottom, pageHeight: document.documentElement.scrollHeight, viewHeight: window.innerHeight }));
-    assert.ok(scrolledAway.scrollY > 40 && scrolledAway.searchBottom < 0, JSON.stringify(scrolledAway));
+    const list = page.locator("#list-scroll");
+    await list.evaluate(element => { element.scrollTop = element.scrollHeight; });
+    assert.ok(await list.evaluate(element => element.scrollTop > 0), "the list is long enough to scroll");
     await page.keyboard.press("ArrowUp");
-    assert.equal(await page.evaluate(() => window.scrollY), 0);
-    assert.ok(await page.evaluate(() => document.querySelector("#search-input")!.getBoundingClientRect().top >= 0));
+    assert.equal(await list.evaluate(element => element.scrollTop), 0);
     assert.equal(await page.locator(".task-row").first().getAttribute("aria-current"), "true");
-    assert.equal(await page.locator("#task-list").evaluate(element => getComputedStyle(element).overflowY), "visible");
+    // Each pane scrolls on its own; the window never does.
+    assert.equal(await page.evaluate(() => window.scrollY), 0);
     await page.setViewportSize({ width: 1440, height: 960 });
   });
 
-  await check("page down from the last task reveals the footer", async () => {
+  await check("page down to the last task brings it fully into view", async () => {
     await page.setViewportSize({ width: 1100, height: 360 });
-    await page.locator(".task-row").last().click();
-    await page.evaluate(() => window.scrollTo(0, 0));
-    const footerCutOff = () => page.evaluate(() => {
-      const footer = document.querySelector(".pane-footer") as HTMLElement;
-      return footer.getBoundingClientRect().bottom > window.innerHeight + 1;
-    });
-    assert.equal(await footerCutOff(), true);
-    await page.keyboard.press("PageDown");
-    assert.equal(await footerCutOff(), false);
+    await page.locator(".task-row").first().click();
+    await page.locator("#list-scroll").evaluate(element => { element.scrollTop = 0; });
+    for (let press = 0; press < 4; press += 1) await page.keyboard.press("PageDown");
     assert.equal(await page.locator(".task-row").last().getAttribute("aria-current"), "true");
     assert.ok(await page.evaluate(() => {
-      const footer = document.querySelector(".pane-footer") as HTMLElement;
-      return footer.getBoundingClientRect().top < window.innerHeight && footer.getBoundingClientRect().bottom > 0;
+      const row = document.querySelector(".task-row.selected")!.getBoundingClientRect();
+      const list = document.querySelector("#list-scroll")!.getBoundingClientRect();
+      return row.top >= list.top && row.bottom <= list.bottom;
     }));
     await page.locator(".task-row").first().click();
     await page.setViewportSize({ width: 1440, height: 960 });
@@ -172,19 +167,19 @@ try {
     await page.locator("#bulk-button").click();
     assert.equal(await page.locator(".task-row.selected").evaluate(element => document.activeElement === element), true);
     await page.keyboard.press("Enter");
-    assert.equal(await page.locator("#detail-pane").isVisible(), true);
+    assert.equal(await page.locator("#detail-pane.editing").isVisible(), true);
     await page.keyboard.press("Escape");
   });
 
-  await check("detail keyboard map is available but collapsed", async () => {
+  await check("the key bar shows the keys for the list, then for details", async () => {
     await page.locator(".task-row").first().focus();
+    assert.equal(await page.locator("#key-context").textContent(), "List");
+    assert.match(await page.locator("#key-list").innerText(), /Complete[\s\S]*Details/);
     await page.keyboard.press("Enter");
-    assert.equal(await page.locator("#detail-pane").isVisible(), true);
-    assert.equal(await page.locator(".detail-shortcuts").getAttribute("open"), null);
+    assert.equal(await page.locator("#detail-pane.editing").isVisible(), true);
+    assert.equal(await page.locator("#key-context").textContent(), "Details");
+    assert.match(await page.locator("#key-list").innerText(), /Title[\s\S]*Notes[\s\S]*Back to list/);
     assert.equal(await page.locator(".preview-column").isVisible(), true);
-    await page.locator(".detail-shortcuts summary").click();
-    assert.equal(await page.locator(".detail-shortcuts").getAttribute("open"), "");
-    await page.locator(".detail-shortcuts summary").click();
     await page.locator("#detail-pane").focus();
     await page.keyboard.press("n");
     assert.equal(await page.locator("#description-editor").evaluate(element => document.activeElement === element), true);
@@ -202,7 +197,7 @@ try {
     await page.locator("#quick-capture").waitFor({ state: "hidden" });
     assert.equal(await page.locator(".task-row.selected").evaluate(element => document.activeElement === element), true);
     await page.keyboard.press("Enter");
-    assert.equal(await page.locator("#detail-pane").isVisible(), true);
+    assert.equal(await page.locator("#detail-pane.editing").isVisible(), true);
     assert.equal(await page.locator("#detail-title-input").inputValue(), "Browser polish check");
     assert.equal(await page.locator("#description-editor").inputValue(), "");
     assert.equal(await page.locator(".preview-column").isVisible(), false);
@@ -314,7 +309,7 @@ try {
     assert.equal(await page.locator(".preview-column").isVisible(), false);
     await page.keyboard.press("Escape");
     await page.keyboard.press("s");
-    assert.equal(await page.locator("#detail-pane").isVisible(), true);
+    assert.equal(await page.locator("#detail-pane.editing").isVisible(), true);
     assert.equal(await page.locator("#subtask-create-input").evaluate(element => document.activeElement === element), true);
     await page.keyboard.press("Escape");
     await page.keyboard.press("Escape");
@@ -343,7 +338,7 @@ try {
       await recoveryPage.locator("[data-view='today']").click();
       await parent.click();
       await recoveryPage.keyboard.press("Enter");
-      await recoveryPage.locator("#detail-pane").waitFor({ state: "visible" });
+      await recoveryPage.locator("#detail-pane.editing").waitFor({ state: "visible" });
       assert.equal(await recoveryPage.locator("#subtask-list [data-subtask]").count(), 2);
       assert.equal(await recoveryPage.locator("#subtask-list .done").count(), 0);
     } finally {
@@ -432,8 +427,9 @@ try {
       }, "image/png");
     });
     await page.locator("#preview-media img").waitFor();
-    assert.equal(await page.locator(".preview-column").isVisible(), true);
-    assert.equal(await page.locator("#toggle-notes-width").isVisible(), false);
+    // Screenshots have their own section, so hiding the text preview never hides them.
+    assert.equal(await page.locator(".preview-column").isVisible(), false);
+    assert.equal(await page.locator("#preview-media img").isVisible(), true);
     await page.waitForFunction(() => {
       const image = document.querySelector("#preview-media img") as HTMLImageElement;
       return image?.complete && image.naturalWidth === 96;
@@ -514,6 +510,122 @@ try {
     await page.keyboard.press("b");
     await page.keyboard.press("p");
     assert.equal(await page.locator("#view-sort-label").innerText(), "Sort: Priority · P1 first");
+  });
+
+  await check("number keys open the views and the sidebar lists projects", async () => {
+    await page.locator("[data-view='today']").click();
+    for (const [key, title] of [["2", "Upcoming"], ["3", "Priority"], ["4", "Inbox"], ["5", "Completed"], ["1", "Today"]]) {
+      await page.keyboard.press(key!);
+      assert.equal(await page.locator("#view-title").innerText(), title);
+      assert.equal(await page.locator(".view-switcher .nav-item.active").getAttribute("data-view"), title!.toLowerCase());
+    }
+    await page.locator("#nav-projects [data-project='Personal']").click();
+    assert.equal(await page.locator("#view-title").innerText(), "Personal");
+    assert.equal(await page.locator("#nav-projects .nav-item.active").innerText().then(text => text.includes("Personal")), true);
+    assert.equal(await page.locator(".view-switcher .nav-item.active").count(), 0);
+    await page.keyboard.press("1");
+    assert.match(await page.title(), /^Today · \d+ — Keydo$/);
+  });
+
+  await check("the on-screen keycap presses with the real key", async () => {
+    await page.locator(".task-row").first().click();
+    await page.keyboard.down("ArrowDown");
+    await page.locator("#key-list kbd.pressed").waitFor();
+    assert.match(await page.locator("#key-list kbd.pressed").getAttribute("data-k") ?? "", /↓/);
+    await page.keyboard.up("ArrowDown");
+    await page.locator("#key-list kbd.pressed").waitFor({ state: "detached" });
+  });
+
+  await check("Z takes back a new priority, a new date and a completion", async () => {
+    await page.keyboard.press("n");
+    await page.locator("#capture-input").fill("Undo check today");
+    await page.keyboard.press("Enter");
+    await page.locator("#quick-capture").waitFor({ state: "hidden" });
+    const id = await page.locator(".task-row.selected").getAttribute("data-task-id");
+    const row = page.locator(`.task-row[data-task-id='${id}']`);
+    const today = await page.locator("#detail-due-date").inputValue();
+    assert.match(today, /^\d{4}-\d{2}-\d{2}$/);
+    const undo = async () => { await page.keyboard.press("z"); };
+
+    await page.keyboard.press("+");
+    assert.match(await row.locator(".complete-button").getAttribute("class") ?? "", /\bp2\b/);
+    assert.equal(await page.locator("#toast-undo").isVisible(), true);
+    await undo();
+    await page.waitForFunction(taskId => document.querySelector(`.task-row[data-task-id='${taskId}'] .complete-button`)?.classList.contains("p1"), id);
+
+    await page.keyboard.press("Shift+T");
+    await row.waitFor({ state: "detached" });
+    await undo();
+    await row.waitFor();
+    await page.waitForFunction(taskId => document.querySelector(`.task-row[data-task-id='${taskId}']`)?.getAttribute("aria-current") === "true", id);
+    assert.equal(await page.locator("#detail-due-date").inputValue(), today);
+
+    await page.keyboard.press(" ");
+    await row.waitFor({ state: "detached" });
+    assert.equal(await page.locator("#day-ring .num").innerText().then(text => text.startsWith("1 of")), true);
+    await undo();
+    await row.waitFor();
+    await page.waitForFunction(taskId => document.querySelector(`.task-row[data-task-id='${taskId}']`)?.getAttribute("aria-current") === "true", id);
+    assert.equal(await page.locator("#day-ring .num").innerText().then(text => text.startsWith("0 of")), true);
+    await undo();
+    assert.equal(await page.locator("#toast").innerText(), "Nothing to undo");
+  });
+
+  await check("the date chooser has a next-week key and a calendar the arrows walk", async () => {
+    await page.keyboard.press("r");
+    const shifted = (key: string, days: number) => page.evaluate(([from, by]) => {
+      const date = new Date(`${from}T00:00:00Z`);
+      date.setUTCDate(date.getUTCDate() + (by as number));
+      return date.toISOString().slice(0, 10);
+    }, [key, days]);
+    const today = await page.locator("#detail-due-date").inputValue();
+    await page.keyboard.press("d");
+    assert.equal(await page.locator("#due-calendar .is-today").getAttribute("data-cal-date"), today);
+    await page.keyboard.press("d");
+    assert.equal(await page.locator("#due-specific-input").evaluate(element => document.activeElement === element), true);
+    assert.equal(await page.locator("#key-context").textContent(), "Calendar");
+    await page.keyboard.press("ArrowRight");
+    await page.keyboard.press("ArrowDown");
+    const picked = await shifted(today, 8);
+    assert.equal(await page.locator("#due-specific-input").inputValue(), picked);
+    assert.equal(await page.locator("#due-calendar .is-picked").getAttribute("data-cal-date"), picked);
+    await page.keyboard.press("Enter");
+    await page.waitForFunction(value => (document.querySelector("#detail-due-date") as HTMLInputElement).value === value, picked);
+    await page.keyboard.press("d");
+    await page.keyboard.press("w");
+    await page.waitForFunction(value => (document.querySelector("#detail-due-date") as HTMLInputElement).value !== value, picked);
+    const nextWeek = await page.locator("#detail-due-date").inputValue();
+    assert.equal(new Date(`${nextWeek}T00:00:00Z`).getUTCDay(), 1, "next week is a Monday");
+    assert.ok(nextWeek > today && nextWeek <= await shifted(today, 7));
+    await page.keyboard.press("d");
+    await page.locator(`#due-calendar [data-cal-date='${today}']`).click();
+    await page.waitForFunction(value => (document.querySelector("#detail-due-date") as HTMLInputElement).value === value, today);
+    await page.keyboard.press("1");
+  });
+
+  await check("the keyboard map opens on ? and shows the keys for a list and for details", async () => {
+    await page.keyboard.press("?");
+    assert.equal(await page.locator("#help-backdrop").isVisible(), true);
+    assert.equal(await page.locator(".map-key[data-k='Space'] em").innerText(), "Complete");
+    assert.equal(await page.locator(".map-key[data-k='T'] em").innerText(), "Today");
+    await page.keyboard.press("ArrowRight");
+    assert.equal(await page.locator(".map-key[data-k='T'] em").innerText(), "Title");
+    await noOverflow(page);
+    await page.keyboard.press("?");
+    assert.equal(await page.locator("#help-backdrop").isVisible(), false);
+  });
+
+  await check("the theme switch is remembered and the logo stays readable in the dark", async () => {
+    await page.locator("#theme-button").click();
+    assert.equal(await page.evaluate(() => document.documentElement.dataset.theme), "dark");
+    assert.equal(await page.evaluate(() => localStorage.getItem("keydo.theme.v1")), "dark");
+    assert.equal(await page.locator(".brand-word").isVisible(), true);
+    await page.reload();
+    await page.locator("#boot-overlay").waitFor({ state: "hidden" });
+    assert.equal(await page.evaluate(() => document.documentElement.dataset.theme), "dark");
+    await page.locator("#theme-button").click();
+    assert.equal(await page.evaluate(() => document.documentElement.dataset.theme), "light");
+    assert.equal(await page.locator(".brand-word").isVisible(), false);
   });
 
   await check("DOM IDs and runtime are clean", async () => {

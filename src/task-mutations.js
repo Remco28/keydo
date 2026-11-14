@@ -286,6 +286,7 @@ export function applyTodoistProjectDelta(projectsById, tasks, selectedProjectId,
   if (Object.hasOwn(project, "order_key")) next.orderKey = typeof project.order_key === "string" ? project.order_key : null;
   if (Object.hasOwn(project, "child_order")) next.childOrder = typeof project.child_order === "number" ? project.child_order : null;
   if (Object.hasOwn(project, "parent_id")) next.parentId = project.parent_id ?? null;
+  if (typeof project.color === "string") next.color = project.color;
   projectsById.set(project.id, next);
   for (const task of tasks) {
     if (task.projectId === project.id) {
@@ -326,7 +327,9 @@ export function reconcileTodoistProjectSnapshot(previousProjectsById, selectedPr
       name: project.name,
       orderKey: typeof project.order_key === "string" ? project.order_key : null,
       childOrder: typeof project.child_order === "number" ? project.child_order : null,
-      parentId: project.parent_id ?? null
+      parentId: project.parent_id ?? null,
+      // Todoist's colour name, kept only when present; the sidebar shows it as a dot.
+      ...(typeof project.color === "string" ? { color: project.color } : {})
     }]));
   // Name the project from the id that is kept, so a project restored at boot
   // (empty previous map) is not labelled "Inbox".

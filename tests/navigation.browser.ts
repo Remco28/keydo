@@ -111,7 +111,7 @@ try {
       assert.ok(parent, "Launch plan needs a parent task");
       await selectRow(page, parent);
       await page.keyboard.press("Enter");
-      await page.locator("#detail-pane").waitFor({ state: "visible" });
+      await page.locator("#detail-pane.editing").waitFor({ state: "visible" });
       await page.keyboard.press("Shift+S");
       const child = await page.locator("#subtask-list [data-subtask]:not(.done)").first().getAttribute("data-subtask");
       assert.ok(child);
@@ -119,13 +119,13 @@ try {
       await page.keyboard.press("Enter");
       assert.equal(await page.locator("#detail-title").innerText(), await page.evaluate(id => document.querySelector(`.task-row[data-task-id='${id}'] .task-title`)?.textContent ?? "", child));
       await page.keyboard.press("c");
-      assert.equal(await page.locator("#detail-pane").isVisible(), true, "stays in details");
+      assert.equal(await page.locator("#detail-pane.editing").isVisible(), true, "stays in details");
       assert.equal(await selectedId(page), parent, "back on the parent");
       assert.equal(await page.locator(`#subtask-list [data-subtask='${child}']`).getAttribute("class").then(value => value?.includes("done")), true);
 
       const parentIndex = before.indexOf(parent);
       await page.keyboard.press("c");
-      await page.locator("#detail-pane").waitFor({ state: "hidden" });
+      await page.locator("#detail-pane.editing").waitFor({ state: "hidden" });
       const after = await rowIds(page);
       assert.ok(!after.includes(parent), "a completed task leaves the project view");
       assert.equal(await viewTitle(page), "Launch plan");
